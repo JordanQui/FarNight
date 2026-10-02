@@ -88,7 +88,6 @@ const TOUCHSTONES = [
 const touchstoneFields = computed(() => TOUCHSTONES.map(({ key, id }) => ({
   key,
   label: t(`admission.${id}`),
-  placeholder: t(`admission.${id}_ph`),
   hint: t(`admission.${id}_hint`),
 })))
 
@@ -358,11 +357,11 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
           <div v-else-if="step === 1" class="relative space-y-5">
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.hometown') }}</span>
-              <input v-model="form.hometown" type="text" class="field" :placeholder="t('admission.hometown_ph')">
+              <input v-model="form.hometown" type="text" class="field">
             </label>
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.current_city') }}</span>
-              <input v-model="form.currentCity" type="text" class="field" :placeholder="t('admission.current_city_ph')">
+              <input v-model="form.currentCity" type="text" class="field">
               <span class="field-hint">{{ t('admission.current_city_hint') }}</span>
             </label>
           </div>
@@ -383,7 +382,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
                   v-model="form[field.key]"
                   type="text"
                   class="field"
-                  :placeholder="field.placeholder"
                 >
                 <span class="field-hint">{{ field.hint }}</span>
               </label>
@@ -399,11 +397,11 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             <div class="grid grid-cols-2 gap-3">
               <label class="block space-y-2">
                 <span class="field-label">{{ t('admission.anthem_title') }}</span>
-                <input v-model="form.anthemTitle" type="text" class="field" :placeholder="t('admission.anthem_title_ph')">
+                <input v-model="form.anthemTitle" type="text" class="field">
               </label>
               <label class="block space-y-2">
                 <span class="field-label">{{ t('admission.anthem_artist') }}</span>
-                <input v-model="form.anthemArtist" type="text" class="field" :placeholder="t('admission.anthem_artist_ph')">
+                <input v-model="form.anthemArtist" type="text" class="field">
               </label>
             </div>
             <span class="field-hint">{{ t('admission.anthem_hint') }}</span>
@@ -416,7 +414,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             </p>
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.turning1') }}</span>
-              <input v-model="form.turningPoint" type="text" class="field" :placeholder="t('admission.turning1_ph')">
+              <input v-model="form.turningPoint" type="text" class="field">
             </label>
           </div>
 
@@ -429,11 +427,11 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
           <div v-else-if="step === 4" class="relative space-y-5">
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.keepsake') }}</span>
-              <input v-model="form.keepsake" type="text" class="field" :placeholder="t('admission.keepsake_ph')">
+              <input v-model="form.keepsake" type="text" class="field">
             </label>
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.refuge') }}</span>
-              <input v-model="form.refuge" type="text" class="field" :placeholder="t('admission.refuge_ph')">
+              <input v-model="form.refuge" type="text" class="field">
             </label>
             <label class="block space-y-2">
               <span class="field-label">
@@ -443,7 +441,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             </label>
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.aversion') }}</span>
-              <input v-model="form.aversion" type="text" class="field" :placeholder="t('admission.aversion_ph')">
+              <input v-model="form.aversion" type="text" class="field">
             </label>
           </div>
 
