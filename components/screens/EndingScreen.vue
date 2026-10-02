@@ -38,8 +38,8 @@ onMounted(async () => {
           kind: o.kind,
           color: o.color,
         })),
-        // L'aube l'a rattrapé avant le dernier lieu : la fin ne racontera pas
-        // un geste qu'il n'a pas eu le temps de faire.
+        // Il s'est endormi avant le dernier lieu : la fin raconte son sommeil,
+        // pas un geste qu'il n'a pas eu le temps de faire.
         dawn: gameStore.dawnBroke,
       },
     })
@@ -71,14 +71,13 @@ onMounted(async () => {
 /**
  * L'image de l'aube, emportée comme récompense.
  *
- * Seulement si la nuit a été menée à son terme : quand l'aube l'a rattrapé,
- * il n'y a rien à garder. L'image arrive en data URL (gpt-image ne renvoie que
+ * Aussi quand il s'est endormi : c'est le matin où il s'est réveillé. L'image arrive en data URL (gpt-image ne renvoie que
  * du base64) ; on la repasse par un Blob, sinon certains navigateurs refusent
  * de télécharger une URL de plusieurs mégaoctets. Sur mobile, la feuille de
  * partage permet de l'enregistrer dans la photothèque, ce qu'un téléchargement
  * n'offre pas sur iOS.
  */
-const canDownload = computed(() => !!image.value && !!ending.value && !error.value && !gameStore.dawnBroke)
+const canDownload = computed(() => !!image.value && !!ending.value && !error.value)
 
 async function downloadImage() {
   if (!image.value) return
@@ -118,16 +117,16 @@ async function downloadImage() {
 
     <div class="sheet">
       <p v-if="error" class="text-neon-300 font-mono text-sm">{{ error }}</p>
-      <!-- L'aube l'a rattrapé : ça se dit d'abord, en clair, avant le texte
-           généré — la fin ne doit pas pouvoir se lire comme une réussite. -->
+      <!-- L'aube l'a rattrapé : il s'est endormi. Ça se dit d'abord, en clair,
+           au-dessus du texte généré — une autre sortie, pas une défaite. -->
       <p
         v-if="gameStore.dawnBroke && ending && !error"
         class="mb-6 text-center font-display uppercase tracking-[0.24em] text-[12px] text-neon-300"
-      >{{ t('night.failed_title') }}</p>
+      >{{ t('night.asleep_title') }}</p>
       <!-- Réduit aux balises <h2> <p> <em> <strong> par le serveur. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <article v-else-if="ending" class="prose" v-html="ending.ending_html" />
-      <p v-else class="text-ink-200/70 font-mono text-sm animate-pulse">
+      <article v-if="ending" class="prose" v-html="ending.ending_html" />
+      <p v-else-if="!error" class="text-ink-200/70 font-mono text-sm animate-pulse">
         {{ t('game.dawn') }}
       </p>
 

@@ -3,7 +3,8 @@
  *
  * Trois nombres, trois rôles distincts :
  *  - moolank (मूलांक), « nombre psychique » : réduction du JOUR de naissance.
- *    C'est la manière d'agir.
+ *    C'est ce que la nuit oppose au joueur : le terrain de ses situations,
+ *    jamais sa manière d'agir — le joueur reste libre de ses gestes.
  *  - bhagyank (भाग्यांक), « nombre de destinée » : réduction de la date ENTIÈRE.
  *    C'est la forme que prend l'objectif.
  *  - namank, « nombre du nom » : valeur chaldéenne des lettres du PRÉNOM —
@@ -36,7 +37,7 @@ const CHALDEAN: Record<string, number> = {
 }
 
 export interface NumerologyProfile {
-  /** Manière d'agir. Réduction du jour de naissance. */
+  /** Ce que la nuit oppose au joueur. Réduction du jour de naissance. */
   moolank: number
   /** Forme de l'objectif. Réduction de la date entière. */
   bhagyank: number | null

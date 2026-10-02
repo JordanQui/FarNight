@@ -41,7 +41,7 @@ const NATURE: Record<string, string> = {
   'objet-clé': 'Objet-clé',
 }
 
-const FACET: Record<string, string> = { drive: 'Manière d’agir', reception: 'Accueil du monde', destiny: 'Forme de l’objectif' }
+const FACET: Record<string, string> = { terrain: 'Ce que la nuit oppose', reception: 'Accueil du monde', destiny: 'Forme de l’objectif' }
 
 const scenesById = computed(() => new Map((data.value?.scenes ?? []).map(s => [s.id, s])))
 const titleOf = (id: string | null) => {
@@ -432,11 +432,11 @@ const NAV = [
               <p class="text-ink-200/80 leading-relaxed">Donne la <strong class="text-ink-100">tension</strong> et la <strong class="text-ink-100">résolution</strong> : le but de la nuit, ce que les lieux font traverser, et la fin.</p>
             </div>
             <div class="border border-steel-600/60 p-4 space-y-1.5">
-              <p class="font-display text-[10px] uppercase tracking-[0.18em] text-ink-100">Prénom et nom → nombres</p>
+              <p class="font-display text-[10px] uppercase tracking-[0.18em] text-ink-100">Date de naissance et nom → nombres</p>
               <p class="text-ink-200/80 leading-relaxed">
                 Chaque acte est gouverné par une facette :
                 <span v-for="(ch, i) in chapters.slice(1, 4)" :key="ch.id">{{ i ? ', ' : '' }}{{ ch.title }} → {{ facetOf(ch.scenes) }}</span>.
-                La manière d’agir choisit aussi le porteur de l’augmentation.
+                Ce que la nuit oppose au joueur choisit aussi le porteur de l’augmentation. Aucun nombre ne dicte ses gestes.
               </p>
             </div>
             <div class="border border-steel-600/60 p-4 space-y-1.5">
@@ -466,13 +466,13 @@ const NAV = [
             </div>
           </details>
           <details class="text-xs">
-            <summary class="cursor-pointer text-steel-400 hover:text-neon-300">Les nombres — manière d’agir, objectif, accueil, héritage</summary>
+            <summary class="cursor-pointer text-steel-400 hover:text-neon-300">Les nombres — ce que la nuit oppose, objectif, accueil, héritage</summary>
             <div class="overflow-x-auto pt-3">
               <table class="w-full border-collapse">
                 <thead>
                   <tr class="text-steel-400 text-[10px] uppercase tracking-[0.14em]">
                     <th class="text-left py-2 pr-3 font-normal">N</th>
-                    <th class="text-left py-2 pr-3 font-normal">{{ FACET.drive }}</th>
+                    <th class="text-left py-2 pr-3 font-normal">{{ FACET.terrain }}</th>
                     <th class="text-left py-2 pr-3 font-normal">{{ FACET.destiny }}</th>
                     <th class="text-left py-2 pr-3 font-normal">{{ FACET.reception }}</th>
                     <th class="text-left py-2 font-normal">Héritage</th>
@@ -481,7 +481,7 @@ const NAV = [
                 <tbody>
                   <tr v-for="nb in data.dossier.numbers" :key="nb.n" class="border-t border-steel-700/60 align-top text-ink-200/85">
                     <td class="py-2 pr-3 text-neon-300/90">{{ nb.n }}</td>
-                    <td class="py-2 pr-3 leading-relaxed">{{ nb.drive }}</td>
+                    <td class="py-2 pr-3 leading-relaxed">{{ nb.terrain }}</td>
                     <td class="py-2 pr-3 leading-relaxed">{{ nb.destiny }}</td>
                     <td class="py-2 pr-3 leading-relaxed">{{ nb.reception }}</td>
                     <td class="py-2 leading-relaxed">{{ nb.heritage }}</td>

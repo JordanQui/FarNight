@@ -186,17 +186,18 @@ export const DECK: Storylet[] = [
   },
   {
     id: 'fermeture',
-    note: 'la nuit se referme : toute la scène passée sans obtenir ce qu\'il fallait',
+    note: 'la nuit se referme : dix tours dans la scène sans en sortir',
     // Juste après le canal '#', et avant tout le reste : au tour de la
     // fermeture, plus rien d'autre ne peut arriver — ni relance vers la porte,
-    // ni réponse d'oracle. La seule exception est la remise, qui la précède
-    // dans la logique sinon dans l'ordre : voir `remiseImminente`.
-    when: q => q.sceneHasKeyItem
-      && !q.hasKeyItem
-      && !q.pendingKeyItem
-      && q.failureAtTurn > 0
+    // ni réponse d'oracle. Même règle que le serveur (`scene_turns`) : l'objet
+    // en poche n'y change rien, on ne tourne pas en rond indéfiniment. Deux
+    // exceptions : la remise imminente (voir `remiseImminente`), et le joueur
+    // qui pousse une porte prête à s'ouvrir à ce tour-là.
+    when: q => q.failureAtTurn > 0
       // +1 : le tour qu'on s'apprête à jouer est celui de trop.
       && q.turn + 1 >= q.failureAtTurn
+      && !q.pendingKeyItem
+      && !(q.mentionsExit && (q.sceneHasKeyItem ? q.hasKeyItem : q.turn >= q.exitOpensAtTurn))
       && !remiseImminente(q),
     play: { kind: 'local', say: 'game_over' },
   },

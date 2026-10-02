@@ -88,7 +88,7 @@ export interface SceneKeyItem {
    * Son nom propre.
    *
    * À l'auberge, c'est une désignation soudée en PascalCase — « FocaleBraise » —
-   * dérivée de la manière d'agir du joueur et de la tension de son signe. Le
+   * dérivée de ce que la nuit oppose au joueur et de la tension de son signe. Le
    * récit la prononce dès l'ouverture, brouillée : le joueur la voit sans
    * pouvoir la lire, et c'est la démonstration de ce qui lui manque.
    */
@@ -122,7 +122,8 @@ export interface SceneKeyItem {
    *
    * Déchiffrer n'est pas un but : c'est le moyen. Cet acte est ce que
    * l'augmentation rend possible et ce qui règle ce qui doit l'être — généré
-   * pour ce joueur-là, d'après sa manière d'agir et la tension de son signe.
+   * pour ce joueur-là, d'après ce que la nuit lui oppose et la tension de son
+   * signe. C'est une possibilité, jamais une conduite imposée.
    */
   resolving_action?: string
   /** Nombre d'échanges avec le détenteur avant la remise. */
@@ -462,7 +463,7 @@ export interface PlayerTheme {
   sign: { key: string; name: string; element: string; tension: string; resolution: string; adventure: string } | null
   /** Nombres indiens et ce qu'ils portent. Chaque facette peut manquer. */
   numbers: {
-    drive: string | null
+    terrain: string | null
     destiny: string | null
     reception: string | null
     /** Ce que son nom de famille traîne, avant qu'il ait parlé. */

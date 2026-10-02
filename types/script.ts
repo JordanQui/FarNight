@@ -213,6 +213,8 @@ export interface Continuity {
 
 export interface ScriptDefaults {
   continuity: Continuity
+  /** Jamais d'agressivité envers le joueur, toujours une issue : injecté dans chaque prompt système. */
+  player_care: { note?: string; instruction: string }
   /** L'horloge de la nuit, et l'épilogue de celui que l'aube a rattrapé. */
   night_clock: import('~/utils/night-clock').NightClockConfig & {
     note?: string
@@ -414,12 +416,12 @@ export interface SceneScript {
   /**
    * Ce qui gouverne la scène côté joueur.
    *
-   * `facet` désigne l'un des trois nombres — manière d'agir, forme de
+   * `facet` désigne l'un des trois nombres — ce que la nuit oppose, forme de
    * l'objectif, accueil du monde — et `axis` dit où en est le joueur entre sa
    * tension et sa résolution. Un acte entier partage sa facette.
    */
   theme_focus?: {
-    facet: 'drive' | 'destiny' | 'reception'
+    facet: 'terrain' | 'destiny' | 'reception'
     facet_label: string
     axis: string
     step: number
@@ -474,8 +476,9 @@ export interface ZodiacScript {
 }
 
 export interface NumerologyNumberScript {
-  /** Manière d'agir — porté par le moolank. */
-  drive: string
+  /** Ce que la nuit oppose au joueur — porté par le moolank. Le terrain,
+   * jamais sa conduite : le joueur reste libre de ses gestes. */
+  terrain: string
   /** Forme concrète de l'objectif — porté par le bhagyank. */
   destiny: string
   /** Façon dont le monde reçoit le joueur — porté par le namank du prénom. */

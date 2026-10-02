@@ -91,9 +91,11 @@ const remaining = computed(() => {
         {{ t('locked.the_end') }}
       </p>
 
+      <!-- Phases de test : un lien qu'on voit, pas un bouton qu'on devine -->
       <button
         v-if="canOverride"
-        class="text-steel-400/60 underline text-[11px] tracking-wide"
+        class="text-neon-400 hover:text-neon-300 underline underline-offset-4 font-display
+               uppercase text-[11px] tracking-[0.18em] transition-colors"
         @click="reopen"
       >
         {{ t('locked.dev_unlock') }}

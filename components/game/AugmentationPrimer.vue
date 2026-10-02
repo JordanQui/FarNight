@@ -45,8 +45,8 @@ const story = computed(() => {
     item_worn: item.worn || f.item_worn,
     item_why: item.why || f.item_why,
     // L'acte que l'augmentation rend possible : c'est le champ le plus
-    // personnel de l'objet — il est taillé sur la manière d'agir du joueur et
-    // sur la tension de son signe — et la fenêtre est le seul endroit où il
+    // personnel de l'objet — il est taillé sur ce que la nuit oppose au joueur
+    // et sur la tension de son signe — et la fenêtre est le seul endroit où il
     // lui est dit en clair.
     item_action: item.resolving_action || f.item_action,
   }

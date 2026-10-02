@@ -174,19 +174,19 @@ export function resolveTheme(user: UserProfile, script: Script): PlayerTheme | n
 
   const facet = (
     n: number | null | undefined,
-    field: 'drive' | 'destiny' | 'reception' | 'heritage',
+    field: 'terrain' | 'destiny' | 'reception' | 'heritage',
   ) => (n ? table[String(n)]?.[field] ?? null : null)
 
   const sign = key && entry ? { key, ...entry } : null
   const resolved = {
-    drive: facet(numbers?.moolank, 'drive'),
+    terrain: facet(numbers?.moolank, 'terrain'),
     destiny: facet(numbers?.bhagyank, 'destiny'),
     reception: facet(numbers?.namank, 'reception'),
     heritage: facet(numbers?.full_namank, 'heritage'),
   }
 
   const hasNumbers = Boolean(
-    resolved.drive || resolved.destiny || resolved.reception || resolved.heritage)
+    resolved.terrain || resolved.destiny || resolved.reception || resolved.heritage)
   if (!sign && !hasNumbers) return null
   return { sign, numbers: resolved }
 }
@@ -326,7 +326,18 @@ export class SceneRuntime {
    * remplit, et nulle part ailleurs — l'endpoint le lisait cru.
    */
   get systemPrompt(): string {
-    return `${interpolate(this.scene.generation.system_prompt, this.langVars)}\n\n${this.languageBlock}`
+    return `${interpolate(this.scene.generation.system_prompt, this.langVars)}\n\n${this.playerCareBlock}\n\n${this.languageBlock}`
+  }
+
+  /**
+   * Jamais d'agressivité envers le joueur, toujours une issue.
+   *
+   * Une règle absolue, donc dans chaque prompt système — génération, tours,
+   * épilogue — et non scène par scène : un personnage bourru ne doit pas
+   * pouvoir la faire oublier.
+   */
+  private get playerCareBlock(): string {
+    return this.script.defaults.player_care.instruction
   }
 
   /**
@@ -566,7 +577,7 @@ ${JSON.stringify(s.generation.output_schema, null, 2)}`
     if (!frame || !theme?.sign) return theme ? this.describeTheme(theme) : ''
 
     const labels: Record<string, string> = {
-      drive: "sa manière d'agir",
+      terrain: "ce que la nuit lui oppose",
       destiny: "la forme de son objectif",
       reception: "la façon dont le monde le reçoit",
       heritage: "ce que son nom traîne",
@@ -878,7 +889,7 @@ ${list(o.posture)}`
       theme?.sign ? `  - Ce que sa vie lui refuse : ${theme.sign.tension}` : '',
       theme?.sign?.adventure ? `  - L'aventure que son signe réclame : ${theme.sign.adventure}` : '',
       theme?.numbers.destiny ? `  - La forme qu'elle prend : ${theme.numbers.destiny}` : '',
-      theme?.numbers.drive ? `  - Sa manière d'y aller : ${theme.numbers.drive}` : '',
+      theme?.numbers.terrain ? `  - Ce qui lui barre la route : ${theme.numbers.terrain}` : '',
       theme?.numbers.heritage ? `  - Ce que son nom traîne, à démentir en route : ${theme.numbers.heritage}` : '',
     ].filter(Boolean)
     return lines.length ? interpolate(c.instruction, { lines: lines.join('\n') }) : c.fallback
@@ -989,9 +1000,9 @@ Résolution recherchée : ${theme.sign.resolution}`)
     }
 
     const n = theme.numbers
-    if (n.drive || n.destiny || n.reception || n.heritage) {
+    if (n.terrain || n.destiny || n.reception || n.heritage) {
       const lines = [
-        n.drive ? `  - Manière d'agir : ${n.drive}` : '',
+        n.terrain ? `  - Ce que la nuit lui oppose : ${n.terrain}` : '',
         n.destiny ? `  - Forme de l'objectif : ${n.destiny}` : '',
         n.reception ? `  - Accueil du monde : ${n.reception}` : '',
         n.heritage ? `  - Ce que son nom traîne : ${n.heritage}` : '',
@@ -1659,7 +1670,7 @@ ${lines}`)
 
     // La langue ferme le prompt système : c'est la dernière consigne lue, et
     // celle qu'un modèle applique le plus fidèlement.
-    const spoken = `${themed}\n\n${this.languageBlock}`
+    const spoken = `${themed}\n\n${this.playerCareBlock}\n\n${this.languageBlock}`
 
     if (turnCount < t.steer_after_turns) return spoken
 
