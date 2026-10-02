@@ -10,14 +10,14 @@ import {
  * L'horloge de la nuit, côté partie.
  *
  * Tout le calcul est dans `utils/night-clock.ts` ; ici on le branche sur le
- * store et sur le récit : l'heure qui tombe s'écrit au fil, l'aube emporte la
- * partie vers l'épilogue. Aucun appel au modèle — l'horloge ne fait que
+ * store et sur le récit : l'heure qui tombe s'écrit au fil, l'aube l'endort
+ * et la nuit recommencera. Aucun appel au modèle — l'horloge ne fait que
  * compter ce qui en a déjà coûté un.
  */
 export function useNightClock() {
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
-  const { scenes, goTo } = useProgression()
+  const { scenes, fallAsleep } = useProgression()
 
   const config = computed<NightClockConfig | null>(() => playerStore.scene?.pacing?.night_clock ?? null)
 
@@ -45,21 +45,17 @@ export function useNightClock() {
   }
 
   /**
-   * L'aube se lève : la nuit du joueur s'arrête où il est.
+   * L'aube se lève : il s'endort là où il est.
    *
-   * La saisie se ferme le temps qu'on lise la phrase, puis l'épilogue prend
-   * le relais — il sait, par `dawnBroke`, que le dernier lieu n'a pas été
-   * atteint.
+   * La saisie se ferme le temps qu'on lise la phrase, puis la ville ferme un
+   * cycle — au réveil, la nuit repart de son premier lieu. Pas d'épilogue.
    */
   function breakDawn() {
     gameStore.leaveConversation()
     gameStore.setPuzzleOpen(false)
     gameStore.addNarrativeEntry('system', t('night.dawn'))
     gameStore.setPlayingSubState('npc_dialogue')
-    setTimeout(() => {
-      const ending = scenes().find(s => s.kind === 'ending')
-      if (ending) goTo(ending)
-    }, 3200)
+    setTimeout(() => { void fallAsleep() }, 3200)
   }
 
   /**

@@ -177,10 +177,10 @@ export const DECK: Storylet[] = [
   },
   {
     id: 'aube',
-    note: "l'aube s'est levée : plus rien ne se joue, la nuit passe à l'épilogue",
+    note: "l'aube s'est levée : plus rien ne se joue, il s'endort et la nuit recommencera",
     // Juste après le canal '#' : une fois le jour levé, aucune réplique, aucune
     // porte, aucune énigme. Ne se tire qu'au rechargement ou pendant la courte
-    // pause qui précède l'épilogue — l'aube elle-même ferme la saisie.
+    // pause qui précède le sommeil — l'aube elle-même ferme la saisie.
     when: q => q.dawn,
     play: { kind: 'local', say: 'dawn' },
   },

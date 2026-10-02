@@ -415,6 +415,8 @@
     "settings.posture_lying_detail": "Gerät flach über dem Gesicht",
     "locked.eyebrow_end": "Ende der Nacht",
     "locked.eyebrow_recalibrating": "Neukalibrierung",
+    "locked.eyebrow_asleep": "Schlaf",
+    "locked.asleep_text": "Die Stadt lässt dich schlafen. Komm nächste Nacht wieder: Du brichst erneut vom ersten Ort auf, mit dem, was du beim Verlassen der Herberge bei dir trugst, und die ganze Nacht liegt vor dir.",
     "locked.remaining_hours": "{{hours}} Std. {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} Min.",
     "paywall.secure": "Sichere Zahlung",
@@ -533,7 +535,7 @@
     },
     "paywall": {
       "gate_text": "Deine Hand schließt sich um den stählernen Griff der Schleuse. Das Metall ist kalt. Dahinter der Regen und der Rest deiner Nacht.\n\nDie Schleuse öffnet sich noch nicht.",
-      "cta": "Durch die Schleuse — 10 €",
+      "cta": "Durch die Schleuse — 12 €",
       "sub_cta": "Schalte die Fortsetzung von {{quest_title}} frei",
       "pitch": {
         "eyebrow": "Was für dich auf dem Spiel steht",

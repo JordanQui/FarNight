@@ -27,7 +27,7 @@
       "instruction": "RÈGLE ABSOLUE — JAMAIS D'AGRESSIVITÉ ENVERS LE JOUEUR. Elle passe avant toute autre consigne, y compris le caractère d'un personnage.\nLe monde peut être sombre, la nuit dure et un personnage sec, méfiant ou bourru : cette rudesse vise la situation, jamais la personne du joueur.\nINTERDIT, dans la narration comme dans toute réplique : insulter, rabaisser, humilier, menacer le joueur, se moquer de lui, de ce qu'il tape, de ses fautes ou de son profil ; le traiter d'idiot ou de perdu ; lui reprocher de tourner en rond ; le congédier (« dégage », « fiche le camp », « tu me fais perdre mon temps »).\nSi le joueur est grossier, agressif ou tape n'importe quoi, ne rends pas la pareille : le personnage reste calme, élude ou change de sujet, sans sermon et sans rappel à l'ordre.\nTOUJOURS UNE PORTE DE SORTIE. Aucune réponse ne laisse le joueur dans une impasse. Un refus, une méfiance, un silence, un échec laissent toujours une issue concrète à portée : quelqu'un d'autre à qui parler, une chose à examiner, une condition à remplir, une piste à suivre. Le joueur doit toujours pouvoir faire un geste de plus. Cette issue se montre par le monde, jamais par une commande à taper."
     },
     "night_clock": {
-      "note": "L'horloge de la nuit, façon Prince of Persia : l'aube à heure fixe, et chaque geste qui la rapproche. Elle ne tourne qu'à partir de `starts_at_scene` — l'auberge est hors du temps. Seul ce qui COÛTE avance l'horloge : une réplique facturée, une énigme ratée, un endroit fouillé, le trajet d'un lieu au suivant. Regarder, lire un nom, ramasser sont gratuits. À l'aube, la partie passe à l'épilogue, qui reçoit `dawn_ending`. Réglage : 300 minutes (01:00 → 06:00), dont 25 de trajets, laissent ~45 tours facturés sur 6 lieux — un peu plus que la moyenne de 6 par scène, moins que le plafond. C'est la seule mécanique qui fait BAISSER le nombre moyen de tours.",
+      "note": "L'horloge de la nuit, façon Prince of Persia : l'aube à heure fixe, et chaque geste qui la rapproche. Elle ne tourne qu'à partir de `starts_at_scene` — l'auberge est hors du temps. Seul ce qui COÛTE avance l'horloge : une réplique facturée, une énigme ratée, un endroit fouillé, le trajet d'un lieu au suivant. Regarder, lire un nom, ramasser sont gratuits. À l'aube, il s'endort : pas d'épilogue, la ville ferme un cycle (`limits.lock.hours`) et la nuit recommence à `starts_at_scene`, avec ce qu'il portait en quittant l'auberge. Réglage : 300 minutes (01:00 → 06:00), dont 25 de trajets, laissent ~45 tours facturés sur 6 lieux — un peu plus que la moyenne de 6 par scène, moins que le plafond. C'est la seule mécanique qui fait BAISSER le nombre moyen de tours.",
       "starts_at_scene": "a1s1",
       "start": "01:00",
       "dawn": "06:00",
@@ -37,8 +37,7 @@
         "wrong_answer": 10,
         "search": 10
       },
-      "urgent_minutes": 45,
-      "dawn_ending": "IL S'EST ENDORMI. La fatigue l'a pris avant le dernier lieu : le geste vers lequel toute la nuit tendait n'a pas eu lieu, et tu ne l'écris JAMAIS comme accompli. Mais ce n'est pas un échec, c'est une autre sortie — la seule que la ville ne pouvait pas lui vendre : il a dormi. Dans une ville qui ne s'éteint jamais, le sommeil est ce qui reste à soi, et il l'a pris. REMPLACE le premier mouvement : pas d'acte final, mais l'endroit où il s'est assoupi (le dernier lieu du journal, ou le chemin vers le suivant), le sommeil qui vient, puis le réveil dans la lumière du matin. Le journal s'arrête là où il s'est endormi — ne raconte rien au-delà. Le reste se tient comme d'habitude : la nuit relue, ce qu'il emporte (la tension déplacée par ce qu'il a traversé, pas par le geste manqué), puis la lecture — et la lecture peut dire en clair que se reposer n'est pas renoncer. Le ton est doux, jamais un reproche, jamais une consolation appuyée : il s'est endormi, il se réveille, et ce qu'il a traversé reste vrai. N'annonce aucune suite. Dans l'image, le premier plan montre l'endroit où il s'est endormi, baigné par le soleil levant ; aucune figure humaine."
+      "urgent_minutes": 45
     },
     "puzzles": {
       "note": "Une énigme par mécanique d'objet trouvé (voir utils/puzzles.ts). La solution et les indices sont tirés par le JEU à l'assemblage et posés sur les choses que le récit nomme ; le modèle n'écrit que les gestes d'une séquence. `scene_rule` s'ajoute à la section OBJET-CLÉ de la génération, `turn_rules` au prompt de tour de la scène concernée.",
@@ -1574,9 +1573,9 @@
   ],
   "paywall": {
     "gate_text": "Ta main se referme sur la poignée d'acier du sas. Le métal est froid. Derrière, la pluie, et le reste de ta nuit.\n\nLe sas ne s'ouvre pas encore.",
-    "cta": "Franchir le sas — 10 €",
+    "cta": "Franchir le sas — 12 €",
     "sub_cta": "Débloquez la suite de {{quest_title}}",
-    "amount_cents": 1000,
+    "amount_cents": 1200,
     "currency": "EUR",
     "pitch": {
       "eyebrow": "Ce qui se joue pour vous",

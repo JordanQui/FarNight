@@ -416,8 +416,8 @@ export class SceneRuntime {
       price_output_per_1m_usd: this.script.pricing.output_per_1m_usd,
       // L'horloge est la même pour toute la nuit : elle voyage avec chaque
       // scène pour que le client n'ait jamais à la connaître d'avance. La note
-      // et la consigne d'épilogue restent ici — elles parlent au modèle.
-      night_clock: (({ note: _n, dawn_ending: _d, ...clock }) => clock)(this.script.defaults.night_clock),
+      // reste ici.
+      night_clock: (({ note: _n, ...clock }) => clock)(this.script.defaults.night_clock),
     }
   }
 
@@ -484,8 +484,6 @@ export class SceneRuntime {
     user: UserProfile,
     journal: JournalEntry[] = [],
     carried: CarriedItem[] = [],
-    /** L'aube l'a rattrapé avant le dernier lieu : la fin le dit. */
-    dawn = false,
   ): string {
     const s = this.scene
     const theme = resolveTheme(user, this.script)
@@ -507,7 +505,6 @@ ${journal.length ? renderJournal(journal, journal.length) : "Il n'a traversé au
 ${this.describeCarried(carried, true)}
 
 ${this.script.defaults.deep_theme.instruction}
-${dawn ? `\n${this.script.defaults.night_clock.dawn_ending}\n` : ''}
 ${this.describeCounsel()}
 
 DIRECTION ARTISTIQUE

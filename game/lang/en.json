@@ -382,6 +382,8 @@
     "settings.posture_lying_detail": "Device flat above your face",
     "locked.eyebrow_end": "End of the night",
     "locked.eyebrow_recalibrating": "Recalibrating",
+    "locked.eyebrow_asleep": "Sleep",
+    "locked.asleep_text": "The city lets you sleep. Come back next night: you will set out again from the first place, with what you carried when you left the inn, and the whole night ahead of you.",
     "locked.remaining_hours": "{{hours}} h {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Secure payment",
@@ -500,7 +502,7 @@
     },
     "paywall": {
       "gate_text": "Your hand closes on the steel handle of the airlock. The metal is cold. Behind it, the rain, and the rest of your night.\n\nThe airlock does not open yet.",
-      "cta": "Through the airlock — €10",
+      "cta": "Through the airlock — €12",
       "sub_cta": "Unlock the rest of {{quest_title}}",
       "pitch": {
         "eyebrow": "What is at stake for you",

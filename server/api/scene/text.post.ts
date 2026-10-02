@@ -6,7 +6,7 @@ import { ScriptRuntime, loadUserFixture, resolveTheme } from '~/utils/script-run
 import { interpolate } from '~/utils/prompt-builder'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import {
-  assertNotLocked, consumeQuota, lockOut, rememberPosition, forgetPosition,
+  assertNotLocked, consumeQuota, lockOut, rememberPosition, forgetPosition, revokeAccess,
 } from '~/server/utils/session-quota'
 import { mockKey, readMock, writeMock, wantsFresh, scriptFingerprint } from '~/server/utils/dev-mocks'
 import { requestLang } from '~/server/utils/lang'
@@ -30,8 +30,6 @@ export default defineEventHandler(async (event) => {
     journal?: JournalEntry[]
     /** Ce que le joueur porte. La scène doit pouvoir bâtir son puzzle dessus. */
     carried?: CarriedItem[]
-    /** Épilogue seulement : l'aube l'a rattrapé avant le dernier lieu. */
-    dawn?: boolean
   }>(event) ?? {}
 
   // La langue vient du dossier quand il est là, du cookie sinon : c'est elle
@@ -70,7 +68,7 @@ export default defineEventHandler(async (event) => {
   // repayer la même génération à chaque relance. `?fresh=1` la renouvelle.
   // La langue entre dans la clé : deux langues ne partagent pas une scène en
   // cache, sinon le rechargement d'après en servirait une dans l'autre langue.
-  const key = mockKey(scene.id, `${lang}|${user.identity.name}|${user.identity.birthday ?? ''}|${body.journal?.length ?? 0}|${body.carried?.length ?? 0}|${body.dawn ? 'aube' : ''}`, scriptFingerprint(runtime.script))
+  const key = mockKey(scene.id, `${lang}|${user.identity.name}|${user.identity.birthday ?? ''}|${body.journal?.length ?? 0}|${body.carried?.length ?? 0}|`, scriptFingerprint(runtime.script))
   if (import.meta.dev && !wantsFresh(event)) {
     const cached = await readMock<SceneTextResponse>('scene', key)
     if (cached) {
@@ -99,7 +97,7 @@ export default defineEventHandler(async (event) => {
     {
       role: 'user',
       content: isEnding
-        ? scene.buildEndingPrompt(user, body.journal ?? [], body.carried ?? [], body.dawn === true)
+        ? scene.buildEndingPrompt(user, body.journal ?? [], body.carried ?? [])
         : scene.buildGenerationPrompt(user, body.journal ?? [], body.carried ?? []),
     },
   ]
@@ -177,6 +175,8 @@ export default defineEventHandler(async (event) => {
       // Plus rien à reprendre : sans cet oubli, l'accueil proposerait de
       // « continuer » vers un épilogue déjà lu, que le verrou refuserait.
       forgetPosition(event)
+      // La nuit achetée est jouée : rejouer demande un nouveau paiement.
+      revokeAccess(event)
 
       await writeMock('scene', key, assembled)
       return assembled

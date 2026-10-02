@@ -390,6 +390,8 @@
     "settings.posture_lying_detail": "Cihaz yüzünün üstünde düz",
     "locked.eyebrow_end": "Gecenin sonu",
     "locked.eyebrow_recalibrating": "Yeniden ayarlama",
+    "locked.eyebrow_asleep": "Uyku",
+    "locked.asleep_text": "Şehir uyumana izin veriyor. Gelecek gece geri dön: hanı terk ederken üzerinde ne varsa onunla, ilk yerden yeniden yola çıkacaksın ve bütün gece önünde olacak.",
     "locked.remaining_hours": "{{hours}} sa {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} dk",
     "paywall.secure": "Güvenli ödeme",
@@ -508,7 +510,7 @@
     },
     "paywall": {
       "gate_text": "Elin hava kilidinin çelik kolunu kavrar. Metal soğuk. Arkasında yağmur ve gecenin geri kalanı.\n\nHava kilidi henüz açılmıyor.",
-      "cta": "Hava kilidinden geç — 10 €",
+      "cta": "Hava kilidinden geç — 12 €",
       "sub_cta": "{{quest_title}} devamının kilidini aç",
       "pitch": {
         "eyebrow": "Senin için ne söz konusu",

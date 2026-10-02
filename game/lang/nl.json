@@ -393,6 +393,8 @@
     "settings.posture_lying_detail": "Apparaat plat boven je gezicht",
     "locked.eyebrow_end": "Einde van de nacht",
     "locked.eyebrow_recalibrating": "Herkalibratie",
+    "locked.eyebrow_asleep": "Slaap",
+    "locked.asleep_text": "De stad laat je slapen. Kom de volgende nacht terug: je vertrekt opnieuw vanaf de eerste plek, met wat je bij je had toen je de herberg verliet, en de hele nacht voor je.",
     "locked.remaining_hours": "{{hours}} u {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Veilige betaling",
@@ -511,7 +513,7 @@
     },
     "paywall": {
       "gate_text": "Je hand sluit zich om de stalen hendel van de sluis. Het metaal is koud. Erachter de regen, en de rest van je nacht.\n\nDe sluis gaat nog niet open.",
-      "cta": "Door de sluis — € 10",
+      "cta": "Door de sluis — € 12",
       "sub_cta": "Ontgrendel het vervolg van {{quest_title}}",
       "pitch": {
         "eyebrow": "Wat er voor jou op het spel staat",

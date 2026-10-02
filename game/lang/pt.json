@@ -424,6 +424,8 @@
     "settings.posture_lying_detail": "Aparelho na horizontal acima do rosto",
     "locked.eyebrow_end": "Fim da noite",
     "locked.eyebrow_recalibrating": "Recalibragem",
+    "locked.eyebrow_asleep": "Sono",
+    "locked.asleep_text": "A cidade deixa-te dormir. Volta na próxima noite: partirás de novo do primeiro lugar, com o que levavas ao sair da estalagem, e a noite inteira pela frente.",
     "locked.remaining_hours": "{{hours}} h {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Pagamento seguro",
@@ -542,7 +544,7 @@
     },
     "paywall": {
       "gate_text": "Sua mão se fecha sobre a alavanca de aço da comporta. O metal está frio. Atrás dela, a chuva e o resto da sua noite.\n\nA comporta ainda não se abre.",
-      "cta": "Atravessar a comporta — 10 €",
+      "cta": "Atravessar a comporta — 12 €",
       "sub_cta": "Desbloqueie a continuação de {{quest_title}}",
       "pitch": {
         "eyebrow": "O que está em jogo para você",

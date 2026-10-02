@@ -215,10 +215,9 @@ export interface ScriptDefaults {
   continuity: Continuity
   /** Jamais d'agressivité envers le joueur, toujours une issue : injecté dans chaque prompt système. */
   player_care: { note?: string; instruction: string }
-  /** L'horloge de la nuit, et l'épilogue de celui que l'aube a rattrapé. */
+  /** L'horloge de la nuit. À l'aube il s'endort : pas d'épilogue, la nuit recommence. */
   night_clock: import('~/utils/night-clock').NightClockConfig & {
     note?: string
-    dawn_ending: string
   }
   /** Ce que les personnages ont le droit de dire d'une énigme, par nature. */
   puzzles: { note?: string; turn_rules: Record<import('~/types/scene').PuzzleKind, string>; scene_rule: string }

@@ -38,9 +38,6 @@ onMounted(async () => {
           kind: o.kind,
           color: o.color,
         })),
-        // Il s'est endormi avant le dernier lieu : la fin raconte son sommeil,
-        // pas un geste qu'il n'a pas eu le temps de faire.
-        dawn: gameStore.dawnBroke,
       },
     })
     // L'aube a sa propre palette : l'interface la prend aussi.
@@ -71,8 +68,7 @@ onMounted(async () => {
 /**
  * L'image de l'aube, emportée comme récompense.
  *
- * Aussi quand il s'est endormi : c'est le matin où il s'est réveillé. L'image arrive en data URL (gpt-image ne renvoie que
- * du base64) ; on la repasse par un Blob, sinon certains navigateurs refusent
+ * L'image arrive en data URL (gpt-image ne renvoie que du base64) ; on la repasse par un Blob, sinon certains navigateurs refusent
  * de télécharger une URL de plusieurs mégaoctets. Sur mobile, la feuille de
  * partage permet de l'enregistrer dans la photothèque, ce qu'un téléchargement
  * n'offre pas sur iOS.
@@ -117,12 +113,6 @@ async function downloadImage() {
 
     <div class="sheet">
       <p v-if="error" class="text-neon-300 font-mono text-sm">{{ error }}</p>
-      <!-- L'aube l'a rattrapé : il s'est endormi. Ça se dit d'abord, en clair,
-           au-dessus du texte généré — une autre sortie, pas une défaite. -->
-      <p
-        v-if="gameStore.dawnBroke && ending && !error"
-        class="mb-6 text-center font-display uppercase tracking-[0.24em] text-[12px] text-neon-300"
-      >{{ t('night.asleep_title') }}</p>
       <!-- Réduit aux balises <h2> <p> <em> <strong> par le serveur. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <article v-if="ending" class="prose" v-html="ending.ending_html" />

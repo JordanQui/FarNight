@@ -12,7 +12,7 @@ onMounted(async () => {
     const access = await $fetch<{
       active: boolean
       expiresAt?: number
-      lock: { until: number; reason: 'stalled' | 'completed'; text?: string } | null
+      lock: { until: number; reason: 'stalled' | 'completed' | 'asleep'; text?: string } | null
       resume: { sceneId: string; index: number } | null
     }>('/api/access')
     paymentStore.setAccess(access.active, access.expiresAt ?? null)

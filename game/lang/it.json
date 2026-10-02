@@ -436,6 +436,8 @@
     "settings.posture_lying_detail": "Apparecchio piatto sopra il viso",
     "locked.eyebrow_end": "Fine della notte",
     "locked.eyebrow_recalibrating": "Ricalibratura",
+    "locked.eyebrow_asleep": "Sonno",
+    "locked.asleep_text": "La città ti lascia dormire. Torna la notte prossima: ripartirai dal primo luogo, con ciò che portavi lasciando la locanda, e tutta la notte davanti a te.",
     "locked.remaining_hours": "{{hours}} h {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Pagamento sicuro",
@@ -554,7 +556,7 @@
     },
     "paywall": {
       "gate_text": "La tua mano si chiude sulla maniglia d'acciaio della paratia. Il metallo è freddo. Dietro, la pioggia e il resto della tua notte.\n\nLa paratia non si apre ancora.",
-      "cta": "Varcare la paratia — 10 €",
+      "cta": "Varcare la paratia — 12 €",
       "sub_cta": "Sblocca il seguito di {{quest_title}}",
       "pitch": {
         "eyebrow": "Quello che è in gioco per te",

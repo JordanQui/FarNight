@@ -429,6 +429,8 @@
     "settings.posture_lying_detail": "Aparato plano sobre la cara",
     "locked.eyebrow_end": "Fin de la noche",
     "locked.eyebrow_recalibrating": "Recalibrado",
+    "locked.eyebrow_asleep": "Sueño",
+    "locked.asleep_text": "La ciudad te deja dormir. Vuelve la próxima noche: saldrás de nuevo desde el primer lugar, con lo que llevabas al dejar la posada, y toda la noche por delante.",
     "locked.remaining_hours": "{{hours}} h {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Pago seguro",
@@ -547,7 +549,7 @@
     },
     "paywall": {
       "gate_text": "Tu mano se cierra sobre el asa de acero de la esclusa. El metal está frío. Detrás, la lluvia y el resto de tu noche.\n\nLa esclusa todavía no se abre.",
-      "cta": "Cruzar la esclusa — 10 €",
+      "cta": "Cruzar la esclusa — 12 €",
       "sub_cta": "Desbloquea la continuación de {{quest_title}}",
       "pitch": {
         "eyebrow": "Lo que está en juego para ti",

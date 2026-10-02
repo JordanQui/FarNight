@@ -369,6 +369,8 @@
     "settings.posture_lying_detail": "Thiết bị nằm ngang trên mặt",
     "locked.eyebrow_end": "Hết đêm",
     "locked.eyebrow_recalibrating": "Hiệu chỉnh lại",
+    "locked.eyebrow_asleep": "Giấc ngủ",
+    "locked.asleep_text": "Thành phố để bạn ngủ. Hãy quay lại vào đêm tới: bạn sẽ khởi hành lại từ nơi đầu tiên, với những gì mang theo khi rời quán trọ, và cả một đêm phía trước.",
     "locked.remaining_hours": "{{hours}} g {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} phút",
     "paywall.secure": "Thanh toán an toàn",
@@ -487,7 +489,7 @@
     },
     "paywall": {
       "gate_text": "Tay bạn siết lấy cần thép của khoang khí. Kim loại lạnh ngắt. Phía sau nó là mưa, và phần còn lại của đêm bạn.\n\nKhoang khí vẫn chưa mở.",
-      "cta": "Qua khoang khí — 10 €",
+      "cta": "Qua khoang khí — 12 €",
       "sub_cta": "Mở khoá phần tiếp theo của {{quest_title}}",
       "pitch": {
         "eyebrow": "Điều gì đang được đặt cược cho bạn",

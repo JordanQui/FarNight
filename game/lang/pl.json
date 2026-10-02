@@ -396,6 +396,8 @@
     "settings.posture_lying_detail": "Urządzenie płasko nad twarzą",
     "locked.eyebrow_end": "Koniec nocy",
     "locked.eyebrow_recalibrating": "Kalibracja",
+    "locked.eyebrow_asleep": "Sen",
+    "locked.asleep_text": "Miasto pozwala ci spać. Wróć następnej nocy: wyruszysz znów z pierwszego miejsca, z tym, co miałeś przy sobie, wychodząc z gospody, i z całą nocą przed sobą.",
     "locked.remaining_hours": "{{hours}} godz. {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Bezpieczna płatność",
@@ -514,7 +516,7 @@
     },
     "paywall": {
       "gate_text": "Twoja dłoń zaciska się na stalowej klamce śluzy. Metal jest zimny. Za nią deszcz i reszta twojej nocy.\n\nŚluza jeszcze się nie otwiera.",
-      "cta": "Przejść przez śluzę — 10 €",
+      "cta": "Przejść przez śluzę — 12 €",
       "sub_cta": "Odblokuj dalszy ciąg {{quest_title}}",
       "pitch": {
         "eyebrow": "Co jest dla ciebie stawką",

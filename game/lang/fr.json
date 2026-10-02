@@ -424,6 +424,8 @@
     "settings.posture_lying_detail": "Appareil à plat au-dessus du visage",
     "locked.eyebrow_end": "Fin de la nuit",
     "locked.eyebrow_recalibrating": "Recalibrage",
+    "locked.eyebrow_asleep": "Sommeil",
+    "locked.asleep_text": "La ville te laisse dormir. Reviens la nuit prochaine : tu repartiras du premier lieu, avec ce que tu portais en quittant l'auberge, et toute la nuit devant toi.",
     "locked.remaining_hours": "{{hours}} h {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} min",
     "paywall.secure": "Paiement sécurisé",

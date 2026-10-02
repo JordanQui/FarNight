@@ -190,6 +190,8 @@ interface Carry {
   spend?: { turns: number; usd: number }
   /** L'heure de la nuit. Un rechargement ne rend pas le temps perdu. */
   night?: { minutes: number; dawn: boolean }
+  /** Ce qu'il portait en quittant l'auberge : là où le sommeil le ramène. */
+  nightStart?: GameStore['nightStart']
   /** Date de la dernière écriture. Au-delà de la fenêtre, tout est oublié. */
   saved_at?: number
 }
@@ -210,6 +212,7 @@ function carryOf(game: GameStore, player: PlayerStore): Carry {
     given: game.givenItemIds,
     spend: { turns: game.modelTurnsUsed, usd: game.spentUsd },
     night: { minutes: game.nightMinutes, dawn: game.dawnBroke },
+    nightStart: game.nightStart,
   }
 }
 
@@ -311,6 +314,17 @@ export function savePlaying(game: GameStore, player: PlayerStore): void {
   } catch {
     // Stockage plein ou refusé : on reprendra au début de la scène.
   }
+}
+
+/**
+ * Écrit la partie tout de suite, hors de l'écran de jeu.
+ *
+ * Le sommeil rembobine la nuit puis ferme la ville : `savePlaying` n'écrit que
+ * sur l'écran `playing`, et le rechargement suivant aurait rendu la partie
+ * d'avant le sommeil — l'horloge à l'aube, qui l'aurait rendormi aussitôt.
+ */
+export function saveRun(game: GameStore, player: PlayerStore): void {
+  storeCarry(carryOf(game, player))
 }
 
 function storeCarry(carry: Carry): void {
@@ -502,6 +516,7 @@ export function useScene() {
       gameStore.nightMinutes = carry.night.minutes
     }
     if (carry.night?.dawn) gameStore.dawnBroke = true
+    if (!gameStore.nightStart && carry.nightStart) gameStore.nightStart = carry.nightStart
   }
 
   /**

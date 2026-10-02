@@ -374,6 +374,8 @@
     "settings.posture_lying_detail": "Perangkat mendatar di atas wajah",
     "locked.eyebrow_end": "Akhir malam",
     "locked.eyebrow_recalibrating": "Kalibrasi ulang",
+    "locked.eyebrow_asleep": "Tidur",
+    "locked.asleep_text": "Kota membiarkanmu tidur. Kembalilah malam berikutnya: kau akan berangkat lagi dari tempat pertama, dengan apa yang kau bawa saat meninggalkan penginapan, dan seluruh malam di depanmu.",
     "locked.remaining_hours": "{{hours}} j {{minutes}}",
     "locked.remaining_minutes": "{{minutes}} mnt",
     "paywall.secure": "Pembayaran aman",
@@ -492,7 +494,7 @@
     },
     "paywall": {
       "gate_text": "Tanganmu menggenggam tuas baja sekat udara. Logamnya dingin. Di baliknya, hujan, dan sisa malammu.\n\nSekat udara itu belum terbuka.",
-      "cta": "Lewati sekat udara — 10 €",
+      "cta": "Lewati sekat udara — 12 €",
       "sub_cta": "Buka kelanjutan dari {{quest_title}}",
       "pitch": {
         "eyebrow": "Apa yang dipertaruhkan untukmu",
