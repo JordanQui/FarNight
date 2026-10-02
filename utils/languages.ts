@@ -6,7 +6,7 @@
  * parti que `game/script.json` dans `utils/script-runtime.ts`, et pour la même
  * raison — l'import les inline dans le build, donc ils sont toujours là.
  *
- * Douze fichiers de quelques dizaines de kilo-octets : le poids est réel mais
+ * Quinze fichiers de quelques dizaines de kilo-octets : le poids est réel mais
  * borné, et le charger à la demande ne servirait à rien côté serveur, où un
  * appel peut tomber sur n'importe quelle lambda et devrait donc tout embarquer
  * de toute façon.
@@ -24,6 +24,9 @@ import ruPack from '../game/lang/ru.json'
 import trPack from '../game/lang/tr.json'
 import idPack from '../game/lang/id.json'
 import viPack from '../game/lang/vi.json'
+import zhPack from '../game/lang/zh.json'
+import jaPack from '../game/lang/ja.json'
+import arPack from '../game/lang/ar.json'
 
 import type { LangCode, LanguagePack, LangScript } from '~/types/i18n'
 import { DEFAULT_LANG, LANG_CODES, isLangCode } from '~/types/i18n'
@@ -32,11 +35,25 @@ import type { UserAgreement } from '~/types/user'
 const PACKS = {
   fr: frPack, en: enPack, es: esPack, pt: ptPack, de: dePack, it: itPack,
   nl: nlPack, pl: plPack, ru: ruPack, tr: trPack, id: idPack, vi: viPack,
+  zh: zhPack, ja: jaPack, ar: arPack,
 } as unknown as Record<LangCode, LanguagePack>
 
 /** Le pack d'une langue. Toujours défini : un code inconnu retombe sur le français. */
 export function pack(code: LangCode | null | undefined): LanguagePack {
   return PACKS[code ?? DEFAULT_LANG] ?? PACKS[DEFAULT_LANG]
+}
+
+/**
+ * Comment cette langue signale ce qui se touche : la majuscule, ou le gras
+ * quand l'écriture n'a pas de casse.
+ */
+export function signalOf(code: LangCode | null | undefined): 'caps' | 'bold' {
+  return pack(code).writing?.signal ?? 'caps'
+}
+
+/** Le sens d'écriture, pour l'attribut `dir` du document. */
+export function dirOf(code: LangCode | null | undefined): 'ltr' | 'rtl' {
+  return pack(code).writing?.dir ?? 'ltr'
 }
 
 /** Ce que le sélecteur affiche, dans l'ordre du script. */
@@ -61,7 +78,7 @@ export function resolveLang(value: unknown): LangCode {
  * La langue à proposer d'emblée, lue dans les préférences déclarées.
  *
  * Prend la PREMIÈRE langue jouable de la liste, pas la première tout court :
- * quelqu'un qui a « ja, en, fr » demande du japonais, qu'on ne sait pas jouer,
+ * quelqu'un qui a « ko, en, fr » demande du coréen, qu'on ne sait pas jouer,
  * mais l'anglais lui ira mieux que le français. La qualité `;q=` est ignorée —
  * l'ordre d'apparition dit déjà la préférence dans tous les navigateurs.
  *

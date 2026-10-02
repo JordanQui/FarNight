@@ -132,6 +132,13 @@ export interface UserProfile {
      */
     first_name?: string
     last_name?: string
+    /**
+     * Le prénom et le nom en lettres latines, quand leur écriture n'a pas de
+     * lecture qu'on puisse calculer (chinois, kanji). Ils ne servent qu'à la
+     * numérologie : le jeu appelle toujours le joueur par son nom écrit.
+     */
+    first_name_latin?: string
+    last_name_latin?: string
     picture_url?: string
     birthday?: string
     age?: number

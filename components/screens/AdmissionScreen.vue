@@ -2,6 +2,7 @@
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { emptyAdmissionForm, profileFromAdmission, type AdmissionForm } from '~/utils/admission'
+import { needsLatinName } from '~/utils/numerology'
 import { rememberedAdmission, storeAdmission, forgetAdmission } from '~/composables/useScene'
 import type { UserAgreement } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
@@ -95,11 +96,24 @@ const step = ref(0)
 /** `form` tant qu'on remplit, `verdict` une fois le dossier déposé. */
 const phase = ref<'form' | 'verdict'>('form')
 
-/** Le prénom et la date : sans eux, ni signe, ni nombres, ni nom à l'écran. */
+/**
+ * Le prénom et la date : sans eux, ni signe, ni nombres, ni nom à l'écran.
+ *
+ * Deux lettres au moins — mais UN idéogramme suffit : 伟 est un prénom entier.
+ */
 const canAdvance = computed(() => {
   if (step.value > 0) return true
-  return form.firstName.trim().length >= 2 && form.birthday.length === 10
+  const first = form.firstName.trim()
+  const enough = first.length >= 2 || /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(first)
+  return enough && form.birthday.length === 10
 })
+
+/**
+ * Le nom écrit ne se calcule pas (chinois, kanji) : on demande sa forme latine,
+ * et à lui seul. Un nom latin, arabe, cyrillique ou en kana se pèse tout seul.
+ */
+const latinFirst = computed(() => needsLatinName(form.firstName))
+const latinLast = computed(() => needsLatinName(form.lastName))
 
 /**
  * Entrée passe à l'étape suivante — mais pas depuis une zone de texte, où la
@@ -295,6 +309,21 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
                 <span class="field-label">{{ t('admission.last_name') }}</span>
                 <input v-model="form.lastName" type="text" class="field" :placeholder="t('admission.last_name_ph')" autocomplete="family-name">
               </label>
+            </div>
+
+            <!-- Seulement quand le nom écrit ne donne aucun nombre. -->
+            <div v-if="latinFirst || latinLast" class="space-y-2">
+              <div class="grid grid-cols-2 gap-3">
+                <label v-if="latinFirst" class="block space-y-2">
+                  <span class="field-label">{{ t('admission.first_name_latin') }}</span>
+                  <input v-model="form.firstNameLatin" type="text" class="field" :placeholder="t('admission.latin_ph')" autocomplete="off" lang="en">
+                </label>
+                <label v-if="latinLast" class="block space-y-2" :class="!latinFirst && 'col-start-2'">
+                  <span class="field-label">{{ t('admission.last_name_latin') }}</span>
+                  <input v-model="form.lastNameLatin" type="text" class="field" :placeholder="t('admission.latin_ph')" autocomplete="off" lang="en">
+                </label>
+              </div>
+              <span class="field-hint">{{ t('admission.latin_hint') }}</span>
             </div>
 
             <label class="block space-y-2">

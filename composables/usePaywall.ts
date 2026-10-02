@@ -16,6 +16,7 @@ declare global {
 }
 
 export function usePaywall() {
+  const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const paymentStore = usePaymentStore()
@@ -147,7 +148,7 @@ export function usePaywall() {
 
   async function submitPayment() {
     if (!squareCard) {
-      paymentStore.setError('Formulaire de paiement non initialisé')
+      paymentStore.setError(t('errors.payment_form'))
       return false
     }
 
@@ -156,7 +157,7 @@ export function usePaywall() {
 
     const result = await squareCard.tokenize()
     if (result.status !== 'OK' || !result.token) {
-      paymentStore.setError(result.errors?.[0]?.message ?? 'Erreur de tokenisation')
+      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
       gameStore.setScreen('paywall')
       return false
     }
@@ -170,7 +171,7 @@ export function usePaywall() {
       gameStore.setScreen('payment_success')
       return true
     } catch (err) {
-      paymentStore.setError(err instanceof Error ? err.message : 'Paiement refusé')
+      paymentStore.setError(err instanceof Error ? err.message : t('errors.payment_refused'))
       gameStore.setScreen('paywall')
       return false
     }

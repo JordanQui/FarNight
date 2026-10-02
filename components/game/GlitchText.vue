@@ -15,9 +15,16 @@ const props = defineProps<{
  * écrire : tronquer la chaîne AVANT le découpage couperait les noms en deux et
  * en laisserait une moitié lisible en clair — ce qui viderait la mécanique.
  */
+/**
+ * Le texte sans le gras du modèle. Dans les langues où le gras marque ce qui
+ * se touche, c'est l'interface qui le pose, depuis les noms déclarés : des
+ * astérisques laissés par le modèle seraient une marque qui ne promet rien.
+ */
+const plain = computed(() => props.text.replace(/\*\*(.+?)\*\*/g, '$1'))
+
 const segments = computed(() => {
-  const limit = props.visible ?? props.text.length
-  return splitByNames(props.text, props.names)
+  const limit = props.visible ?? plain.value.length
+  return splitByNames(plain.value, props.names)
     .filter(seg => seg.start < limit)
     .map(seg => ({
       ...seg,
@@ -34,7 +41,10 @@ const segments = computed(() => {
     v-if="seg.name && seg.kind === 'object' && seg.id"
     :id="seg.id"
     :label="seg.name"
-  /><GlitchName
+  /><strong
+    v-else-if="seg.name && seg.kind === 'mark'"
+    class="font-bold text-parchment"
+  >{{ seg.text }}</strong><GlitchName
     v-else-if="seg.name"
     :name="seg.name"
   /><template v-else>{{ seg.text }}</template></template></span>

@@ -17,7 +17,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 const dir = new URL('../game/lang/', import.meta.url)
 const script = JSON.parse(readFileSync(new URL('../game/script.json', import.meta.url), 'utf-8'))
 
-const CODES = ['fr', 'en', 'es', 'pt', 'de', 'it', 'nl', 'pl', 'ru', 'tr', 'id', 'vi']
+const CODES = ['fr', 'en', 'es', 'pt', 'de', 'it', 'nl', 'pl', 'ru', 'tr', 'id', 'vi', 'zh', 'ja', 'ar']
 const errors = []
 const warn = []
 
@@ -46,6 +46,12 @@ for (const [code, pack] of packs) {
   if (pack.code !== code) errors.push(`${at} : le champ "code" vaut "${pack.code}"`)
   if (!pack.endonym) errors.push(`${at} : "endonym" manquant — c'est ce qu'affiche le sélecteur`)
   if (!pack.tag) errors.push(`${at} : "tag" manquant — l'attribut lang du document en dépend`)
+  // Une écriture sans casse qui garderait le signal par défaut n'aurait AUCUN
+  // signal : la majuscule n'y existe pas, et rien ne passerait en gras.
+  const cased = /[A-Za-zÀ-ÿĀ-žА-я]/.test(pack.endonym)
+  if (!cased && pack.writing?.signal !== 'bold') {
+    errors.push(`${at} : écriture sans casse, "writing.signal" doit valoir "bold"`)
+  }
 
   for (const field of GENERATION_FIELDS) {
     if (!(field in (pack.generation ?? {}))) errors.push(`${at} : generation.${field} manquant`)
@@ -136,7 +142,15 @@ for (const [code, pack] of packs) {
   const label = s.exit_labels?.[script.progression.start_scene] ?? ''
   const words = label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^\p{L}]+/u).filter(w => w.length > 2)
   const keywords = (pack.input?.exit ?? []).map(k => k.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))
-  if (words.length && !words.some(w => keywords.some(k => k.split(' ').includes(w)))) {
+  // Sans espaces (chinois, japonais) ou à particules collées (arabe), le jeu
+  // cherche les mots-clés comme sous-chaînes : il suffit qu'un d'eux tienne
+  // dans le libellé.
+  const dense = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Arabic}]/u.test(label)
+  if (dense) {
+    if (!keywords.some(k => k && label.normalize('NFD').includes(k))) {
+      errors.push(`${at} : aucun mot-clé de input.exit ne figure dans « ${label} » — la sortie serait introuvable`)
+    }
+  } else if (words.length && !words.some(w => keywords.some(k => k.split(' ').includes(w)))) {
     errors.push(`${at} : aucun mot de « ${label} » n'est dans input.exit — la sortie serait introuvable`)
   }
 }

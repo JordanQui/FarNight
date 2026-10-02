@@ -7,8 +7,13 @@
  * et où ils finissent.
  */
 
-/** Une identité ne se brouille pas comme une chose : le rendu diffère. */
-export type TermKind = 'name' | 'object'
+/**
+ * Une identité ne se brouille pas comme une chose : le rendu diffère.
+ *
+ * `mark` ne se brouille pas du tout : c'est un nom en clair qu'on touche, mis
+ * en gras dans les écritures sans casse, où le gras tient lieu de majuscule.
+ */
+export type TermKind = 'name' | 'object' | 'mark'
 
 export interface Term {
   value: string
@@ -97,13 +102,28 @@ export function splitByNames(text: string, terms: Array<string | Term>): TextSeg
  */
 const NOISE = '#%@&$§?!*+=/\\|<>~^ABCDEFGHJKLMNPQRSTUVWXZ0123456789'
 
+/**
+ * Le même bruit en pleine chasse, pour les idéogrammes et les kana : un signe
+ * latin y occupe une demi-case, et le nom rétrécissait de moitié en se
+ * brouillant.
+ */
+const WIDE_NOISE = '＃％＠＆＄？！＊＋＝／＜＞～ＡＢＣＤＥＦＧＨＪＫＬＭＮＰＱＲＳＴＵＶＷＸＺ０１２３４５６７８９'
+
+/** Le bruit arabe : des lettres arabes, pour que le nom garde sa ligature et son sens. */
+const ARABIC_NOISE = 'ءبتثجحخدذرزسشصضطظعغفقكلمنهوي٠١٢٣٤٥٦٧٨٩'
+
+const WIDE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]/u
+const ARABIC = /\p{Script=Arabic}/u
+
 /** Une chaîne de bruit de la même longueur, pour que la mise en page ne bouge pas. */
 export function scramble(source: string, seed: number): string {
   let out = ''
   for (let i = 0; i < source.length; i++) {
     // Les espaces restent des espaces : sinon deux noms n'en font plus qu'un.
     if (source[i] === ' ') { out += ' '; continue }
-    out += NOISE[(seed * 31 + i * 17 + source.charCodeAt(i)) % NOISE.length]
+    const ch = source[i]!
+    const alphabet = WIDE.test(ch) ? WIDE_NOISE : ARABIC.test(ch) ? ARABIC_NOISE : NOISE
+    out += alphabet[(seed * 31 + i * 17 + source.charCodeAt(i)) % alphabet.length]
   }
   return out
 }

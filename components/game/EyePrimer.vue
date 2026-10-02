@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useLang()
+
 import { usePlayerStore } from '~/stores/player'
 
 /**
@@ -25,11 +27,7 @@ const labels = computed(() => playerStore.scene?.eye_primer)
  * Ce texte ne dépend d'aucune scène — c'est une commande d'interface —, donc
  * il n'y a aucune raison qu'un chargement en retard laisse la fenêtre muette.
  */
-const FALLBACK_BODY = [
-  'Ce bouton allume l\'oeil. Il lit les noms des gens : amène-le sur l\'un d\'eux, et son nom se déchiffre.',
-  'Chacun ici a sa note, et tu l\'entends au moment où tu le reconnais. Mets le son.',
-]
-const body = computed(() => labels.value?.body?.length ? labels.value.body : FALLBACK_BODY)
+const body = computed(() => labels.value?.body?.length ? labels.value.body : [t('game.eye_body_1'), t('game.eye_body_2')])
 
 /** Position dans le carré, en fraction. 0,5 au centre. */
 const pos = ref({ x: 0.5, y: 0.5 })
@@ -109,7 +107,7 @@ const style = computed(() => ({
 
       <div class="space-y-2 text-center">
         <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.32em] font-display">
-          {{ labels?.eyebrow ?? 'L\'œil' }}
+          {{ labels?.eyebrow ?? t('game.eye_eyebrow') }}
         </p>
       </div>
 
@@ -122,7 +120,7 @@ const style = computed(() => ({
       </p>
 
       <GlowButton class="w-full" @click="emit('confirm')">
-        {{ labels?.cta ?? 'Ouvrir l\'œil' }}
+        {{ labels?.cta ?? t('game.eye_open') }}
       </GlowButton>
     </div>
   </div>

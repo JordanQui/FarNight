@@ -9,12 +9,7 @@ const playerStore = usePlayerStore()
 const gameStore = useGameStore()
 const { loadSceneText, loadSceneImage, error, quotaExhausted } = useScene()
 
-const messages = [
-  'Les étoiles alignent les présages...',
-  'Les vieilles cartes se redessinent...',
-  'Les esprits du monde prennent forme...',
-  'L\'histoire cherche son héros...',
-]
+const messages = [1, 2, 3, 4].map(n => t(`build.omen_${n}`))
 const currentMessage = ref(messages[0])
 let interval: ReturnType<typeof setInterval> | null = null
 
@@ -91,8 +86,8 @@ onUnmounted(() => { if (interval) clearInterval(interval) })
       <div class="space-y-3 text-left">
         <div
           v-for="step in [
-            { done: playerStore.buildProgress.text, label: 'Le lieu et la quête prennent forme' },
-            { done: playerStore.buildProgress.image, label: 'L\'illustration se dessine' },
+            { done: playerStore.buildProgress.text, label: t('build.step_text') },
+            { done: playerStore.buildProgress.image, label: t('build.step_image') },
           ]"
           :key="step.label"
           class="flex items-center gap-3.5"

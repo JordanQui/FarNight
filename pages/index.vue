@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useLang()
+
 import { useGameStore } from '~/stores/game'
 import { usePaymentStore } from '~/stores/payment'
 
@@ -52,7 +54,7 @@ onMounted(async () => {
       <PaywallScreen v-else-if="gameStore.currentScreen === 'paywall'" key="paywall" />
       <EndingScreen v-else-if="gameStore.currentScreen === 'ending'" key="ending" />
       <LockedScreen v-else-if="gameStore.currentScreen === 'locked'" key="locked" />
-      <LoadingScreen v-else-if="gameStore.currentScreen === 'payment_processing'" key="pay" message="Traitement du paiement..." />
+      <LoadingScreen v-else-if="gameStore.currentScreen === 'payment_processing'" key="pay" :message="t('paywall.processing')" />
       <PaymentSuccessScreen v-else-if="gameStore.currentScreen === 'payment_success'" key="success" />
       <LoadingScreen v-else key="init" />
     </Transition>

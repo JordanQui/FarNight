@@ -84,8 +84,8 @@ const remaining = computed(() => {
       >{{ lock.text }}</p>
       <p v-else class="text-ink-200/70 text-sm leading-relaxed">
         {{ definitive
-          ? "La ville s'est retirée. Ce qu'elle t'a montré t'appartient."
-          : 'La ville se recharge. Elle ne peut pas tenir deux fois la même nuit.' }}
+          ? t('locked.fallback_end')
+          : t('locked.fallback_reload') }}
       </p>
 
       <div class="neon-rule w-20 mx-auto" />

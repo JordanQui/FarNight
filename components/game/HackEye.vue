@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useLang()
+
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useGyroEye } from '~/composables/useGyroEye'
@@ -71,7 +73,7 @@ const style = computed(() => ({
         <path d="M1 8s4-6.5 11-6.5S23 8 23 8s-4 6.5-11 6.5S1 8 1 8Z" />
         <circle cx="12" cy="8" r="3.4" />
       </svg>
-      {{ denied ? 'Accès refusé' : unavailable ? 'Indisponible' : playerStore.scene?.eye_primer?.cta ?? 'Ouvrir l\'œil' }}
+      {{ denied ? t('game.eye_denied') : unavailable ? t('game.eye_unavailable') : playerStore.scene?.eye_primer?.cta ?? t('game.eye_open') }}
     </button>
 
     <!-- Actif, au tactile : l'oeil suit l'inclinaison de l'appareil. -->

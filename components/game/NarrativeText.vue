@@ -3,7 +3,8 @@ import type { NarrativeEntry } from '~/types/game'
 import type { Term } from '~/utils/glitch'
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
-import { analyzables } from '~/utils/interactables'
+import { analyzables, visible } from '~/utils/interactables'
+import { signalOf } from '~/utils/languages'
 
 const props = defineProps<{ entries: NarrativeEntry[] }>()
 
@@ -45,7 +46,22 @@ const names = computed<Term[]>(() => {
     scene, playerStore.language, gameStore.revealedInteractableIds)
     .map(o => ({ value: o.label, kind: 'object', id: o.id }))
 
-  return [...people, ...things]
+  // SANS CASSE, LE GRAS TIENT LIEU DE MAJUSCULE. Les mêmes noms que ceux que
+  // `enforceNameCaps` recale ailleurs : ce qui se touche, le décor qu'on
+  // examine, le lieu, l'augmentation. Placés en tête : un nom déjà brouillé
+  // comme personne ou comme chose garde son brouillage.
+  const marks: Term[] = signalOf(playerStore.language) === 'bold'
+    ? [
+        ...visible(scene.interactables, gameStore.revealedInteractableIds).map(i => i.label),
+        ...(scene.decor ?? []).map(d => d.name),
+        scene.place?.name,
+        scene.key_item?.name,
+      ]
+        .filter((v): v is string => Boolean(v?.trim()))
+        .map(value => ({ value, kind: 'mark' }))
+    : []
+
+  return [...marks, ...people, ...things]
 })
 
 const emit = defineEmits<{ typing: [boolean] }>()

@@ -100,11 +100,23 @@ export function voiceFor(mode: Mode): Voice {
 const FLOOR_MIDI = 40
 const CEIL_MIDI = 88
 
+/**
+ * Un nombre de 1 à 9 tiré des caractères eux-mêmes, quand le nom n'a aucune
+ * lecture numérologique — un nom chinois inventé par le modèle. Ce n'est pas
+ * une tradition, c'est une empreinte stable : sans elle, tous les personnages
+ * d'une partie en chinois prenaient le premier sujet et chantaient la même
+ * ligne.
+ */
+function glyphNumber(name: string): number {
+  const sum = [...name].reduce((n, ch) => n + (ch.codePointAt(0) ?? 0), 0)
+  return (sum % 9) + 1
+}
+
 export function buildPattern(name: string, mode: Mode, voice: Voice): string[] {
   // Le nombre du nom choisit le sujet : c'est la correspondance symbolique
   // entre le personnage et sa figure. Faute de nom lisible, on prend le
   // premier sujet plutôt que de rester muet.
-  const subject = subjectFor(namankOf(name) ?? 1)
+  const subject = subjectFor(namankOf(name) ?? glyphNumber(name))
   const raw = fugueLine(mode, subject, rootMidiFor(name))
 
   // Recentrage : on translate la ligne entière par octaves jusqu'à ce que sa

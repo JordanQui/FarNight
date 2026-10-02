@@ -52,8 +52,8 @@ const lensLabel = computed(() => gameStore.augmentation?.name
       class="p-1.5 -my-0.5 transition-colors"
       :class="gameStore.activeTool === 'lens' ? 'text-neon-400' : 'text-steel-400 hover:text-neon-600'"
       :aria-pressed="gameStore.activeTool === 'lens'"
-      :aria-label="`${lensLabel} : analyser les objets`"
-      :title="`${lensLabel} — analyser les objets scellés`"
+      :aria-label="t('game.lens_aria', { label: lensLabel })"
+      :title="t('game.lens_title', { label: lensLabel })"
       @click="gameStore.setTool('lens')"
     >
       <svg viewBox="0 0 20 20" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5">

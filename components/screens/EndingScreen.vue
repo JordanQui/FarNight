@@ -44,7 +44,7 @@ onMounted(async () => {
     interfacePalette.applyScene(ending.value)
   } catch (err) {
     error.value = (err as { data?: { statusMessage?: string } })?.data?.statusMessage
-      ?? 'La fin ne s\'est pas écrite.'
+      ?? t('game.ending_failed')
     return
   }
 

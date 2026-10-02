@@ -11,6 +11,9 @@
  *   identity.first_name ........ nom d'usage en jeu, et NAMANK (accueil du monde)
  *   identity.last_name ......... avec le prénom : le namank du nom complet,
  *                                soit l'HÉRITAGE — ce que le nom traîne
+ *   identity.*_latin ........... leur forme latine, demandée SEULEMENT quand
+ *                                l'écriture du nom ne se calcule pas (chinois,
+ *                                kanji) — sans elle, ni accueil ni héritage
  *   identity.birthday .......... signe du zodiaque, moolank, bhagyank, âge
  *   identity.agreement ......... accord des participes dans toute la narration
  *   origin.hometown ............ ville d'origine
@@ -52,6 +55,7 @@ import type { UserProfile, UserAgreement, UserNights } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { translate } from '~/utils/languages'
+import { needsLatinName } from '~/utils/numerology'
 import sampleJson from '../game/admission.json'
 
 export interface AdmissionForm {
@@ -70,6 +74,12 @@ export interface AdmissionForm {
   firstName: string
   /** Le nom de famille. Avec le prénom, il donne l'héritage. */
   lastName: string
+  /**
+   * Prénom et nom en lettres latines (pinyin, rōmaji). Le champ n'apparaît que
+   * si le nom écrit n'a pas de lecture numérologique — voir `needsLatinName`.
+   */
+  firstNameLatin: string
+  lastNameLatin: string
   /** `YYYY-MM-DD`, tel que le rend un `<input type="date">`. */
   birthday: string
   agreement: UserAgreement
@@ -103,6 +113,8 @@ export function emptyAdmissionForm(lang: LangCode = DEFAULT_LANG): AdmissionForm
     language: lang,
     firstName: '',
     lastName: '',
+    firstNameLatin: '',
+    lastNameLatin: '',
     birthday: '',
     agreement: 'masculin',
     hometown: '',
@@ -284,6 +296,9 @@ export function profileFromAdmission(form: AdmissionForm): UserProfile {
       name: fullName || translate(form.language, 'admission.unnamed'),
       first_name: firstName || undefined,
       last_name: lastName || undefined,
+      // Gardés seulement s'ils servent : un nom latin se pèse déjà tout seul.
+      first_name_latin: (needsLatinName(firstName) && clean(form.firstNameLatin ?? '')) || undefined,
+      last_name_latin: (needsLatinName(lastName) && clean(form.lastNameLatin ?? '')) || undefined,
       birthday: form.birthday || undefined,
       age: form.birthday ? ageFrom(form.birthday) : undefined,
       agreement: form.agreement,

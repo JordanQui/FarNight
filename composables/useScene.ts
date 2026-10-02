@@ -453,6 +453,7 @@ function freshQuery(): Record<string, string> {
 }
 
 export function useScene() {
+  const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const { generateSceneImage } = useImageGen()
@@ -649,8 +650,8 @@ export function useScene() {
       // est indiscernable d'une autre.
       const reason = (err as { data?: { statusMessage?: string } })?.data?.statusMessage
       error.value = aborted
-        ? 'Le monde a mis trop de temps à se dessiner.'
-        : reason || (err instanceof Error ? err.message : 'Impossible de charger la scène')
+        ? t('errors.scene_timeout')
+        : reason || (err instanceof Error ? err.message : t('errors.scene_load'))
       return null
     } finally {
       isLoadingText.value = false

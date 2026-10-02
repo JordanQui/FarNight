@@ -162,13 +162,16 @@ export function resolveTheme(user: UserProfile, script: Script): PlayerTheme | n
   const entry = key ? script.zodiac?.signs?.[key] : undefined
   // Le namank se calcule sur le PRÉNOM : la numérologie indienne pèse le nom
   // par lequel on est appelé, pas l'état civil complet. Le nom entier reste le
-  // repli des vieux profils, qui n'avaient qu'un champ.
+  // repli des vieux profils, qui n'avaient qu'un champ — et n'ont alors pas
+  // d'héritage, faute de savoir où finit le prénom.
+  // Chaque moitié se pèse dans son écriture (chaldéen, abjad, translittéré) ;
+  // un nom en idéogrammes passe par la forme latine déclarée au formulaire.
+  const { first_name, last_name, name, first_name_latin, last_name_latin } = user.identity
   const numbers = numerologyOf(
     user.identity.birthday,
-    // Le namank se calcule sur le PRÉNOM : la numérologie indienne pèse le nom
-    // par lequel on est appelé. Le nom entier, lui, porte l'héritage.
-    user.identity.first_name || user.identity.name,
-    user.identity.last_name ? user.identity.name : undefined,
+    first_name || name,
+    first_name ? last_name : undefined,
+    { first: first_name_latin, last: last_name_latin },
   )
   const table = script.numerology?.numbers ?? {}
 
@@ -204,6 +207,15 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/
  * colorée, et « La Carte Ambre » doit rester lisible telle quelle.
  */
 const AUGMENTATION_NAME_RE = /^[A-Z][a-z]+(?:[A-Z][a-z]+){1,2}$/
+
+/**
+ * La même exigence dans les écritures sans casse, où « soudé à majuscules »
+ * ne veut rien dire. Le chinois et le japonais soudent naturellement : un
+ * composé de deux à huit signes, sans espace ni ponctuation. L'arabe : un ou
+ * deux mots, rien d'autre que des lettres arabes. Le gras fait le reste.
+ */
+const DENSE_AUGMENTATION_NAME_RE = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]{2,8}$/u
+const ARABIC_AUGMENTATION_NAME_RE = /^\p{Script=Arabic}{2,}(?: \p{Script=Arabic}{2,})?$/u
 
 /**
  * Une scène du script, defaults résolus, augmentée de son comportement.
@@ -1106,6 +1118,8 @@ ${lines}`)
   weldAugmentationName(generated: GeneratedScene): void {
     const item = generated.key_item
     if (this.scene.objective?.kind !== 'acquire_augmentation' || !item?.name || !generated.scene_text) return
+    // Sans casse, rien à ressouder : le nom est un composé natif.
+    if (this.pack.writing?.signal === 'bold') return
 
     const from = item.name
     const segments = from
@@ -1330,7 +1344,15 @@ ${lines}`)
     // raison exactement : un nom en plusieurs morceaux se lit comme une
     // description du décor, et plus rien ne le distingue.
     if (this.scene.objective?.kind === 'acquire_augmentation') {
-      if (!AUGMENTATION_NAME_RE.test(item.name)) {
+      if (this.pack.writing?.signal === 'bold') {
+        const re = this.pack.writing.dir === 'rtl' ? ARABIC_AUGMENTATION_NAME_RE : DENSE_AUGMENTATION_NAME_RE
+        // Le modèle vocalise parfois l'arabe : les voyelles brèves ne changent pas le nom.
+        if (!re.test(item.name.trim().replace(/[\u064B-\u065F\u0670]/g, ''))) {
+          throw new Error(
+            `Scène invalide : key_item.name "${item.name}" n'est pas un nom composé court `
+            + '(un seul composé sans espace ni ponctuation, ou deux mots arabes au plus)')
+        }
+      } else if (!AUGMENTATION_NAME_RE.test(item.name)) {
         throw new Error(
           `Scène invalide : key_item.name "${item.name}" n'est pas un nom soudé `
           + '(deux ou trois segments à majuscule, sans espace, sans trait d\'union, sans accent) — « FocaleBraise »')

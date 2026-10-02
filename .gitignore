@@ -28,3 +28,4 @@ npm-debug.log*
 
 # Scènes enregistrées en développement
 .mocks/
+.env*

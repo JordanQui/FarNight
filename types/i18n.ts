@@ -14,14 +14,14 @@
  * il en faut un par langue proposée — sans exception, `scripts/check-lang.mjs`
  * refuse un pack auquel il manque une clé.
  *
- * POURQUOI CES LANGUES-LÀ, et pas les dix premières du web. Le jeu n'a qu'un
- * signal d'interaction : la Majuscule de Titre. Ce qui porte une majuscule se
- * touche, le reste est du décor — c'est écrit dans `narrative.naming_style`, et
- * `utils/naming.ts` va jusqu'à le faire respecter après coup. Ce signal EXIGE
- * une écriture bicamérale. En japonais, en arabe, en chinois ou en hindi, la
- * casse n'existe pas : le joueur perdrait le seul indice dont il dispose, et il
- * faudrait lui en inventer un autre — un second chantier, pas une traduction.
- * D'où douze langues à casse, latines et cyrillique.
+ * LE SIGNAL D'INTERACTION DÉPEND DE L'ÉCRITURE. Ce qui se touche porte une
+ * marque, le reste est du décor. Dans les écritures à casse, cette marque est
+ * la Majuscule de Titre — c'est écrit dans `narrative.naming_style`, et
+ * `utils/naming.ts` la fait respecter après coup. Le chinois, le japonais et
+ * l'arabe n'ont pas de casse : la marque y devient le GRAS, posé par
+ * l'interface sur les noms que la scène déclare (voir `LangWriting`). Le
+ * modèle n'a qu'à écrire ces noms à l'identique ; il ne met jamais rien en
+ * gras lui-même.
  */
 
 import type { UserAgreement } from '~/types/user'
@@ -34,6 +34,7 @@ import type { UserAgreement } from '~/types/user'
  */
 export const LANG_CODES = [
   'fr', 'en', 'es', 'pt', 'de', 'it', 'nl', 'pl', 'ru', 'tr', 'id', 'vi',
+  'zh', 'ja', 'ar',
 ] as const
 
 export type LangCode = typeof LANG_CODES[number]
@@ -175,7 +176,8 @@ export interface LangInput {
   world: string[]
   /**
    * Les articles qu'un nom déclaré traîne, à retirer avant de le chercher.
-   * Vide dans les langues qui n'en ont pas (russe, polonais, turc, indonésien).
+   * Vide dans les langues qui n'en ont pas (russe, polonais, turc, indonésien,
+   * chinois, japonais).
    */
   articles: string[]
   /** Mots vides, ignorés quand on cherche un nom dans une phrase. */
@@ -216,12 +218,32 @@ export interface LangScript {
   exit_labels?: Record<string, string>
 }
 
+/**
+ * Ce que l'écriture permet, et ce qu'elle interdit.
+ *
+ * Absent, le pack est une écriture à casse, de gauche à droite, mots séparés
+ * par des espaces — le cas des douze premières langues.
+ */
+export interface LangWriting {
+  /**
+   * Comment se signale ce qui se touche.
+   *
+   * `caps` : la Majuscule de Titre, écrite par le modèle et recalée par
+   * `enforceNameCaps`. `bold` : l'écriture n'a pas de casse ; le modèle écrit
+   * les noms déclarés à l'identique, et `NarrativeText` les met en gras.
+   */
+  signal: 'caps' | 'bold'
+  /** Sens d'écriture. `rtl` pour l'arabe : il pilote `dir` sur le document. */
+  dir?: 'ltr' | 'rtl'
+}
+
 export interface LanguagePack {
   code: LangCode
   /** Le nom de la langue DANS cette langue. C'est lui qu'affiche le sélecteur. */
   endonym: string
   /** Balise BCP-47, pour l'attribut `lang` du document. */
   tag: string
+  writing?: LangWriting
   generation: LangGeneration
   input: LangInput
   ui: LangUi

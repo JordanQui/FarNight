@@ -1,4 +1,4 @@
-import { normalize, matchesKeyword } from '~/utils/text-match'
+import { normalize, matchesKeyword, hasWord, isDense, significant } from '~/utils/text-match'
 import type { Interactable } from '~/types/scene'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
@@ -32,7 +32,8 @@ export function isTakeable(obj: Interactable, lang: LangCode = DEFAULT_LANG): bo
   // badge ». Il se ramasse tout autant : on compare le début, mot entier.
   return pack(lang).input.take.some(v => {
     const take = normalize(v)
-    return verb === take || verb.startsWith(`${take} `)
+    // Sans espace en chinois ou en japonais : « 拿起徽章 » commence par « 拿起 ».
+    return verb === take || verb.startsWith(isDense(take) ? take : `${take} `)
   })
 }
 
@@ -177,8 +178,8 @@ export function takeTarget(
       (name, article) => name.startsWith(article) ? name.slice(article.length).trim() : name,
       words(obj.label).trim())
     // Deux lettres se retrouvent dans n'importe quelle phrase.
-    if (label.length < 3) continue
-    if (text.includes(` ${label} `)) return obj
+    if (!significant(label, 2)) continue
+    if (hasWord(text, label)) return obj
   }
   return null
 }

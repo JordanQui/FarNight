@@ -3,7 +3,7 @@ import type { StoryletEffect } from '~/utils/storylets'
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useNightClock } from '~/composables/useNightClock'
-import { normalize, matchesKeyword } from '~/utils/text-match'
+import { normalize, matchesKeyword, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 
 /** Durée totale au-delà de laquelle on considère le tour perdu. */
@@ -24,6 +24,7 @@ const STALL_TIMEOUT_MS = 20_000
  * que les faits de la scène courante.
  */
 export function useNarrative() {
+  const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   // Pris ici, pas au fil du tour : après un `await`, le contexte de Nuxt n'est
@@ -108,7 +109,7 @@ export function useNarrative() {
     // rouvrirait une porte dérobée : on pourrait jouer sans jamais déchiffrer
     // une identité, et l'oeil bionique ne servirait plus à rien.
     return npcs.find(npc =>
-      normalize(npc.name).split(' ').some(part => part.length > 2 && text.includes(part))
+      normalize(npc.name).split(' ').some(part => significant(part, 2) && text.includes(part))
     )
   }
 
@@ -141,7 +142,7 @@ export function useNarrative() {
     return (playerStore.scene?.decor ?? []).some(dec => {
       const words = normalize(dec.name ?? '')
         .split(' ')
-        .filter(w => w.length > 3)
+        .filter(w => significant(w, 3))
       return words.some(w => text.includes(w))
     })
   }
@@ -279,7 +280,7 @@ export function useNarrative() {
       }
 
       if (!response.ok || !response.body) {
-        throw new Error(`Le serveur a répondu ${response.status}`)
+        throw new Error(t('errors.server_status', { status: response.status }))
       }
 
       const reader = response.body.getReader()
@@ -320,7 +321,7 @@ export function useNarrative() {
       }
 
       // Un flux qui se termine sans un mot est un échec, pas un tour vide.
-      if (!fullText.trim()) throw new Error('Le narrateur est resté muet')
+      if (!fullText.trim()) throw new Error(t('errors.narrator_mute'))
 
       gameStore.setPlayingSubState('awaiting_input')
       return fullText
@@ -329,8 +330,8 @@ export function useNarrative() {
       gameStore.removeLastNarrativeEntry()
       gameStore.setTurnError(
         aborted
-          ? 'Le récit s\'est interrompu. Le narrateur a mis trop de temps.'
-          : err instanceof Error ? err.message : 'Le récit s\'est interrompu.'
+          ? t('errors.narrator_timeout')
+          : err instanceof Error ? err.message : t('errors.narrator_cut')
       )
       return ''
     } finally {

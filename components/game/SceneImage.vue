@@ -27,9 +27,9 @@ watch(() => props.loading, (isLoading) => {
 onUnmounted(stopTimer)
 
 const message = computed(() => {
-  if (props.error) return 'L\'image ne s\'est pas formée. Le texte, lui, tient toujours.'
-  if (props.loading) return 'La brume du soir voile encore la salle...'
-  return 'La salle attend d\'être dessinée.'
+  if (props.error) return t('game.image_failed')
+  if (props.loading) return t('game.image_loading')
+  return t('game.image_waiting')
 })
 </script>
 

@@ -6,6 +6,7 @@ import { useGameStore } from '~/stores/game'
  * utilisable en `src`. Rien n'expire, contrairement aux anciennes URLs dall-e-3.
  */
 export function useImageGen() {
+  const { t } = useLang()
   const gameStore = useGameStore()
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -39,7 +40,7 @@ export function useImageGen() {
       gameStore.finishSceneImage()
       return res.image
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur de génération d\'image'
+      const message = err instanceof Error ? err.message : t('errors.image_gen')
       error.value = message
       gameStore.failSceneImage(message)
       return null

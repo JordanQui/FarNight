@@ -1,6 +1,7 @@
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
-import { pack } from '~/utils/languages'
+import { pack, signalOf } from '~/utils/languages'
+import { isDense } from '~/utils/text-match'
 
 /**
  * La Majuscule de Titre, rendue vraie.
@@ -102,6 +103,9 @@ function pattern(name: string): RegExp {
     }).join(''))
     .join('\\s+')
 
+  // Le chinois et le japonais n'ont pas d'espace, l'arabe colle ses
+  // particules : une borne de lettre n'y trouverait jamais le nom.
+  if (isDense(name)) return new RegExp(body, 'gu')
   return new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, 'giu')
 }
 
@@ -127,9 +131,12 @@ export function enforceNameCaps(
 ): NamingAudit {
   const fixed: string[] = []
   const missing: string[] = []
+  // Sans casse, rien à recaler : seul l'audit des absents a un sens. Le gras
+  // qui tient lieu de majuscule est posé à l'affichage (`NarrativeText`).
+  const recase = signalOf(lang) === 'caps'
 
   const canonical = [...new Set(names.map(n => stripArticle(n, lang)))]
-    .filter(n => n.length >= MIN_LENGTH)
+    .filter(n => n.length >= MIN_LENGTH || (isDense(n) && [...n].length >= 2))
     .sort((a, b) => b.length - a.length)
 
   let out = text
@@ -137,6 +144,7 @@ export function enforceNameCaps(
     let seen = false
     out = out.replace(pattern(name), (match) => {
       seen = true
+      if (!recase) return match
       if (match !== name) fixed.push(`${match} -> ${name}`)
       return name
     })

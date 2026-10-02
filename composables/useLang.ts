@@ -1,6 +1,6 @@
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
-import { LANGUAGES, detectLang, pack, resolveLang, translate } from '~/utils/languages'
+import { LANGUAGES, detectLang, dirOf, pack, resolveLang, translate } from '~/utils/languages'
 
 /**
  * La langue courante, et de quoi la traduire.
@@ -50,7 +50,10 @@ export function useLang() {
   /** La langue jouée change : tout l'habillage suit au prochain rendu. */
   function setLang(next: LangCode) {
     cookie.value = resolveLang(next)
-    if (import.meta.client) document.documentElement.lang = pack(cookie.value).tag
+    if (import.meta.client) {
+      document.documentElement.lang = pack(cookie.value).tag
+      document.documentElement.dir = dirOf(cookie.value)
+    }
   }
 
   /** Une chaîne d'habillage, variables remplies. */

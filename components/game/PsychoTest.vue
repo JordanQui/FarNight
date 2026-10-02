@@ -92,7 +92,7 @@ function choose(index: number) {
       </div>
 
       <p class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display text-center">
-        {{ failed ? 'Signal rejeté' : 'Objet scellé' }}
+        {{ failed ? t('game.psycho_rejected') : t('game.psycho_sealed') }}
       </p>
     </div>
   </div>

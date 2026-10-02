@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { LANG_CODES } from '~/types/i18n'
-import { pack, translate } from '~/utils/languages'
+import { dirOf, pack, translate } from '~/utils/languages'
 
 /**
  * Ce que le jeu dit de lui aux moteurs et aux réseaux.
@@ -89,7 +89,11 @@ useHead({
   // La balise `lang` suit le joueur : elle décide de la coupure des mots, de
   // la voix de synthèse et de ce qu'un lecteur d'écran prononce. La laisser à
   // « fr » aurait fait lire un texte anglais avec un accent français.
-  htmlAttrs: { lang: computed(() => pack(lang.value).tag) },
+  // `dir` aussi : l'arabe se lit de droite à gauche, et tout le document suit.
+  htmlAttrs: {
+    lang: computed(() => pack(lang.value).tag),
+    dir: computed(() => dirOf(lang.value)),
+  },
   link: [{ rel: 'canonical', href: `${origin}/` }],
   meta: [
     { property: 'og:url', content: `${origin}/` },

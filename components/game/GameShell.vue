@@ -46,7 +46,7 @@ function onSolved() {
   if (!target) return
 
   gameStore.markDecrypted(target.id)
-  gameStore.addNarrativeEntry('system', `${target.label} — analyse terminée.`)
+  gameStore.addNarrativeEntry('system', t('game.analysis_done', { label: target.label }))
 
   // Ce que l'analyse révèle : l'objet scellé le porte, et depuis peu les objets
   // qu'on ramasse dans le décor aussi. Ces textes ont été écrits à la

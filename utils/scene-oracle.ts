@@ -1,7 +1,7 @@
 import type { SceneTextResponse } from '~/types/scene'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
-import { normalize } from '~/utils/text-match'
+import { normalize, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 import { isTakeable, visible } from '~/utils/interactables'
 
@@ -51,7 +51,7 @@ function namedIn(input: string, name: string, lang: LangCode): boolean {
   const stopwords = pack(lang).input.stopwords.map(normalize)
   const words = normalize(name)
     .split(' ')
-    .filter(w => w.length > 3 && !stopwords.includes(w))
+    .filter(w => significant(w, 3) && !stopwords.includes(w))
   if (!words.length) return false
   return words.some(w => input.includes(w))
 }

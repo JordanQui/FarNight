@@ -3,7 +3,7 @@ import type { CarriedItem, JournalEntry } from '~/utils/journal'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { pack, translate } from '~/utils/languages'
-import { normalize, matchesKeyword } from '~/utils/text-match'
+import { normalize, matchesKeyword, hasWord, significant } from '~/utils/text-match'
 import { fold } from '~/utils/naming'
 import { isTakeable } from '~/utils/interactables'
 
@@ -78,7 +78,7 @@ function surfacesOf(
   lang: LangCode,
 ): Surface[] {
   const written = fold(scene.scene_text)
-  const named = (label: string) => label.length > 2 && written.includes(fold(label))
+  const named = (label: string) => significant(label, 2) && written.includes(fold(label))
   const decor = (scene.decor ?? [])
     .filter(d => d.name && named(d.name))
     .map(d => ({ id: `decor:${d.slot_id}`, label: d.name, far: d.slot_id === 'lointain' }))
@@ -328,8 +328,8 @@ export function searchedSpot(
   const stop = p.input.stopwords.map(normalize)
   const score = (label: string) => normalize(label)
     .split(/[^\p{L}\p{N}]+/u)
-    .filter(w => w.length > 3 && !stop.includes(w))
-    .filter(w => text.includes(` ${w} `)).length
+    .filter(w => significant(w, 3) && !stop.includes(w))
+    .filter(w => hasWord(text, w)).length
   const ranked = puzzle.spots
     .map(s => ({ s, n: score(s.label) }))
     .filter(x => x.n > 0)
