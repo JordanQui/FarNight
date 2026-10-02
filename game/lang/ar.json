@@ -372,6 +372,7 @@
     "game.dawn": "الفجر يطلع على المدينة...",
     "game.dawn_download": "احتفظ بالفجر",
     "game.loading_default": "القدر ينسج خيطه",
+    "game.loading_disclaimer": "التجربة المعروضة هنا ذات طابع تجريبي. على اللاعب أن يكوّن رأيه انطلاقًا من وجهة نظره الخاصة.",
     "seo.title": "ليلة أقصى العالم — مغامرة نصية",
     "game.player_fallback": "عابر سبيل",
     "oracle.quest": "المهمة: {{title}} — {{objective}}",

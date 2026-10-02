@@ -369,6 +369,7 @@
     "game.dawn": "De dag breekt aan boven de stad...",
     "game.dawn_download": "De dageraad bewaren",
     "game.loading_default": "Het lot spint zijn draad",
+    "game.loading_disclaimer": "De ervaring die je hier beleeft, wordt als experiment aangeboden. De speler moet zich een mening vormen vanuit zijn eigen standpunt.",
     "seo.title": "Far Night — een tekstrollenspel",
     "game.player_fallback": "Zwerver",
     "oracle.quest": "Opdracht: {{title}} — {{objective}}",

@@ -346,6 +346,7 @@
     "game.dawn": "天色在城市上空渐渐亮起……",
     "game.dawn_download": "留住这个黎明",
     "game.loading_default": "命运正在纺线",
+    "game.loading_disclaimer": "此处的体验仅作实验性质提供。玩家应从自己的视角形成自己的看法。",
     "seo.title": "天涯之夜——一款文字冒险游戏",
     "game.player_fallback": "流浪者",
     "oracle.quest": "任务：{{title}}——{{objective}}",
