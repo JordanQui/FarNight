@@ -2,7 +2,8 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdmission, forgetRun, rememberedProfile } from '~/composables/useScene'
+import { forgetAdmission, forgetRun, rememberedAdmission, rememberedProfile, storeAdmission } from '~/composables/useScene'
+import { sampleAdmissionForm } from '~/utils/admission'
 import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
@@ -116,17 +117,22 @@ const raindrops = Array.from({ length: 44 }, (_, i) => ({
  * Entre avec le dossier type, sans rien remplir.
  *
  * Le raccourci du développement, et la porte de service pour qui veut voir le
- * jeu sans se déclarer : c'est le profil de game/user.json.
+ * jeu sans se déclarer : c'est le profil tiré de game/admission.json.
+ *
+ * Ses réponses sont aussi déposées dans le formulaire, s'il est vide : le
+ * rouvrir le rend rempli, et chaque étape se teste en corrigeant une ligne.
+ * Jamais par-dessus des réponses déjà tapées — ce sont celles du joueur.
  */
 async function startWithSampleDossier() {
   isLoadingDemo.value = true
   startFresh()
+  if (!rememberedAdmission()) storeAdmission({ ...sampleAdmissionForm(), language: lang.value }, 0)
   try {
     const profile = await $fetch<UserProfile>('/api/user/demo')
     // Le dossier type est écrit en français : la langue choisie ici prime.
     playerStore.setProfile({ ...profile, language: lang.value })
   } catch {
-    // Le serveur retombera de toute façon sur game/user.json.
+    // Le serveur retombera de toute façon sur le dossier type.
   } finally {
     isLoadingDemo.value = false
     gameStore.setScreen('scene_build_loading')

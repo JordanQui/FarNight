@@ -1,5 +1,4 @@
 import scriptJson from '../game/script.json'
-import userJson from '../game/user.json'
 import type {
   Script,
   SceneScript,
@@ -31,16 +30,20 @@ import { agreementFor, overlayValue, pack } from '~/utils/languages'
 import { zodiacKey } from '~/utils/zodiac'
 import { numerologyOf } from '~/utils/numerology'
 import { drawPuzzle } from '~/utils/puzzles'
+import { profileFromAdmission, sampleAdmissionForm } from '~/utils/admission'
 
 // Les JSON sont importés, pas lus sur le disque : en serverless (Vercel) le
 // process ne voit que le bundle, jamais l'arborescence du repo. L'import les
 // inline dans le build, donc ils sont toujours là.
 const script = scriptJson as unknown as Script
-const userFixture = userJson as unknown as UserProfile
 
-/** Le dossier type. En jeu, le profil vient du formulaire d'admission. */
+/**
+ * Le dossier type, tiré des réponses de game/admission.json par le même
+ * chemin que le formulaire : il ne peut pas porter un champ que le formulaire
+ * ne produit pas. Recalculé à chaque appel, pour que l'âge suive la date.
+ */
 export function loadUserFixture(): Promise<UserProfile> {
-  return Promise.resolve(userFixture)
+  return Promise.resolve(profileFromAdmission(sampleAdmissionForm()))
 }
 
 /**

@@ -6,7 +6,7 @@
     "language": "fr",
     "genre": "cyberpunk_noir",
     "narrative_mode": "text_adventure_80s",
-    "note": "Script GLOBAL et STATIQUE. `defaults` s'applique à toutes les scènes ; chaque entrée de `scenes` peut le surcharger. Fusionné à un profil joueur (game/user.json en dev) par utils/script-runtime.ts. Aucun contenu propre à un joueur ici."
+    "note": "Script GLOBAL et STATIQUE. `defaults` s'applique à toutes les scènes ; chaque entrée de `scenes` peut le surcharger. Fusionné à un profil joueur (le dossier type de game/admission.json en dev) par utils/script-runtime.ts. Aucun contenu propre à un joueur ici."
   },
   "progression": {
     "start_scene": "auberge",

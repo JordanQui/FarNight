@@ -52,6 +52,7 @@ import type { UserProfile, UserAgreement, UserNights } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { translate } from '~/utils/languages'
+import sampleJson from '../game/admission.json'
 
 export interface AdmissionForm {
   /**
@@ -119,6 +120,19 @@ export function emptyAdmissionForm(lang: LangCode = DEFAULT_LANG): AdmissionForm
     awakeNote: '',
     dreamNote: '',
   }
+}
+
+/**
+ * Le dossier type : les réponses de game/admission.json, complétées des champs
+ * qu'un ajout au formulaire n'y aurait pas encore mis.
+ *
+ * C'est la seule source du profil de démonstration — `loadUserFixture` le
+ * convertit par `profileFromAdmission`, comme pour un vrai joueur — et c'est
+ * aussi ce que le formulaire rouvre quand on est entré par le dossier type.
+ */
+export function sampleAdmissionForm(): AdmissionForm {
+  const { _note, ...answers } = sampleJson as Partial<AdmissionForm> & { _note?: string }
+  return { ...emptyAdmissionForm(), ...answers }
 }
 
 /**

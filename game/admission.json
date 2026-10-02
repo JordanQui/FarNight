@@ -1,0 +1,28 @@
+{
+  "_note": "Dossier type : les réponses au formulaire d'admission, telles qu'un joueur les taperait (forme AdmissionForm, utils/admission.ts). Le profil du dossier type en est DÉDUIT par profileFromAdmission — il ne peut donc plus diverger du formulaire. Tous les champs sont remplis, l'accord est au féminin et la ville d'origine diffère de la ville actuelle, pour que chaque branche du jeu ait de quoi se nourrir. Ajouter un champ au formulaire = l'ajouter ici.",
+
+  "language": "fr",
+  "firstName": "Laure",
+  "lastName": "Aime",
+  "birthday": "1991-03-07",
+  "agreement": "feminin",
+
+  "hometown": "Saint-Malo",
+  "currentCity": "Lyon",
+
+  "moment": "le port à marée basse avec mon père, six heures du matin, le thermos de café posé entre nous",
+  "fearFilm": "Shining",
+  "animal": "le goéland",
+  "anthemTitle": "Blue Ridge Mountains",
+  "anthemArtist": "Fleet Foxes",
+
+  "turningPoint": "j'ai lâché ma thèse d'histoire pour aller monter des films",
+
+  "keepsake": "un compas de marine qui ne pointe plus le nord",
+  "refuge": "le dernier bar ouvert du quai",
+  "ally": "Nils",
+  "aversion": "qu'on décide à ma place",
+
+  "awakeNote": "je descends au quai et je regarde passer les péniches jusqu'à trois heures",
+  "dreamNote": "je reviens dans la maison de Saint-Malo, mais les fenêtres donnent sur le fleuve et l'eau monte"
+}

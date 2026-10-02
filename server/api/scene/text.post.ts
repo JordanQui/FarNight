@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const body = await readBody<{
     sceneId?: string
-    /** Profil joueur. Omis en dev : on retombe sur game/user.json. */
+    /** Profil joueur. Omis en dev : on retombe sur le dossier type (game/admission.json). */
     user?: UserProfile
     /**
      * Ce que le joueur a déjà vécu. Envoyé par le client, qui le tient : le

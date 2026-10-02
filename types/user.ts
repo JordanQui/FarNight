@@ -1,5 +1,5 @@
 // Forme normalisée du profil joueur. Produite par utils/admission.ts à partir
-// du formulaire d'admission ; game/user.json en tient le dossier type.
+// du formulaire d'admission ; game/admission.json en tient le dossier type.
 
 import type { LangCode } from '~/types/i18n'
 
@@ -15,7 +15,7 @@ export interface UserPlace {
   name: string
   /**
    * Enrichissement local : le formulaire ne demande qu'un nom de ville.
-   * Seul le dossier type de game/user.json en porte encore.
+   * Ni le formulaire ni le dossier type n'en portent plus.
    */
   traits?: string[]
 }
@@ -147,8 +147,8 @@ export interface UserProfile {
    * cookie — qui suffit pour l'habillage, mais pas pour une partie reprise sur
    * un autre appareil, où le dossier arrive seul.
    *
-   * Optionnelle parce que le dossier type de game/user.json est antérieur au
-   * multilangue : son absence vaut français.
+   * Optionnelle parce qu'un dossier gardé d'avant le multilangue peut ne pas
+   * l'avoir : son absence vaut français.
    */
   language?: LangCode
   origin: {
