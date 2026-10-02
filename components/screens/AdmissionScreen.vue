@@ -468,7 +468,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
                 v-model="form.awakeNote"
                 rows="2"
                 class="field field-multi"
-                :placeholder="t('admission.awake_ph')"
               />
               <span class="field-hint">{{ t('admission.awake_hint') }}</span>
             </label>
@@ -479,7 +478,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
                 v-model="form.dreamNote"
                 rows="2"
                 class="field field-multi"
-                :placeholder="t('admission.dream_ph')"
               />
               <span class="field-hint">{{ t('admission.dream_hint') }}</span>
             </label>
