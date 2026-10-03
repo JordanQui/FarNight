@@ -337,6 +337,7 @@
     "admission.dream": "El sueño que vuelve",
     "admission.dream_hint": "El que VUELVE: la noche podrá ponerlo delante de ti sin repetirse. Si ninguno vuelve, deja la línea vacía.",
     "admission.submit": "Presentar el expediente",
+    "admission.launch": "Empezar la aventura",
     "admission.clear": "Borrar mis respuestas",
     "admission.clear_confirm": "Confirmar: borrarlo todo",
     "admission.required_hint": "El nombre y la fecha de nacimiento son obligatorios. El resto, no.",

@@ -100,12 +100,30 @@ const phase = ref<'form' | 'verdict'>('form')
  *
  * Deux lettres au moins — mais UN idéogramme suffit : 伟 est un prénom entier.
  */
-const canAdvance = computed(() => {
-  if (step.value > 0) return true
+const hasIdentity = computed(() => {
   const first = form.firstName.trim()
   const enough = first.length >= 2 || /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(first)
   return enough && form.birthday.length === 10
 })
+
+const canAdvance = computed(() => step.value > 0 || hasIdentity.value)
+
+/**
+ * Le dossier a été rempli jusqu'au bout une fois — dans cette visite ou dans
+ * une précédente. Revenir corriger une réponse ne doit plus obliger à refaire
+ * les six étapes : « Lancer l'aventure » reste à portée sur chacune.
+ */
+const reachedEnd = ref(false)
+watch(step, (n) => { if (n === STEPS.value.length - 1) reachedEnd.value = true })
+
+const canLaunch = computed(() => reachedEnd.value && hasIdentity.value)
+
+/** Déposer le dossier et partir tout de suite, sans repasser par la réponse de la commission. */
+function launch() {
+  if (!canLaunch.value) return
+  playerStore.setProfile(profileFromAdmission(form))
+  enterCity()
+}
 
 /**
  * Le nom écrit ne se calcule pas (chinois, kanji) : on demande sa forme latine,
@@ -141,6 +159,7 @@ function back() {
  */
 function submit() {
   playerStore.setProfile(profileFromAdmission(form))
+  reachedEnd.value = true
   phase.value = 'verdict'
 }
 
@@ -174,6 +193,7 @@ onMounted(() => {
       turningPoint: old.turningPoint ?? old.turningPoints?.[0] ?? '',
     })
     step.value = Math.min(Math.max(kept.step ?? 0, 0), STEPS.value.length - 1)
+    if (step.value === STEPS.value.length - 1) reachedEnd.value = true
   }
 
   // Écrit à chaque frappe. Un formulaire encore vierge ne laisse aucune trace.
@@ -210,6 +230,7 @@ function clearAnswers() {
   confirmingClear.value = false
   Object.assign(form, emptyAdmissionForm(lang.value))
   step.value = 0
+  reachedEnd.value = false
   forgetAdmission()
 }
 
@@ -497,6 +518,14 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
               {{ step === STEPS.length - 1 ? t('admission.submit') : t('common.next') }}
             </GlowButton>
           </div>
+
+          <GlowButton
+            v-if="canLaunch && step < STEPS.length - 1"
+            class="relative w-full"
+            @click="launch"
+          >
+            {{ t('admission.launch') }}
+          </GlowButton>
 
           <p v-if="step === 0 && !canAdvance" class="relative field-hint text-center">
             {{ t('admission.required_hint') }}

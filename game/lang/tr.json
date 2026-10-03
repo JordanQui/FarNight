@@ -298,6 +298,7 @@
     "admission.dream": "Tekrar eden rüya",
     "admission.dream_hint": "TEKRAR EDEN olan: gece onu, kendini tekrarlamadan yeniden önüne koyabilir. Hiçbiri tekrar etmiyorsa satırı boş bırak.",
     "admission.submit": "Dosyayı teslim et",
+    "admission.launch": "Maceraya başla",
     "admission.clear": "Yanıtlarımı sil",
     "admission.clear_confirm": "Onayla: hepsini sil",
     "admission.required_hint": "Ad ve doğum tarihi zorunlu. Gerisi değil.",

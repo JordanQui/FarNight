@@ -3,6 +3,7 @@ const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
+import { useInventory } from '~/composables/useInventory'
 
 /**
  * Les outils de lecture.
@@ -12,16 +13,21 @@ import { usePlayerStore } from '~/stores/player'
  * objets scellés. La loupe n'apparaît qu'une fois l'augmentation obtenue :
  * avant, le joueur ne doit pas soupçonner qu'un second mode existe.
  *
- * LE TROISIÈME BOUTON N'EST PAS UN OUTIL : il ouvre ce que le joueur porte.
- * Sa place est ici quand même — c'est la rangée qu'on regarde pour savoir ce
- * qu'on peut faire —, mais il est mis à part : l'oeil et la loupe changent la
- * lecture de la scène, l'inventaire la recouvre. Il n'apparaît que quand il y
- * a quelque chose dedans : une grille vide n'apprend rien.
+ * LA POIGNÉE DE DROITE N'EST PAS UN OUTIL : elle montre ce que le joueur porte
+ * et ouvre la grille. Sa place est ici quand même — c'est la rangée qu'on
+ * regarde pour savoir ce qu'on peut faire —, mais elle est poussée à droite :
+ * l'oeil et la loupe changent la lecture de la scène, l'inventaire la recouvre.
+ * Elle n'apparaît que quand il y a quelque chose dedans : une grille vide
+ * n'apprend rien.
  */
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
 
 const emit = defineEmits<{ inventory: [] }>()
+
+const { items } = useInventory()
+/** La rangée tient sur une ligne : au-delà, le compte dit le reste. */
+const shown = computed(() => items.value.slice(-5))
 
 // Le nom de L'AUGMENTATION, pas celui de l'objet-clé de la scène en cours :
 // dès la scène 2, la loupe prenait le nom d'une carte d'accès.
@@ -67,23 +73,45 @@ const lensLabel = computed(() => gameStore.augmentation?.name
     </button>
 
     <!--
-      Ce que le joueur porte. Séparé des outils par un filet : ce bouton
-      n'arme rien, il ouvre une fenêtre.
+      Ce que le joueur porte, À VUE. Un pictogramme muet en bout de rangée ne
+      se remarquait pas : on ramassait une carte en scène 2 sans trouver où
+      elle était passée. Les objets eux-mêmes s'alignent donc ici — leur
+      symbole, et pour une carte sa pastille de couleur —, et toute la poignée
+      ouvre la grille où les noms s'écrivent en entier.
     -->
     <button
-      v-if="gameStore.inventory.length"
-      class="p-1.5 -my-0.5 ml-1 pl-2.5 border-l border-steel-600/40 text-steel-400
-             hover:text-neon-400 transition-colors"
+      v-if="items.length"
+      class="ml-auto flex items-center gap-2 min-w-0 px-2 py-1 -my-0.5 border border-neon-700/40
+             text-steel-400 hover:text-neon-300 hover:border-neon-500/60 transition-colors"
       :aria-label="t('game.inventory_all')"
       :title="t('game.inventory_all')"
       @click="emit('inventory')"
     >
-      <svg viewBox="0 0 20 20" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.4">
-        <rect x="2.5" y="2.5" width="6" height="6" />
-        <rect x="11.5" y="2.5" width="6" height="6" />
-        <rect x="2.5" y="11.5" width="6" height="6" />
-        <rect x="11.5" y="11.5" width="6" height="6" />
-      </svg>
+      <span class="text-[10px] uppercase tracking-[0.2em] font-display text-neon-400/80 shrink-0">
+        {{ t('game.inventory') }}
+      </span>
+      <span class="flex items-center gap-1 min-w-0 overflow-hidden">
+        <span
+          v-for="o in shown"
+          :key="o.id"
+          class="relative shrink-0"
+        >
+          <ItemIcon
+            :icon="o.icon"
+            :kind="o.kind"
+            :known="o.known"
+            class="w-4 h-4"
+            :class="o.known ? 'text-neon-300' : 'text-steel-500'"
+          />
+          <span
+            v-if="o.kind === 'key'"
+            class="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border border-ink-900"
+            :style="{ background: o.hex || 'rgb(var(--neon-500))' }"
+            aria-hidden="true"
+          />
+        </span>
+      </span>
+      <span class="text-[10px] font-mono tabular-nums text-steel-400 shrink-0">{{ items.length }}</span>
     </button>
   </div>
 </template>

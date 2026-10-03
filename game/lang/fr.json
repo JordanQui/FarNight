@@ -342,6 +342,7 @@
     
     "admission.dream_hint": "Celui qui REVIENT : la nuit pourra le reposer devant vous sans que ça se répète. Si aucun ne revient, laissez la ligne vide.",
     "admission.submit": "Déposer le dossier",
+    "admission.launch": "Lancer l'aventure",
     "admission.clear": "Effacer mes réponses",
     "admission.clear_confirm": "Confirmer : tout effacer",
     "admission.required_hint": "Prénom et date de naissance sont exigés. Le reste, non.",

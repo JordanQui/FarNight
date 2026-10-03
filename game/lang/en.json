@@ -289,6 +289,7 @@
     "admission.dream": "The dream that comes back",
     "admission.dream_hint": "The one that RETURNS: the night can set it down in front of you without repeating itself. If none comes back, leave the line empty.",
     "admission.submit": "File the application",
+    "admission.launch": "Start the adventure",
     "admission.clear": "Clear my answers",
     "admission.clear_confirm": "Confirm: erase everything",
     "admission.required_hint": "First name and date of birth are required. The rest is not.",
