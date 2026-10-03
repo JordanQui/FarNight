@@ -15,10 +15,11 @@ import { useInventory } from '~/composables/useInventory'
  *
  * LA POIGNÉE DE DROITE N'EST PAS UN OUTIL : elle montre ce que le joueur porte
  * et ouvre la grille. Sa place est ici quand même — c'est la rangée qu'on
- * regarde pour savoir ce qu'on peut faire —, mais elle est poussée à droite :
+ * regarde pour savoir ce qu'on peut faire —, juste après la loupe, encadrée :
  * l'oeil et la loupe changent la lecture de la scène, l'inventaire la recouvre.
- * Elle n'apparaît que quand il y a quelque chose dedans : une grille vide
- * n'apprend rien.
+ * Elle est là même vide : un bouton qui n'apparaît qu'au premier objet ne
+ * se cherche pas, et le joueur croyait l'inventaire disparu. Vide, elle
+ * l'ouvre sur « Tu ne portes rien. », ce qui est déjà une réponse.
  */
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -80,8 +81,7 @@ const lensLabel = computed(() => gameStore.augmentation?.name
       ouvre la grille où les noms s'écrivent en entier.
     -->
     <button
-      v-if="items.length"
-      class="ml-auto flex items-center gap-2 min-w-0 px-2 py-1 -my-0.5 border border-neon-700/40
+      class="ml-1 flex items-center gap-2 min-w-0 px-2 py-1 -my-0.5 border border-neon-700/40
              text-steel-400 hover:text-neon-300 hover:border-neon-500/60 transition-colors"
       :aria-label="t('game.inventory_all')"
       :title="t('game.inventory_all')"
@@ -111,7 +111,10 @@ const lensLabel = computed(() => gameStore.augmentation?.name
           />
         </span>
       </span>
-      <span class="text-[10px] font-mono tabular-nums text-steel-400 shrink-0">{{ items.length }}</span>
+      <span
+        class="text-[10px] font-mono tabular-nums shrink-0"
+        :class="items.length ? 'text-steel-400' : 'text-steel-600'"
+      >{{ items.length }}</span>
     </button>
   </div>
 </template>
