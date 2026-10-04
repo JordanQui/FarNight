@@ -1,7 +1,7 @@
 import type { SceneTextResponse } from '~/types/scene'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
-import { normalize, significant } from '~/utils/text-match'
+import { hasWord, isDense, normalize, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 import { isTakeable, visible } from '~/utils/interactables'
 import { answerClue } from '~/utils/puzzles'
@@ -50,13 +50,46 @@ function containsAny(haystack: string, needles: string[]): boolean {
  * « from » qu'il faut y écarter, sans quoi un nom composé les prendrait pour
  * des mots pleins et matcherait n'importe quelle commande qui les contient.
  */
-function namedIn(input: string, name: string, lang: LangCode): boolean {
+function nameScore(input: string, name: string, lang: LangCode): number {
   const stopwords = pack(lang).input.stopwords.map(normalize)
-  const words = normalize(name)
+  const clean = (value: string) => normalize(value)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+  const normalizedName = clean(name)
+  const words = normalizedName
     .split(' ')
     .filter(w => significant(w, 3) && !stopwords.includes(w))
-  if (!words.length) return false
-  return words.some(w => input.includes(w))
+  if (!words.length) return 0
+
+  const haystack = ` ${clean(input)} `
+  const exact = isDense(normalizedName)
+    ? haystack.includes(normalizedName)
+    : haystack.includes(` ${normalizedName} `)
+  if (exact) return 10_000 + normalizedName.length
+
+  const matches = words.filter(word => hasWord(haystack, word)).length
+  // Le nombre de mots reconnus passe devant ; à égalité, le nom dont la
+  // plus grande part a été tapée gagne. Ainsi « regarder le Verre Fendu »
+  // ne retombe pas sur un « Éclat de Verre » déclaré avant lui.
+  return matches ? matches * 100 - (words.length - matches) : 0
+}
+
+function namedIn(input: string, name: string, lang: LangCode): boolean {
+  return nameScore(input, name, lang) > 0
+}
+
+/** Le nom le mieux désigné par la commande, pas simplement le premier partageant un mot. */
+function bestNamed(input: string, names: string[], lang: LangCode): string | null {
+  let best: string | null = null
+  let score = 0
+  for (const name of names) {
+    const candidate = nameScore(input, name, lang)
+    if (candidate > score) {
+      best = name
+      score = candidate
+    }
+  }
+  return best
 }
 
 /**
@@ -71,9 +104,10 @@ export function lookedThing(
 ): string | null {
   const text = normalize(input)
   if (!containsAny(text, pack(lang).input.look)) return null
-  return scene.decor.find(dec => dec.name && namedIn(text, dec.name, lang))?.name
-    ?? visible(scene.interactables, state.revealedIds).find(o => o.label && namedIn(text, o.label, lang))?.label
-    ?? null
+  return bestNamed(text, [
+    ...scene.decor.map(dec => dec.name),
+    ...visible(scene.interactables, state.revealedIds).map(o => o.label),
+  ].filter(Boolean), lang)
 }
 
 /**
@@ -160,12 +194,12 @@ export function resolveLocally(
 
   // Observation d'un élément de décor : sa description est déjà écrite.
   if (containsAny(text, look)) {
-    const element = scene.decor.find(dec => dec.name && namedIn(text, dec.name, lang))
+    const thing = lookedThing(input, scene, state, lang)
+    const element = scene.decor.find(dec => dec.name === thing)
     // L'INDICE DE L'ÉNIGME SE LIT AU DEUXIÈME OBJET REGARDÉ, quel qu'il soit.
     // Il n'est caché sur rien : le premier regard montre le lieu, le second
     // donne la réponse, et les suivants la redonnent. On ne doit ni tourner en
     // rond ni rester bloqué — demandé ainsi par le user.
-    const thing = lookedThing(input, scene, state, lang)
     const second = Boolean(scene.puzzle) && Boolean(thing) && !state.hasKeyItem
       && (state.lookedLabels ?? []).some(l => l !== thing)
     // Refait depuis la solution, jamais relu dans `clues` : voir `answerClue`.

@@ -1383,10 +1383,11 @@ ${lines}`)
           + `(reçu "${item.npc_id}")`)
       }
       // LA FRÉQUENCE A TROIS PIÈCES, et il les faut toutes dans le texte :
-      // un objet qu'on ramasse, au moins deux choses à regarder (c'est la
-      // deuxième qui donne la valeur), et le nom de la fréquence — c'est en le
-      // déchiffrant à la loupe que s'ouvre le panneau du cadran. Sans ce nom,
-      // il n'y avait rien à déchiffrer, et le panneau n'apparaissait jamais.
+      // DEUX objets distincts à observer (c'est le second qui donne la valeur),
+      // au moins deux surfaces du lieu, et le nom de la fréquence — c'est en
+      // le déchiffrant à la loupe que s'ouvre le panneau du cadran. Compter le
+      // décor comme deux surfaces ne suffit pas : le joueur doit réellement
+      // voir deux objets dans le récit et pouvoir les distinguer.
       const puzzle = this.scene.key_item.puzzle
       if (puzzle === 'frequency' || puzzle === 'code') {
         if (!written.includes(fold(item.name))) {
@@ -1395,10 +1396,15 @@ ${lines}`)
             + 'écris-le tel quel, en Majuscule, sur l\'élément focal : c\'est en le déchiffrant que le joueur ouvre le cadran')
         }
         const named = (label?: string) => Boolean(label) && written.includes(fold(label!))
-        if (!takeable.some(o => !o.hidden && named(o.label))) {
+        const presentedObjects = takeable.filter(o =>
+          !o.hidden && named(o.label) && Boolean(o.observation?.trim()))
+        const distinctLabels = new Set(presentedObjects.map(o => fold(o.label).trim()))
+        const distinctIds = new Set(presentedObjects.map(o => o.id.trim()).filter(Boolean))
+        if (distinctLabels.size < 2 || distinctIds.size < 2) {
           throw new Error(
-            'Scène invalide : aucun objet à ramasser n\'est nommé dans scene_text — '
-            + `nomme dans le texte, avec son label exact, au moins un objet de verbe ${this.takeVerbs}`)
+            'Scène invalide : moins de deux objets distincts à observer sont présentés dans scene_text — '
+            + 'déclare dans interactables deux objets visibles avec chacun son id, son label exact dans le texte, '
+            + `son observation et un verbe ${this.takeVerbs}`)
         }
         if (surfacesOf(generated, this.lang).length < 2) {
           throw new Error(
