@@ -1387,7 +1387,7 @@ ${lines}`)
         if (!written.includes(fold(item.name))) {
           throw new Error(
             `Scène invalide : "${item.name}" (key_item.name) n'apparaît pas dans scene_text — `
-            + 'écris-le tel quel, en Majuscule, sur le récepteur : c\'est en le déchiffrant que le joueur ouvre son cadran')
+            + 'écris-le tel quel, en Majuscule, sur l\'élément focal : c\'est en le déchiffrant que le joueur ouvre le cadran')
         }
         const named = (label?: string) => Boolean(label) && written.includes(fold(label!))
         if (!takeable.some(o => !o.hidden && named(o.label))) {

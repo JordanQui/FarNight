@@ -54,6 +54,11 @@ const names = computed<Term[]>(() => {
     ...(scene.decor ?? []).map(d => d.name),
   ]
     .filter((v): v is string => Boolean(v?.trim()))
+    // Un nom de décor qui CONTIENT une chose à déchiffrer l'avalerait : le plus
+    // long l'emporte, et la fréquence écrite sur l'élément focal sortait en
+    // gras, en clair, sans rien à ouvrir à la loupe. On lui laisse la place.
+    .filter(value => !things.some(o => value.length > o.value.length
+      && value.toLowerCase().includes(o.value.toLowerCase())))
     .map(value => ({ value, kind: 'mark' }))
 
   return [...marks, ...people, ...things]
