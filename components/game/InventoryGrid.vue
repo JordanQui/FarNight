@@ -59,19 +59,23 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
+  <!--
+    Pleine hauteur, mais la LISTE seule défile : le panneau ne pousse jamais
+    l'écran vers le bas, quel que soit le nombre de choses portées.
+  -->
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 overflow-y-auto"
+    class="fixed inset-0 z-50 flex items-stretch justify-center px-4 py-4 sm:py-8"
     @click.self="emit('close')"
   >
     <div class="absolute inset-0 bg-ink-900/92" />
 
     <div
-      class="relative z-10 w-full max-w-2xl bg-ink-900 border border-neon-600/50 p-6 space-y-5"
+      class="relative z-10 w-full max-w-2xl h-full flex flex-col bg-ink-900 border border-neon-600/50 p-6"
       style="box-shadow: 0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgb(var(--neon-500) / 0.12)"
     >
       <span class="absolute inset-[5px] border border-neon-500/15 pointer-events-none" />
 
-      <div class="relative flex items-baseline justify-between gap-4">
+      <div class="relative shrink-0 flex items-baseline justify-between gap-4 pb-5">
         <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.32em] font-display">
           {{ t('game.inventory') }}
         </p>
@@ -84,11 +88,16 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
         </button>
       </div>
 
-      <p v-if="!items.length" class="text-ink-200/70 text-sm leading-relaxed">
-        {{ t('game.inventory_empty') }}
-      </p>
+      <!--
+        La zone qui défile : le titre et la fermeture restent en place, seules
+        les cases bougent quand l'inventaire déborde.
+      -->
+      <div class="relative flex-1 min-h-0 overflow-y-auto pr-1">
+        <p v-if="!items.length" class="text-ink-200/70 text-sm leading-relaxed">
+          {{ t('game.inventory_empty') }}
+        </p>
 
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <div
           v-for="o in items"
           :key="o.id"
@@ -170,6 +179,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>
