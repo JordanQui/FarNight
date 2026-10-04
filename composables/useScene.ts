@@ -1,12 +1,11 @@
 import type { SceneTextResponse } from '~/types/scene'
-import type { LangCode } from '~/types/i18n'
 import type { UserProfile } from '~/types/user'
 import type { JournalEntry, CarriedItem } from '~/utils/journal'
 import type { AdmissionForm } from '~/utils/admission'
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useImageGen } from '~/composables/useImageGen'
-import { readSceneImage, storeSceneImage, forgetSceneImage } from '~/utils/scene-image-memory'
+import { forgetSceneImage } from '~/utils/scene-image-memory'
 
 /**
  * Une scène de l'auberge prend 50 à 80 s : environ 18 000 jetons de prompt, et
@@ -25,38 +24,7 @@ const SCENE_TEXT_TIMEOUT_MS = 240_000
  * deux appels ne doivent jamais être fusionnés : ensemble ils dépassent
  * n'importe quel timeout serverless.
  */
-/**
- * La scène en cours, gardée par le navigateur.
- *
- * Recharger la page relançait une génération — donc consommait le quota, donc
- * envoyait le joueur au paywall dès son deuxième chargement. Or son monde
- * existe déjà : on le remet en place au lieu de le repayer.
- */
-const SCENE_KEY = 'tg_scene'
-
-/**
- * La scène et son image gardées par le navigateur sont reposées au
- * rechargement. `false` (mise au point) : chaque chargement les regénère.
- */
-const SCENE_CACHE = true
-
-/**
- * La mémoire du navigateur.
- *
- * `localStorage` et non `sessionStorage` : la partie ne dure pas une visite.
- * Le droit d'accès ouvert par le paiement court sur huit jours et la position
- * voyage dans un cookie de même durée — une mémoire qui mourait avec l'onglet
- * faisait revenir le joueur du lendemain à la bonne scène mais sans son
- * monde : ni profil, ni journal, ni inventaire. La scène se régénérait alors
- * pour un inconnu, et c'est le poste de dépense le plus cher du jeu.
- *
- * Elle ne quitte JAMAIS la machine du joueur : rien n'est enregistré côté
- * serveur, qui ne tient aucune base. Elle s'efface avec les données du site, en
- * repartant de zéro depuis l'accueil, ou d'elle-même passé la fenêtre — c'est
- * ce que dit maintenant l'avertissement affiché avant la connexion.
- *
- * L'accès peut lever : navigation privée, cookies refusés. On régénérera.
- */
+/** Stockage du parcours, du profil et de l'inventaire, pas des scènes générées. */
 function memory(): Storage | null {
   if (!import.meta.client) return null
   try { return window.localStorage } catch { return null }
@@ -70,89 +38,6 @@ function memory(): Storage | null {
  */
 function memoryDays(): number {
   return (useRuntimeConfig().public.memoryDays as number) || 8
-}
-
-/**
- * Format de ce que le navigateur garde : la scène, sa progression.
- *
- * Remplace l'identifiant du build, qui changeait à CHAQUE déploiement : tous les
- * joueurs en pleine partie voyaient alors leur scène jetée, repayée, et leur
- * monde réécrit sous leurs yeux — pour une retouche de CSS. Le contenu d'une
- * scène dépend du script, que l'empreinte surveille déjà ; le code, lui, ne
- * compte que s'il change la FORME de ce qui est gardé.
- *
- * À incrémenter à la main quand `SceneTextResponse` ou `SceneProgress` change de
- * forme au point qu'une copie ancienne casserait l'écran.
- */
-const MEMORY_FORMAT = 1
-
-/**
- * Empreinte du script servi par ce serveur.
- *
- * Calculée dans `nuxt.config.ts`, qui lit déjà `game/script.json` pour en tirer
- * la palette d'accueil et la liste des scènes.
- */
-function currentFingerprint(): string {
-  return useRuntimeConfig().public.scriptFingerprint as string
-}
-
-/**
- * @param expectedId la scène attendue, quand on en vise une précise.
- *
- * Sans ce contrôle, une reprise pouvait reposer la scène d'un autre onglet :
- * la position vient d'un cookie partagé par tout le navigateur, la scène gardée
- * appartient à un onglet. Le cookie disait « l'étage », l'onglet gardait
- * « l'auberge », et le joueur repartait du comptoir sans rien comprendre.
- */
-function readStoredScene(expectedId?: string, lang?: LangCode): SceneTextResponse | null {
-  try {
-    const raw = memory()?.getItem(SCENE_KEY)
-    if (!raw) return null
-    const stored = JSON.parse(raw) as SceneTextResponse
-
-    if (expectedId && stored.scene_id !== expectedId) {
-      forgetStoredScene()
-      return null
-    }
-
-    // Gardée sous une autre forme que celle que ce code sait lire.
-    if (stored.memory_format !== MEMORY_FORMAT) {
-      forgetStoredScene()
-      return null
-    }
-
-    // Le SCRIPT a changé : consignes, seuils, schéma de génération. Le build,
-    // lui, peut être resté le même — en développement il ne bouge pas d'un
-    // rechargement à l'autre. Sans cette seconde comparaison, corriger un
-    // prompt n'avait aucun effet visible tant que l'onglet gardait sa scène :
-    // on rechargeait, on retrouvait exactement la même, et on croyait que la
-    // correction n'avait pas pris.
-    if (stored.script_fingerprint !== currentFingerprint()) {
-      forgetStoredScene()
-      return null
-    }
-
-    // La LANGUE a changé depuis. Une scène est écrite entière dans une langue —
-    // récit, personnages, objets, libellé de sortie — et rien dans son contenu
-    // ne permet de la reconnaître après coup. Sans ce contrôle, choisir une
-    // autre langue puis recharger reservait la scène d'avant, dans l'ancienne :
-    // le joueur voyait l'habillage changer et le jeu, lui, ne pas suivre.
-    if (lang && stored.lang && stored.lang !== lang) {
-      forgetStoredScene()
-      return null
-    }
-    return stored
-  } catch {
-    return null
-  }
-}
-
-function storeScene(scene: SceneTextResponse, lang: LangCode): void {
-  try {
-    memory()?.setItem(SCENE_KEY, JSON.stringify({ ...scene, memory_format: MEMORY_FORMAT, lang }))
-  } catch {
-    // Stockage plein ou refusé : on régénérera, c'est tout.
-  }
 }
 
 /**
@@ -216,106 +101,10 @@ function carryOf(game: GameStore, player: PlayerStore): Carry {
   }
 }
 
-/**
- * Ce qui s'est joué DANS la scène en cours.
- *
- * La scène revenait de la mémoire, mais nue : texte d'ouverture, personnages
- * inconnus, objet-clé à reconquérir. Le serveur, qui compte les tours dans un
- * cookie, ne les rendait pas — recharger après sept tours laissait trois tours
- * avant la fermeture de la ville, pour tout refaire.
- */
-const PROGRESS_KEY = 'tg_progress'
-
-interface SceneProgress {
-  /** L'empreinte de la scène jouée : une autre scène, même de même id, ne la reprend pas. */
-  stamp: string
-  narrative: GameStore['narrativeHistory']
-  turnCount: number
-  activeNpcId: string | null
-  hasKeyItem: boolean
-  keyItemExchanges: number
-  informedAboutItem: boolean
-  pendingKeyItem: boolean
-  talkedToNpcIds: string[]
-  revealedInteractableIds: string[]
-  npcExchanges: Record<string, number>
-  resolved: boolean
-  conversationHistory: GameStore['conversationHistory']
-  npcThreads: GameStore['npcThreads']
-  /** L'énigme ouverte, ce qui a déjà été fouillé, et regardé. */
-  puzzleUnlocked?: boolean
-  searchedSpotIds?: string[]
-  lookedLabels?: string[]
-}
-
-/**
- * L'empreinte d'une scène générée.
- *
- * L'id ne suffit pas : une scène régénérée garde son id et change tout le
- * reste. Une progression ou une image posée sur une autre version de la même
- * scène parlerait de personnages qui n'y sont plus.
- */
-export function sceneStamp(scene: SceneTextResponse): string {
-  const source = `${scene.scene_id}|${scene.script_fingerprint ?? ''}|${scene.scene_title}|${scene.scene_text}`
-  let hash = 5381
-  for (let i = 0; i < source.length; i++) hash = ((hash << 5) + hash + source.charCodeAt(i)) | 0
-  return `${scene.scene_id}:${(hash >>> 0).toString(36)}`
-}
-
-function readProgress(stamp: string): SceneProgress | null {
-  try {
-    const raw = memory()?.getItem(PROGRESS_KEY)
-    if (!raw) return null
-    const progress = JSON.parse(raw) as SceneProgress
-    return progress.stamp === stamp ? progress : null
-  } catch {
-    return null
-  }
-}
-
-function forgetProgress(): void {
-  try { memory()?.removeItem(PROGRESS_KEY) } catch { /* sans conséquence */ }
-}
-
-/**
- * Écrit la partie telle qu'elle est, pendant qu'on joue.
- *
- * Appelé par `plugins/run-memory.client.ts` à chaque changement du store. Rien
- * n'est écrit hors de l'écran de jeu, ni pendant qu'un tour s'écrit : l'entrée
- * serait à moitié remplie, et la sauvegarde d'avant vaut mieux.
- */
+/** Conserve le parcours et le profil, jamais la scène ni ses tours. */
 export function savePlaying(game: GameStore, player: PlayerStore): void {
-  if (game.currentScreen !== 'playing') return
-  if (game.playingSubState !== 'awaiting_input') return
-  const scene = player.scene
-  if (!scene) return
-
+  if (game.currentScreen !== 'playing' || game.playingSubState !== 'awaiting_input' || !player.scene) return
   storeCarry(carryOf(game, player))
-
-  const progress: SceneProgress = {
-    stamp: sceneStamp(scene),
-    narrative: game.narrativeHistory,
-    turnCount: game.turnCount,
-    activeNpcId: game.activeNpcId,
-    hasKeyItem: game.hasKeyItem,
-    keyItemExchanges: game.keyItemExchanges,
-    informedAboutItem: game.informedAboutItem,
-    pendingKeyItem: game.pendingKeyItem,
-    talkedToNpcIds: game.talkedToNpcIds,
-    revealedInteractableIds: game.revealedInteractableIds,
-    npcExchanges: game.npcExchanges,
-    resolved: game.resolved,
-    conversationHistory: game.conversationHistory,
-    npcThreads: game.npcThreads,
-    puzzleUnlocked: game.puzzleUnlocked,
-    searchedSpotIds: game.searchedSpotIds,
-    lookedLabels: game.lookedLabels,
-  }
-  try {
-    memory()?.setItem(PROGRESS_KEY, JSON.stringify(progress))
-  } catch {
-    // Stockage plein ou refusé : on reprendra au début de la scène.
-  }
 }
 
 /**
@@ -343,9 +132,7 @@ function readStoredCarry(): Carry | null {
     if (!raw) return null
     const carry = JSON.parse(raw) as Carry
 
-    // Passée la fenêtre, la partie s'efface d'elle-même — le profil Meta avec.
-    // La scène part en même temps : la garder sans le journal ni l'inventaire
-    // ferait reprendre dans un monde amnésique.
+    // Passée la fenêtre, la partie et le profil s'effacent ensemble.
     if (carry.saved_at && Date.now() - carry.saved_at > memoryDays() * 86_400_000) {
       forgetRun()
       return null
@@ -419,8 +206,8 @@ export function forgetAdmission(): void {
 
 /** Oublie la scène en cours : son texte, ce qui s'y est joué, son image. */
 export function forgetStoredScene(): void {
-  try { memory()?.removeItem(SCENE_KEY) } catch { /* sans conséquence */ }
-  forgetProgress()
+  try { memory()?.removeItem('tg_scene') } catch { /* sans conséquence */ }
+  try { memory()?.removeItem('tg_progress') } catch { /* sans conséquence */ }
   void forgetSceneImage()
 }
 
@@ -454,30 +241,11 @@ export function forgetAdventure(): void {
   })
 }
 
-/**
- * `?fresh=1` demandé dans l'URL.
- *
- * Il vaut dans TOUS les environnements : il jette la scène gardée par le navigateur.
- * Seul son relais vers l'API reste réservé au développement, où il pilote les
- * mocks sur disque — en production, une scène neuve se paie de toute façon.
- */
-function wantsFresh(): boolean {
-  if (!import.meta.client) return false
-  return Boolean(useRoute().query.fresh)
-}
-
-function freshQuery(): Record<string, string> {
-  if (!import.meta.dev || !wantsFresh()) return {}
-  return { fresh: '1' }
-}
-
 export function useScene() {
   const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const { generateSceneImage } = useImageGen()
-  /** Lue ici, dans le contexte du composant : l'image la consulte après des `await`. */
-  const memoryWindowMs = memoryDays() * 86_400_000
 
   const scene = ref<SceneTextResponse | null>(null)
   const isLoadingText = ref(false)
@@ -506,8 +274,7 @@ export function useScene() {
   /**
    * Sauvegarde ce qui appartient à la PARTIE, pas à la scène.
    *
-   * Sans ça, un rechargement de page ramenait la scène mais reprenait le
-   * joueur son augmentation et tout ce qu'il portait.
+   * Le texte se régénère, mais le profil, l'augmentation et l'inventaire suivent.
    */
   function saveCarry() {
     storeCarry(carryOf(gameStore, playerStore))
@@ -532,50 +299,12 @@ export function useScene() {
     }
   }
 
-  /**
-   * Referme l'objet-clé d'une scène qui vient d'être régénérée.
-   *
-   * Son id ne contient que celui de la scène (`cle_a1s2`). En mise au point,
-   * le texte peut donc être neuf tandis que la sauvegarde se souvient encore
-   * d'avoir déchiffré le tirage précédent : le nom neuf apparaît alors en
-   * clair et le panneau semble absent. Une vraie reprise ne passe pas ici ;
-   * elle conserve bien son déchiffrement dans la branche `stored` ci-dessus.
-   *
-   * Si l'objet est déjà dans l'inventaire, il appartient à la partie et non
-   * au tirage qu'on remplace : on ne lui retire rien.
-   */
+  /** Un nouveau tirage ne doit pas hériter du déchiffrement du précédent. */
   function resealGeneratedKeyItem(generated: SceneTextResponse) {
     if (generated.key_item?.acquisition !== 'found') return
     const id = `cle_${generated.scene_id}`
     if (gameStore.inventory.some(item => item.id === id)) return
     gameStore.decryptedObjectIds = gameStore.decryptedObjectIds.filter(decrypted => decrypted !== id)
-  }
-
-  /**
-   * Remet la scène où le joueur l'avait laissée.
-   *
-   * Faux s'il n'y a rien pour CETTE scène : on repart alors de son ouverture.
-   */
-  function restoreProgress(stored: SceneTextResponse): boolean {
-    const progress = readProgress(sceneStamp(stored))
-    if (!progress?.narrative?.length) return false
-    gameStore.narrativeHistory = progress.narrative
-    gameStore.turnCount = progress.turnCount
-    gameStore.activeNpcId = progress.activeNpcId
-    gameStore.hasKeyItem = progress.hasKeyItem
-    gameStore.keyItemExchanges = progress.keyItemExchanges
-    gameStore.informedAboutItem = progress.informedAboutItem
-    gameStore.pendingKeyItem = progress.pendingKeyItem
-    gameStore.talkedToNpcIds = progress.talkedToNpcIds
-    gameStore.revealedInteractableIds = progress.revealedInteractableIds
-    gameStore.npcExchanges = progress.npcExchanges
-    gameStore.resolved = progress.resolved
-    gameStore.conversationHistory = progress.conversationHistory
-    gameStore.npcThreads = progress.npcThreads
-    gameStore.puzzleUnlocked = progress.puzzleUnlocked ?? false
-    gameStore.searchedSpotIds = progress.searchedSpotIds ?? []
-    gameStore.lookedLabels = progress.lookedLabels ?? []
-    return true
   }
 
   /** Phase 1. Bloquant : sans texte, pas de scène. */
@@ -584,11 +313,7 @@ export function useScene() {
     error.value = null
     quotaExhausted.value = false
 
-    // AVANT toute chose, et quel que soit le chemin pris ensuite. Ce n'était
-    // fait que si une scène était trouvée en mémoire : après un rechargement où
-    // la scène se régénère, l'inventaire y restait sans que
-    // personne aille le chercher, et le joueur perdait son augmentation et ses
-    // cartes sans comprendre pourquoi.
+    // Garder les acquis de la partie avant de demander un nouveau tirage.
     restoreCarry()
 
     // En développement, on dispose de tout ce que le jeu prévoit : sans ça,
@@ -605,26 +330,12 @@ export function useScene() {
       }
     }
 
-    // Rechargement de page : la scène est déjà là, on la repose telle quelle.
-    const stored = !SCENE_CACHE || wantsFresh() ? null : readStoredScene(sceneId, playerStore.language)
-    if (stored) {
-      scene.value = stored
-      // Un rechargement de page repart d'une racine CSS neuve : sans ceci, la
-      // scène revenait à ses couleurs mais l'habillage restait magenta.
-      interfacePalette.applyScene(stored)
-      gameStore.syncAugmentation(stored.scene_id, stored.grants_augmentation)
-      playerStore.setScene(stored)
-      // Le fil de la scène, tel que le joueur l'a laissé ; à défaut, son ouverture.
-      if (!restoreProgress(stored)) gameStore.addNarrativeEntry('narration', stored.scene_text)
-      gameStore.setPlayingSubState('awaiting_input')
-      isLoadingText.value = false
-      return stored
-    }
+    // Un ancien texte ou une ancienne image ne doivent jamais être rejoués.
+    forgetStoredScene()
 
     try {
       const res = await $fetch<SceneTextResponse>('/api/scene/text', {
         method: 'POST',
-        query: freshQuery(),
         // `user ?? profil restauré` : sur une reprise, l'appelant n'a encore
         // rien en main — c'est `restoreCarry` juste au-dessus qui vient de
         // remettre le profil en place.
@@ -640,10 +351,6 @@ export function useScene() {
       scene.value = res
       // L'habillage prend les couleurs de la scène, si elle le demande.
       interfacePalette.applyScene(res)
-      // Une scène neuve : ce qui s'était joué et dessiné pour la précédente ne la concerne pas.
-      forgetProgress()
-      void forgetSceneImage()
-      storeScene(res, playerStore.language)
       gameStore.syncAugmentation(res.scene_id, res.grants_augmentation)
       saveCarry()
       playerStore.setScene(res)
@@ -703,20 +410,7 @@ export function useScene() {
       return res.static_image
     }
 
-    // Déjà obtenue pour cette scène : ne pas repayer un remontage ou un renvoi.
-    if (gameStore.currentSceneImageUrl) return gameStore.currentSceneImageUrl
-
-    // Rechargement de page : l'image de CETTE scène est déjà dans le navigateur.
-    const stamp = sceneStamp(res)
-    gameStore.startSceneImage()
-    const kept = SCENE_CACHE ? await readSceneImage(stamp, memoryWindowMs) : null
-    if (kept) {
-      gameStore.setSceneImage(kept)
-      gameStore.finishSceneImage()
-      return kept
-    }
-
-    const image = await generateSceneImage({
+    return generateSceneImage({
       sceneId: res.scene_id,
       placeName: res.place.name,
       palette: res.palette,
@@ -724,8 +418,6 @@ export function useScene() {
       // Le lieu vient du plan de la nuit : c'est lui que l'image dessine.
       planned: res.planned,
     })
-    if (image) void storeSceneImage(stamp, image)
-    return image
   }
 
   /** Le flux complet : texte d'abord, image ensuite, sans attendre. */

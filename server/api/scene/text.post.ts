@@ -9,7 +9,7 @@ import { requireSecret } from '~/server/utils/runtime-secrets'
 import {
   assertNotLocked, consumeQuota, lockOut, rememberPosition, forgetPosition, revokeAccess,
 } from '~/server/utils/session-quota'
-import { mockKey, readMock, writeMock, wantsFresh, scriptFingerprint } from '~/server/utils/dev-mocks'
+import { scriptFingerprint } from '~/server/utils/script-fingerprint'
 import { requestLang } from '~/server/utils/lang'
 
 /** JSON canonique : l'ordre des propriétés envoyé par le navigateur ne doit pas changer le tirage. */
@@ -99,22 +99,6 @@ export default defineEventHandler(async (event) => {
     // client n'aura plus la scène s'il a rechargé entre-temps.
     gameOver,
   )
-
-  // En développement, on rejoue la dernière scène enregistrée plutôt que de
-  // repayer la même génération à chaque relance. `?fresh=1` la renouvelle.
-  // La langue entre dans la clé : deux langues ne partagent pas une scène en
-  // cache, sinon le rechargement d'après en servirait une dans l'autre langue.
-  const key = mockKey(scene.id, `${lang}|${seed}`, scriptFingerprint(runtime.script))
-  if (import.meta.dev && !wantsFresh(event)) {
-    const cached = await readMock<SceneTextResponse>('scene', key)
-    if (cached) {
-      // La reprise doit rester testable sans repayer une génération. L'épilogue
-      // fait exception, comme plus bas : il n'y a rien à reprendre après lui.
-      if (scene.kind === 'ending') forgetPosition(event)
-      else remember(cached.game_over)
-      return cached
-    }
-  }
 
   const openai = new OpenAI({ apiKey: requireSecret(config.openaiApiKey, 'OPENAI_API_KEY') })
   const gen = scene.generation
@@ -215,7 +199,6 @@ export default defineEventHandler(async (event) => {
       // La nuit achetée est jouée : rejouer demande un nouveau paiement.
       revokeAccess(event)
 
-      await writeMock('scene', key, assembled)
       return assembled
     } catch (err) {
       console.error('[scene/text] épilogue invalide :', err instanceof Error ? err.message : err)
@@ -285,6 +268,5 @@ export default defineEventHandler(async (event) => {
     script_fingerprint: scriptFingerprint(runtime.script),
   }
   remember(assembled.game_over)
-  await writeMock('scene', key, assembled)
   return assembled
 })

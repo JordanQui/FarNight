@@ -8,3 +8,5 @@
 - [x] Faire attendre discrètement cet objet par un PNJ en A2S2, sans modifier le puzzle du lecteur
 - [x] Restaurer A3S1/A3S2 à leur mécanique de cartes et séquence initiale
 - [x] Refaire le guide « Mécaniques de la nuit » selon la mécanique effective et le publier
+- [x] Retirer les caches de scènes et d’images en développement et production ; régénérer à chaque chargement.
+- [x] Vérifier le parcours A2S1 → échange A2S2 → sortie vers A3 dans le script et les actions (partie réelle non rejouée).
