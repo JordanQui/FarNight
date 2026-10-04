@@ -3,6 +3,7 @@ import type { GeneratedScene, SceneTextResponse, GeneratedEnding } from '~/types
 import type { UserProfile } from '~/types/user'
 import { nightOf, plannedScene, type JournalEntry, type CarriedItem } from '~/utils/journal'
 import { ScriptRuntime, loadUserFixture, resolveTheme } from '~/utils/script-runtime'
+import { ensureFrequencyTarget } from '~/utils/frequency-text'
 import { interpolate } from '~/utils/prompt-builder'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import {
@@ -242,6 +243,7 @@ export default defineEventHandler(async (event) => {
   scene.dropUnreachable(generated)
   scene.ensurePuzzleObjects(generated)
   scene.weldAugmentationName(generated)
+  if (scene.id === 'a1s2') ensureFrequencyTarget(generated)
   scene.pinPlayerPalette(generated, user)
 
   try {
@@ -259,6 +261,7 @@ export default defineEventHandler(async (event) => {
     scene.dropUnreachable(generated)
     scene.ensurePuzzleObjects(generated)
     scene.weldAugmentationName(generated)
+    if (scene.id === 'a1s2') ensureFrequencyTarget(generated)
     scene.pinPlayerPalette(generated, user)
 
     try {
