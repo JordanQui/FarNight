@@ -2,7 +2,6 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { translate } from '~/utils/languages'
 import { isSolved, searchedSpot } from '~/utils/puzzles'
-import { fold } from '~/utils/naming'
 
 /**
  * L'énigme de la scène, côté partie.
@@ -72,25 +71,6 @@ export function usePuzzle() {
   }
 
   /**
-   * L'indice vient d'être lu (deuxième objet regardé).
-   *
-   * Le panneau s'ouvre en lisant à la loupe le nom de l'objet-clé — mais rien
-   * n'oblige le modèle à l'écrire dans le récit. Absent, il n'y avait rien à
-   * lire : le joueur tenait la fréquence et ne voyait jamais le cadran. Dans ce
-   * cas, et seulement celui-là, l'indice débloque le panneau, refermé : le
-   * bandeau « Reprendre » le propose sans masquer ce qu'il vient de lire.
-   */
-  function clueRead() {
-    const p = puzzle.value
-    const scene = playerStore.scene
-    const name = scene?.key_item?.name ?? ''
-    if (!p || p.kind === 'search' || gameStore.hasKeyItem || gameStore.puzzleUnlocked) return
-    if (scene?.key_item?.acquisition !== 'found') return
-    if (name && fold(scene.scene_text ?? '').includes(fold(name))) return
-    gameStore.puzzleUnlocked = true
-  }
-
-  /**
    * Une réponse proposée au panneau.
    *
    * Vrai si elle ouvre. Fausse, elle est refusée, sans autre prix : la nuit
@@ -140,5 +120,5 @@ export function usePuzzle() {
     gameStore.addNarrativeEntry('narration', t('puzzle.search_empty', { spot: spot.label }))
   }
 
-  return { puzzle, keyId, collect, keyItemRead, clueRead, submit, spotOf, search }
+  return { puzzle, keyId, collect, keyItemRead, submit, spotOf, search }
 }

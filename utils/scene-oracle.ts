@@ -59,11 +59,6 @@ function namedIn(input: string, name: string, lang: LangCode): boolean {
   return words.some(w => input.includes(w))
 }
 
-/** La saisie contient-elle un verbe de regard ? */
-export function containsLook(input: string, lang: LangCode = DEFAULT_LANG): boolean {
-  return containsAny(normalize(input), pack(lang).input.look)
-}
-
 /**
  * La chose que cette saisie regarde, s'il y en a une : un élément du décor ou
  * un objet que le récit nomme. Null sans verbe de regard.
@@ -170,10 +165,9 @@ export function resolveLocally(
     // Il n'est caché sur rien : le premier regard montre le lieu, le second
     // donne la réponse, et les suivants la redonnent. On ne doit ni tourner en
     // rond ni rester bloqué — demandé ainsi par le user.
-    // Compté en regards, pas en choses distinctes : une scène qui ne nomme
-    // qu'un objet n'avait jamais de « deuxième », et l'indice ne venait pas.
-    const second = Boolean(scene.puzzle) && !state.hasKeyItem
-      && (state.lookedLabels ?? []).length >= 1
+    const thing = lookedThing(input, scene, state, lang)
+    const second = Boolean(scene.puzzle) && Boolean(thing) && !state.hasKeyItem
+      && (state.lookedLabels ?? []).some(l => l !== thing)
     // Refait depuis la solution, jamais relu dans `clues` : voir `answerClue`.
     const here = second ? [answerClue(scene.puzzle!, lang)] : []
     if (element?.description || here.length) {

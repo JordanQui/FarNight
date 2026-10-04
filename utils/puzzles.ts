@@ -76,7 +76,7 @@ interface Surface {
  * ne sait regarder que ce qu'il a lu. Les objets qu'on ramasse sont exclus —
  * ils quittent la scène avec lui, et leur analyse a déjà son texte.
  */
-function surfacesOf(
+export function surfacesOf(
   scene: { scene_text: string; decor?: DecorElement[]; interactables?: Interactable[] },
   lang: LangCode,
 ): Surface[] {

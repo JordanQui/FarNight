@@ -29,7 +29,7 @@ import { DEFAULT_LANG } from '~/types/i18n'
 import { agreementFor, overlayValue, pack } from '~/utils/languages'
 import { zodiacKey } from '~/utils/zodiac'
 import { numerologyOf } from '~/utils/numerology'
-import { drawPuzzle } from '~/utils/puzzles'
+import { drawPuzzle, surfacesOf } from '~/utils/puzzles'
 import { profileFromAdmission, sampleAdmissionForm } from '~/utils/admission'
 
 // Les JSON sont importés, pas lus sur le disque : en serverless (Vercel) le
@@ -1376,6 +1376,30 @@ ${lines}`)
         throw new Error(
           `Scène invalide : objet à trouver, key_item.npc_id doit valoir "${FOUND_ITEM_ID}" `
           + `(reçu "${item.npc_id}")`)
+      }
+      // LA FRÉQUENCE A TROIS PIÈCES, et il les faut toutes dans le texte :
+      // un objet qu'on ramasse, au moins deux choses à regarder (c'est la
+      // deuxième qui donne la valeur), et le nom de la fréquence — c'est en le
+      // déchiffrant à la loupe que s'ouvre le panneau du cadran. Sans ce nom,
+      // il n'y avait rien à déchiffrer, et le panneau n'apparaissait jamais.
+      const puzzle = this.scene.key_item.puzzle
+      if (puzzle === 'frequency' || puzzle === 'code') {
+        if (!written.includes(fold(item.name))) {
+          throw new Error(
+            `Scène invalide : "${item.name}" (key_item.name) n'apparaît pas dans scene_text — `
+            + 'écris-le tel quel, en Majuscule, sur le récepteur : c\'est en le déchiffrant que le joueur ouvre son cadran')
+        }
+        const named = (label?: string) => Boolean(label) && written.includes(fold(label!))
+        if (!takeable.some(o => !o.hidden && named(o.label))) {
+          throw new Error(
+            'Scène invalide : aucun objet à ramasser n\'est nommé dans scene_text — '
+            + `nomme dans le texte, avec son label exact, au moins un objet de verbe ${this.takeVerbs}`)
+        }
+        if (surfacesOf(generated, this.lang).length < 2) {
+          throw new Error(
+            'Scène invalide : moins de deux choses à regarder sont nommées dans scene_text — '
+            + 'nomme chaque élément de `decor` avec son nom exact, et au moins deux choses à examiner sans les prendre')
+        }
       }
       return
     }

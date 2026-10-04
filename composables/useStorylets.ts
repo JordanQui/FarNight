@@ -5,7 +5,7 @@ import { usePlayerStore } from '~/stores/player'
 import { useNarrative } from '~/composables/useNarrative'
 import { usePaywall } from '~/composables/usePaywall'
 import { useSceneCommands } from '~/composables/useSceneCommands'
-import { resolveLocally, buildGuidance, lookedThing, containsLook } from '~/utils/scene-oracle'
+import { resolveLocally, buildGuidance, lookedThing } from '~/utils/scene-oracle'
 import { translate } from '~/utils/languages'
 import { takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
@@ -230,13 +230,8 @@ export function useStorylets() {
     // Noté APRÈS l'instantané : le regard qui compte pour la fréquence est le
     // deuxième, celui-ci ne se compte pas lui-même.
     const scene = playerStore.scene
-    // Chaque regard compte, même sans chose nommée et même sur la même chose.
-    const looks = containsLook(input, playerStore.language)
-    const looked = scene && looks ? lookedThing(input, scene, oracleState(), playerStore.language) ?? '' : null
-    if (looked !== null) gameStore.recordLook(looked)
-    // Le regard qui livre l'indice : voir `clueRead`.
-    const oracle = moment.play.kind === 'local' && moment.play.say === 'oracle'
-    if (looked !== null && oracle && gameStore.lookedLabels.length >= 2) puzzle.clueRead()
+    const looked = scene ? lookedThing(input, scene, oracleState(), playerStore.language) : null
+    if (looked) gameStore.recordLook(looked)
 
     // Le canal '#' inscrit lui-même la commande au fil : il ne passe pas par
     // le monde, il parle au scénario.
