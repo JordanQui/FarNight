@@ -67,8 +67,8 @@ const POSTURE_NEUTRAL_Y: Record<string, number> = {
  * Comme la hauteur de l'oeil suit sin(bêta), la moindre inclinaison depuis 180°
  * la faisait plonger — l'oeil traversait tout l'écran en trente degrés, et il
  * fallait le remonter de 400 pixels pour qu'il soit à peu près quelque part. À
- * 90°, l'origine est là où la main se trouve — le relèvement qui reste
- * (`POSTURE_LIFT_PX`) est un réglage de confort, pas un rattrapage.
+ * 90°, l'origine est là où la main se trouve, et les 400 pixels de rattrapage
+ * n'ont plus lieu d'être.
  *
  * Le sens de l'inclinaison, lui, est porté par le vecteur vertical, qui n'a pas
  * besoin qu'on lui dise de quel côté on est. Et 90° est la singularité d'Euler :
@@ -109,18 +109,6 @@ const POSTURE_RANGE_SCALE: Record<string, number> = {
 const POSTURE_RISE_SCALE: Record<string, number> = {
   assis: 1,
   allonge: 0.75,
-}
-
-/**
- * Relèvement de l'oeil, en pixels, appliqué après la visée.
- *
- * Allongé, l'oeil restait trop bas dans le texte malgré l'origine à 90° : on
- * le remonte d'un décalage fixe, en pixels et non en fraction d'écran, pour
- * qu'il soit le même quel que soit l'appareil.
- */
-const POSTURE_LIFT_PX: Record<string, number> = {
-  assis: 0,
-  allonge: 400,
 }
 
 /** Lissage : le gyroscope est bruité, un oeil qui tremble est illisible. */
@@ -173,15 +161,13 @@ export function useGyroEye() {
     sensed = true
 
     const posture = gameStore.posture
-    const aim = aimFrom(
+    target = aimFrom(
       upVector(beta, gamma),
       REST_BETA_DEG[posture] ?? 0,
       RANGE_DEG * (POSTURE_RANGE_SCALE[posture] ?? 1),
       POSTURE_NEUTRAL_Y[posture] ?? 0.05,
       POSTURE_RISE_SCALE[posture] ?? 1,
     )
-    const lift = (POSTURE_LIFT_PX[posture] ?? 0) / window.innerHeight
-    target = { x: aim.x, y: Math.max(0, aim.y - lift) }
   }
 
   /**
