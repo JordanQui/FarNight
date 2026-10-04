@@ -216,6 +216,27 @@ export function drawPuzzle(
   return null
 }
 
+/**
+ * L'indice qui donne la réponse entière, refait depuis la solution.
+ *
+ * Jamais relu dans `clues` : une scène gardée par le navigateur depuis avant la
+ * règle du deuxième regard y porte encore les anciens morceaux (fourchette,
+ * parité, somme), et le joueur ne recevait jamais la valeur elle-même.
+ */
+export function answerClue(puzzle: ScenePuzzle, lang: LangCode = DEFAULT_LANG): string {
+  const t = (key: string, vars?: Record<string, string | number>) => translate(lang, `puzzle.${key}`, vars)
+  switch (puzzle.kind) {
+    case 'frequency': return t('freq_value', { value: puzzle.solution })
+    case 'code': return t('code_value', { code: puzzle.solution })
+    case 'sequence': return t('seq_order', { steps: puzzle.solution.map(i => puzzle.steps[i]).join(' → ') })
+    case 'lock': return t('lock_clue', { place: puzzle.place })
+    case 'search': {
+      const spot = puzzle.spots.find(s => s.id === puzzle.solution)?.label ?? ''
+      return t('search_here', { spot })
+    }
+  }
+}
+
 /** La réponse est-elle la bonne ? La forme dépend de l'énigme. */
 export function isSolved(puzzle: ScenePuzzle, answer: string | number | number[]): boolean {
   switch (puzzle.kind) {

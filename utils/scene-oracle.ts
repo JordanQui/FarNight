@@ -4,6 +4,7 @@ import { DEFAULT_LANG } from '~/types/i18n'
 import { normalize, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 import { isTakeable, visible } from '~/utils/interactables'
+import { answerClue } from '~/utils/puzzles'
 
 /**
  * Répond localement, sans appeler le modèle.
@@ -100,9 +101,6 @@ export function buildGuidance(
       // L'énigme dit sa nature, pas sa solution : où regarder, et ce que
       // coûte de s'en passer.
       lines.push(t(`oracle.puzzle_${scene.puzzle.kind}`))
-      // Un morceau n'est pas dans le lieu. On dit qu'il voyage avec lui, jamais
-      // sur quoi : le rapprochement lui revient.
-      if (scene.puzzle.clues.some(c => c.item_id)) lines.push(t('oracle.puzzle_carried'))
     } else if (item.acquisition === 'found') {
       lines.push(t('oracle.found_item'))
     } else if (others.length) {
@@ -170,7 +168,8 @@ export function resolveLocally(
     const thing = lookedThing(input, scene, state, lang)
     const second = Boolean(scene.puzzle) && Boolean(thing) && !state.hasKeyItem
       && (state.lookedLabels ?? []).some(l => l !== thing)
-    const here = second ? scene.puzzle!.clues.map(c => c.text) : []
+    // Refait depuis la solution, jamais relu dans `clues` : voir `answerClue`.
+    const here = second ? [answerClue(scene.puzzle!, lang)] : []
     if (element?.description || here.length) {
       return { text: [element?.description, ...here].filter(Boolean).join('\n\n'), kind: 'decor' }
     }
