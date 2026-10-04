@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts"> 
 import { LANG_CODES } from '~/types/i18n'
 import { dirOf, pack, translate } from '~/utils/languages'
 
