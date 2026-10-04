@@ -11,6 +11,35 @@ import {
 import { mockKey, readMock, writeMock, wantsFresh, scriptFingerprint } from '~/server/utils/dev-mocks'
 import { requestLang } from '~/server/utils/lang'
 
+/** JSON canonique : l'ordre des propriétés envoyé par le navigateur ne doit pas changer le tirage. */
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b))
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`).join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+/**
+ * Graine stable acceptée par Chat Completions.
+ *
+ * Le modèle reste libre d'écrire une scène, mais deux requêtes identiques ne
+ * repartent plus d'un hasard neuf. La palette possède en plus son propre
+ * calcul local ; la graine stabilise les noms de couleurs et le reste du JSON.
+ */
+function generationSeed(value: unknown): number {
+  const input = stableJson(value)
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 1
+}
+
 /**
  * Phase 1 du pipeline : le texte.
  *
@@ -46,6 +75,12 @@ export default defineEventHandler(async (event) => {
   const plan = nightOf(body.journal ?? [])
   const scene = runtime.scene(body.sceneId).withPlan(plannedScene(plan, body.sceneId))
   const user = body.user ?? await loadUserFixture()
+  const seed = generationSeed({
+    scene_id: scene.id,
+    user,
+    journal: body.journal ?? [],
+    carried: body.carried ?? [],
+  })
 
   /**
    * Retient la scène servie, pour que le joueur puisse y revenir.
@@ -68,7 +103,7 @@ export default defineEventHandler(async (event) => {
   // repayer la même génération à chaque relance. `?fresh=1` la renouvelle.
   // La langue entre dans la clé : deux langues ne partagent pas une scène en
   // cache, sinon le rechargement d'après en servirait une dans l'autre langue.
-  const key = mockKey(scene.id, `${lang}|${user.identity.name}|${user.identity.birthday ?? ''}|${body.journal?.length ?? 0}|${body.carried?.length ?? 0}|`, scriptFingerprint(runtime.script))
+  const key = mockKey(scene.id, `${lang}|${seed}`, scriptFingerprint(runtime.script))
   if (import.meta.dev && !wantsFresh(event)) {
     const cached = await readMock<SceneTextResponse>('scene', key)
     // Une fréquence enregistrée sans son énigme (tirage d'avant le 2026-10-04)
@@ -112,6 +147,7 @@ export default defineEventHandler(async (event) => {
       completion = await openai.chat.completions.create({
         model: gen.model,
         temperature: gen.temperature,
+        seed,
         max_tokens: gen.max_tokens,
         response_format: { type: 'json_object' },
         messages: msgs,
@@ -208,6 +244,7 @@ export default defineEventHandler(async (event) => {
    */
   scene.dropUnreachable(generated)
   scene.weldAugmentationName(generated)
+  scene.pinPlayerPalette(generated, user)
 
   try {
     scene.assertValid(generated)
@@ -223,6 +260,7 @@ export default defineEventHandler(async (event) => {
     generated = parseScene(repaired)
     scene.dropUnreachable(generated)
     scene.weldAugmentationName(generated)
+    scene.pinPlayerPalette(generated, user)
 
     try {
       scene.assertValid(generated)

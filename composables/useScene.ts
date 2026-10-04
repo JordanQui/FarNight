@@ -545,6 +545,25 @@ export function useScene() {
   }
 
   /**
+   * Referme l'objet-clé d'une scène qui vient d'être régénérée.
+   *
+   * Son id ne contient que celui de la scène (`cle_a1s2`). En mise au point,
+   * le texte peut donc être neuf tandis que la sauvegarde se souvient encore
+   * d'avoir déchiffré le tirage précédent : le nom neuf apparaît alors en
+   * clair et le panneau semble absent. Une vraie reprise ne passe pas ici ;
+   * elle conserve bien son déchiffrement dans la branche `stored` ci-dessus.
+   *
+   * Si l'objet est déjà dans l'inventaire, il appartient à la partie et non
+   * au tirage qu'on remplace : on ne lui retire rien.
+   */
+  function resealGeneratedKeyItem(generated: SceneTextResponse) {
+    if (generated.key_item?.acquisition !== 'found') return
+    const id = `cle_${generated.scene_id}`
+    if (gameStore.inventory.some(item => item.id === id)) return
+    gameStore.decryptedObjectIds = gameStore.decryptedObjectIds.filter(decrypted => decrypted !== id)
+  }
+
+  /**
    * Remet la scène où le joueur l'avait laissée.
    *
    * Faux s'il n'y a rien pour CETTE scène : on repart alors de son ouverture.
@@ -629,6 +648,7 @@ export function useScene() {
         },
         signal: AbortSignal.timeout(SCENE_TEXT_TIMEOUT_MS),
       })
+      resealGeneratedKeyItem(res)
       scene.value = res
       // L'habillage prend les couleurs de la scène, si elle le demande.
       interfacePalette.applyScene(res)

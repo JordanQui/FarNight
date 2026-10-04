@@ -1,4 +1,5 @@
 import type { ScenePalette } from '~/types/scene'
+import type { UserProfile } from '~/types/user'
 
 /**
  * Garde-fou colorimétrique, calé sur la direction artistique Dark Deco
@@ -95,6 +96,119 @@ export function contrastRatio(a: string, b: string): number {
 function hueDistance(a: number, b: number): number {
   const d = Math.abs(a - b) % 1
   return Math.min(d, 1 - d)
+}
+
+/** Une graine textuelle stable, indépendante du moteur JavaScript. */
+function hashText(value: string): number {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  // Avalanche finale : `a1s1` et `a1s2` ne doivent pas devenir deux teintes
+  // presque identiques sous prétexte que seul leur dernier caractère change.
+  hash += hash << 13
+  hash ^= hash >>> 7
+  hash += hash << 3
+  hash ^= hash >>> 17
+  hash += hash << 5
+  return hash >>> 0
+}
+
+/**
+ * Deux saisies équivalentes doivent donner la même couleur : casse, accents et
+ * espaces de présentation ne font pas partie de la réponse elle-même.
+ */
+function colorSeed(parts: Array<string | undefined>): string {
+  return parts
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join('|')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+const turn = (h: number) => ((h % 1) + 1) % 1
+const seededHue = (source: string, role: string, sceneId: string) =>
+  hashText(`${role}|${source}|${sceneId}`) / 4294967296
+
+/**
+ * Les six lieux jouables occupent six secteurs régulièrement espacés.
+ * Cela évite deux cartes appelées toutes deux « Ambre », cas qui rendrait un
+ * lecteur incapable de dire laquelle il attend. Un id hors plan garde un
+ * décalage hashé, utile aux scènes de développement.
+ */
+function sceneHueOffset(sceneId: string): number {
+  const match = /^a(\d+)s(\d+)$/.exec(sceneId)
+  if (!match) return hashText(sceneId) / 4294967296
+  const act = Number(match[1])
+  const slot = Number(match[2])
+  const index = Math.max(0, (act - 1) * 2 + slot - 1)
+  return (index % 6) / 6
+}
+
+export interface DeterministicPaletteHexes {
+  dominant: string
+  secondary: string
+  accent: string
+}
+
+/**
+ * Les trois couleurs calculées depuis le formulaire, sans modèle génératif.
+ *
+ * Le lieu entre dans la graine : deux régénérations du même lieu sont
+ * identiques, tandis que les cartes gagnées dans des lieux différents gardent
+ * des couleurs distinctes pour les lecteurs de fin d'acte. Les sources restent
+ * exactement celles annoncées dans `script.json`.
+ */
+export function deterministicPaletteHexes(
+  user: UserProfile,
+  sceneId: string,
+): DeterministicPaletteHexes {
+  const identity = colorSeed([
+    user.identity.name,
+    user.identity.birthday,
+  ]) || 'far-night'
+  const dominantSource = colorSeed([
+    user.origin.hometown?.name,
+    user.origin.current_location?.name,
+  ]) || identity
+  const secondarySource = colorSeed([
+    user.imprints?.refuge,
+    user.imprints?.keepsake,
+  ]) || identity
+  // Le moment est la source ; l'animal n'est que son repli quand il manque.
+  // Les concaténer ferait changer la lumière d'un moment pourtant identique.
+  const accentSource = colorSeed([
+    user.touchstones?.moment || user.touchstones?.animal,
+  ]) || identity
+
+  let dominantHue = seededHue(dominantSource, 'dominant', sceneId)
+  let secondaryHue = seededHue(secondarySource, 'secondary', sceneId)
+  // L'accent porte la réponse du formulaire ; le lieu ne fait que la tourner
+  // d'un secteur connu pour que chaque carte reste reconnaissable.
+  const accentHue = turn(seededHue(accentSource, 'accent', 'player') + sceneHueOffset(sceneId))
+
+  // Une palette hashée peut tomber par hasard trois fois dans la même famille.
+  // L'accent reste intact : ce sont les deux teintes de fond que l'on décale.
+  while (hueDistance(dominantHue, accentHue) < 0.18) {
+    dominantHue = turn(dominantHue + 0.38196601125)
+  }
+  while (
+    hueDistance(secondaryHue, dominantHue) < 0.12
+    || hueDistance(secondaryHue, accentHue) < 0.18
+  ) {
+    secondaryHue = turn(secondaryHue + 0.2360679775)
+  }
+
+  return {
+    dominant: rgbToHex(hslToRgb({ h: dominantHue, s: 0.36, l: 0.16 })),
+    secondary: rgbToHex(hslToRgb({ h: secondaryHue, s: 0.55, l: 0.44 })),
+    accent: rgbToHex(hslToRgb({ h: accentHue, s: 0.95, l: 0.59 })),
+  }
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)

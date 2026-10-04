@@ -18,7 +18,7 @@ import type {
 import type { UserProfile } from '~/types/user'
 import { interpolate } from '~/utils/prompt-builder'
 import { matchesKeyword } from '~/utils/text-match'
-import { enforceAccentVisibility } from '~/utils/palette'
+import { deterministicPaletteHexes, enforceAccentVisibility } from '~/utils/palette'
 import { enforceNameCaps, fold } from '~/utils/naming'
 import { isTakeable } from '~/utils/interactables'
 import { sanitizeHtml } from '~/utils/sanitize-html'
@@ -683,6 +683,7 @@ ${JSON.stringify(s.generation.output_schema, null, 2)}`
     const story = journal.length
       ? interpolate(c.prompt, { journal: renderJournal(journal, c.max_entries) })
       : c.empty
+    const exactPalette = deterministicPaletteHexes(user, this.scene.id)
 
     return `${this.languageBlock}
 
@@ -705,6 +706,10 @@ ${this.pack.generation.naming_form}
 
 PALETTE
 ${s.palette_derivation.instruction}
+Le calcul depuis le formulaire est déjà fait pour CE lieu. Ces trois hexadécimaux sont la réponse définitive : recopie-les à l'identique dans le champ palette, sans les éclaircir, les assombrir ni les remplacer. Donne seulement à chacun un nom cohérent dans la langue du joueur et explique sa dérivation dans le champ rationale.
+- dominante : ${exactPalette.dominant}
+- secondaire : ${exactPalette.secondary}
+- accent : ${exactPalette.accent}
 Contrainte de rendu : ${s.art_direction.render}, règle 60/30/10 stricte.
 ${s.art_direction.accent_note}
 
@@ -1423,6 +1428,20 @@ ${lines}`)
     }
   }
 
+  /**
+   * Impose le résultat du formulaire avant validation et assemblage.
+   *
+   * Le prompt donne déjà ces valeurs au modèle pour que noms, cartes et prose
+   * restent cohérents. Cette seconde barrière garantit que l'image et
+   * l'interface ne varieront pas si le modèle recopie mal un hexadécimal.
+   */
+  pinPlayerPalette(generated: GeneratedScene, user: UserProfile): void {
+    const exact = deterministicPaletteHexes(user, this.scene.id)
+    if (generated.palette?.dominant) generated.palette.dominant.hex = exact.dominant
+    if (generated.palette?.secondary) generated.palette.secondary.hex = exact.secondary
+    if (generated.palette?.accent) generated.palette.accent.hex = exact.accent
+  }
+
   /** Fusionne la sortie du modèle avec les parties statiques du script. */
   assembleText(
     generated: GeneratedScene,
@@ -1597,7 +1616,9 @@ ${lines}`)
         // d'acte la réclame : une carte sans couleur ne peut plus y entrer, et
         // l'énigme tombait. Le modèle l'oublie parfois ; la couleur d'une carte
         // est l'accent de son lieu, on la lui rend.
-        color: generated.key_item?.color?.trim() || (this.keyItemIsCard ? palette.accent.name : generated.key_item?.color),
+        color: this.keyItemIsCard
+          ? palette.accent.name
+          : generated.key_item?.color?.trim(),
         exchanges_before_handover: this.scene.key_item.exchanges_before_handover,
         // Comment il s'obtient voyage avec la scène : le client doit savoir
         // qu'ici personne ne le tend, et que c'est le déchiffrage qui le donne.
