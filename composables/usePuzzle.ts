@@ -2,6 +2,7 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { translate } from '~/utils/languages'
 import { isSolved, searchedSpot } from '~/utils/puzzles'
+import { sceneKeyInventoryKind } from '~/utils/scene-item-policy'
 
 /**
  * L'énigme de la scène, côté partie.
@@ -45,7 +46,7 @@ export function usePuzzle() {
       hex: scene.palette?.accent?.hex,
       observation: item.observation,
       icon: item.icon,
-      kind: scene.scene_id === 'a3s1' ? 'trade' : 'key',
+      kind: sceneKeyInventoryKind(scene.scene_id),
     })
     // Le récit brouille ce nom tant que la loupe ne l'a pas ouvert : l'écrire
     // ici ne le livre pas.

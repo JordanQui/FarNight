@@ -393,11 +393,11 @@
     },
     "locks": {
       "note": "Cartes et serrures. Chaque carte a une couleur, chaque serrure affiche la sienne : c'est ainsi que le joueur sait laquelle présenter, sans qu'on le lui dise. Inspiré des clés colorées de DOOM.",
-      "instruction": "SERRURES ET CARTES — LA COULEUR EST LA CLÉ.\nToute carte d'accès a UNE COULEUR, et c'est par elle qu'on la désigne — jamais par un numéro, jamais par un code. Elle se nomme en Majuscules de Titre, couleur comprise : « la Carte Ambre », « la Carte Indigo ».\nTOUTE SERRURE, TOUT LECTEUR, TOUT TERMINAL VERROUILLÉ AFFICHE UNE COULEUR. Dis-la dans la description : une fente cerclée d'ambre, un voyant indigo, une gâche peinte. Sans elle, le joueur ne peut pas savoir quelle carte présenter, et sa collection ne sert à rien.\nLa couleur de la carte de CETTE scène est celle de l'ACCENT de sa palette : l'image et le texte disent la même chose.\nL'INDICE se donne par la conversation ou par le décor, jamais par une consigne : quelqu'un mentionne la couleur qu'il a vue sur le lecteur, une trace de peinture est restée sur le chambranle, un ancien panneau garde la couleur d'un accès supprimé.\nSi le joueur porte déjà une carte de la bonne couleur (voir CE QU'IL PORTE), la serrure d'ici peut être de CETTE couleur-là — c'est ce qui donne son sens à l'inventaire. Ne le lui dis jamais : montre la couleur, il fera le rapprochement."
+      "instruction": "SERRURES ET CARTES — LA COULEUR EST LA CLÉ.\nToute carte d'accès a UNE COULEUR, et c'est par elle qu'on la désigne — jamais par un numéro, jamais par un code. Elle se nomme en Majuscules de Titre, couleur comprise : « la Carte Ambre », « la Carte Indigo ».\nTOUTE SERRURE, TOUT LECTEUR, TOUT TERMINAL VERROUILLÉ AFFICHE UNE COULEUR. Dis-la dans la description : une fente cerclée d'ambre, un voyant indigo, une gâche peinte. Sans elle, le joueur ne peut pas savoir quelle carte présenter, et sa collection ne sert à rien.\nLa couleur de la carte-clé de CETTE scène, SI elle possède une carte-clé, est celle de l'ACCENT de sa palette : l'image et le texte disent la même chose. En A2S1, l’objet-clé est un objet personnel, pas une carte ; une carte secondaire peut toutefois se trouver parmi les objets à prendre.\nL'INDICE se donne par la conversation ou par le décor, jamais par une consigne : quelqu'un mentionne la couleur qu'il a vue sur le lecteur, une trace de peinture est restée sur le chambranle, un ancien panneau garde la couleur d'un accès supprimé.\nSi le joueur porte déjà une carte de la bonne couleur (voir CE QU'IL PORTE), la serrure d'ici peut être de CETTE couleur-là — c'est ce qui donne son sens à l'inventaire. Ne le lui dis jamais : montre la couleur, il fera le rapprochement."
     },
     "spare_card": {
       "note": "Une carte de plus à ramasser dans chaque lieu qui précède le lecteur (a2s2) : c'est ce qui fait du lecteur un vrai choix. Elle n'ouvre rien ici ; le jeu refuse une couleur déjà portée ou celle de l'accent, et la rétrograde alors en objet de récit.",
-      "instruction": "UNE CARTE DE PLUS. Parmi les objets à PRENDRE, EXACTEMENT UN est une CARTE D'ACCÈS qui n'est pas l'objet-clé : `item_kind` vaut \"carte\". Elle traîne là, perdue, oubliée, ou gardée par habitude — elle n'ouvre rien ICI, et personne ne dit ce qu'elle ouvre. Elle se nomme par sa couleur, comme toute carte : « la Carte Ocre ».\n`card_color` est cette couleur, un seul mot en Majuscule. Elle n'est JAMAIS celle de l'accent de ta palette — l'accent est réservé à la carte que ce lieu délivre —, et JAMAIS celle d'une carte que le joueur porte déjà (voir CE QU'IL PORTE). `card_hex` est cette couleur en #RRGGBB.\nSon `observation` dit d'où elle vient et qui s'en servait, sans jamais dire quelle porte elle ouvre."
+      "instruction": "UNE CARTE DE PLUS. Parmi les objets à PRENDRE, EXACTEMENT UN est une CARTE D'ACCÈS qui n'est pas l'objet-clé : `item_kind` vaut \"carte\". Elle traîne là, perdue, oubliée, ou gardée par habitude — elle n'ouvre rien ICI, et personne ne dit ce qu'elle ouvre. Elle se nomme par sa couleur, comme toute carte : « la Carte Ocre ».\n`card_color` est cette couleur, un seul mot en Majuscule. Elle n'est JAMAIS celle de l'accent de ta palette — l'accent est réservé à la carte que ce lieu délivre, sauf en A2S1 où l’objet-clé n’est pas une carte —, et JAMAIS celle d'une carte que le joueur porte déjà (voir CE QU'IL PORTE). `card_hex` est cette couleur en #RRGGBB.\nSon `observation` dit d'où elle vient et qui s'en servait, sans jamais dire quelle porte elle ouvre."
     },
     "augmentation_primer": {
       "note": "La fenêtre qui s'ouvre au PREMIER passage à la loupe, une seule fois. Celui qui l'a cédée en a dit deux mots dans la conversation ; celle-ci dit le reste, au moment où le joueur a l'outil en main et quelque chose à en faire. Le récit est brodé à partir des champs DÉJÀ générés de l'objet — nom, description, port, ce qu'elle permet, l'acte qu'elle rend possible — donc rien n'est régénéré et ça ne coûte pas un token. Le mode d'emploi, lui, est fixe : c'est une mécanique, pas de la fiction. `caps_note` est la règle d'observation : elle dit au joueur que la Majuscule est le signal d'interaction et que le décor garde des objets que personne ne lui donnera. Fixe elle aussi.",
@@ -925,7 +925,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "une carte d'accès restée dans le lieu, que personne ne détient",
+      "mechanic": "un objet personnel resté dans ce lieu, à retrouver pour franchir la sortie, puis susceptible d’être confié à quelqu'un au lieu suivant",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `touchstones.fear_film` dans le profil — de sa manière de faire peur, jamais du film : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -968,7 +968,7 @@
       ],
       "npcs": {
         "count": 2,
-        "instruction": "DEUX personnages qui vivent dans ce lieu et n'en sortent plus. Ils le connaissent comme un quartier. Ils peuvent dire où regarder, rien de plus.\nPrésente chacun par ce qu'il connaît du lieu et des accès : parler avec eux sert à comprendre pourquoi une carte est nécessaire et où chercher sans qu'ils donnent la cachette exacte. Aucun ne détient la carte."
+        "instruction": "DEUX personnages liés à ce lieu. L'un comprend pourquoi le passage vers le lieu suivant exige la trace personnelle restée ici ; l'autre connaît l'histoire de la personne qui l'a perdue. Présente chacun par sa fonction dans cette recherche : leurs paroles indiquent pourquoi le joueur doit chercher cet objet pour avancer vers son but, et pourquoi quelqu'un au prochain lieu pourrait le réclamer. Ils ne le détiennent pas, ne le donnent pas et ne révèlent pas son emplacement exact."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1026,13 +1026,12 @@
       ],
       "key_item": {
         "acquisition": "found",
-        "instruction": "L'OBJET-CLÉ est une CARTE D'ACCÈS. Un rectangle rigide, usé aux angles, dont la tranche est teintée. Sa couleur est celle de l'ACCENT de la palette de cette scène — une couleur que ce lieu porte déjà — et c'est à cette couleur que le joueur la reconnaîtra plus tard : nomme-la par sa couleur, pas par un numéro.\nCe qu'elle ouvre : la sortie de ce lieu, vers le lieu suivant du plan de la nuit. Sans elle, le passage reste fermé, et tout le monde ici le sait.\nSon nom n'est pas lisible à l'oeil nu : il faut l'augmentation pour le déchiffrer. C'est la première chose que le joueur fait avec elle.\nELLE NE S'OBTIENT D'AUCUN PERSONNAGE, ET ELLE EST CACHÉE : le texte sait qu'elle est ici, il ne dit JAMAIS où. Nomme en Majuscule AU MOINS QUATRE endroits où elle pourrait être — éléments de `decor` ou choses à examiner dans `interactables`, avec le verbe « fouiller » —, sans en désigner aucun, sans trace fraîche, sans tiroir mal refermé. Le jeu choisit la cachette et pose lui-même les indices. `npc_id` doit valoir la chaîne \"trouve\". Personne ne la tend, personne ne prétend l'avoir : les gens d'ici peuvent dire OÙ regarder, rien de plus.\n`why` dit ce qu'elle ouvre. `resolving_action` dit l'acte qu'elle rend possible une fois lue. `hook_story` est ce qu'on raconte de cette carte — ce qu'elle a ouvert avant, et pour qui.\n",
-        "exchanges_before_handover": 2,
-        "puzzle": "search"
+        "instruction": "L'OBJET-CLÉ est un OBJET PERSONNEL tangible, usé, chargé de l'histoire de son ancien propriétaire. Ce n'est JAMAIS une carte d'accès, une couleur, un code ou une fréquence. Il est RESTÉ dans le décor de ce lieu : l'élément focal le porte ou le laisse apercevoir, sans personnage qui le détient. `npc_id` vaut exactement \"trouve\". Nomme cet objet en Majuscules de Titre tel quel dans `scene_text` sur l'élément focal : le joueur doit pouvoir le repérer, le regarder et déchiffrer son nom à la loupe pour le prendre. L'observation révèle son histoire, sans inventer une carte cachée ni une fouille à résoudre. La sortie ne s'ouvre qu'après l'avoir pris : c'est une preuve concrète du passage de quelqu'un ici et un lien avec la personne du lieu suivant qui sait ce que cette preuve signifie pour le but du joueur. Explique clairement dans le texte pourquoi il faut le chercher : le passage est fermé sans cette trace et l'étape suivante exige de comprendre ce qu'elle représente. Suggère dans le texte, sans désigner de PNJ du lieu suivant ni ordonner un don, qu'une personne là-bas reconnaîtra l'objet. `why` précise le lien entre cet objet, la sortie et le but ; `resolving_action` nomme le passage rendu possible ; `hook_story` raconte son histoire. Ne donne ni solution du lecteur de la scène suivante, ni couleur de sa carte.",
+        "exchanges_before_handover": 2
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Trouver la carte restée dans ce lieu, et ouvrir la suite"
+        "requirement": "Repérer l'objet personnel resté dans le décor, comprendre pourquoi il permettra de franchir le passage, le prendre et l'emporter vers la personne qui le reconnaîtra au lieu suivant"
       },
       "theme_focus": {
         "facet": "reception",
@@ -1103,7 +1102,7 @@
       ],
       "npcs": {
         "count": 2,
-        "instruction": "DEUX personnages. L'un administre l'élément focal du lieu et sait exactement ce qu'il délivre. L'autre attend son tour depuis des jours. Celui qui administre ne donne rien sans raison.\nPrésente l'administrateur par son lien avec le dispositif qui délivre la carte, et la personne qui attend par ce qu'elle a vu des conditions d'accès. Le joueur doit comprendre pourquoi la carte délivrée ici est nécessaire pour poursuivre, sans recevoir la solution du puzzle."
+        "instruction": "DEUX personnages. L'un administre l'élément focal et sait quelle carte il délivre ; l'autre attend son tour et reconnaît discrètement la trace personnelle que le joueur vient de trouver en a2s1. Présente le premier par son lien avec le lecteur et le second par ce qu'il sait du passage et de l'histoire de cet objet. Dès l'arrivée, un regard retenu, une allusion à l'absence de cette trace ou à la personne qui l'a laissée doit mettre sur sa piste, sans dire « donne-moi », sans nommer un prix ni interrompre la recherche de la carte. Si le joueur porte l'objet [ÉCHANGE] `cle_a2s1`, renseigne OBLIGATOIREMENT le champ `wants` du personnage qui attend : `item_id` = \"cle_a2s1\", `hint` dit subtilement pourquoi il le reconnaît et le désire, `reward` donne en 2 à 3 phrases une information nouvelle sur le but de la quête et une intuition personnelle de tonalité horoscope, ancrée dans le signe et les nombres du joueur sans les nommer ni inventer de données absentes. `reward_item` et `reveals_id` restent vides : la contrepartie est sa parole. Si l'objet n'est pas dans CE QUE LE JOUEUR PORTE, ne remplis aucun `wants` pour cet objet. L'échange ne fournit pas la carte et ne donne jamais la solution du lecteur ; le don est possible ici, mais le puzzle de carte reste indépendant et inchangé. Le texte rend claire la nécessité d'obtenir la carte délivrée par le lecteur pour poursuivre, sans révéler la bonne carte à y présenter."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1194,7 +1193,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "un objet personnel remis par un détenteur après l'avoir identifié grâce à l'informateur ; il permet d'accéder au dernier lieu et peut être confié au témoin de la scène suivante",
+      "mechanic": "une carte d'accès qu'un personnage détient — un autre sait lequel — et qui mène au dernier lieu",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `imprints.refuge` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -1237,7 +1236,7 @@
       ],
       "npcs": {
         "count": 3,
-        "instruction": "TROIS personnages restés ici après tout le monde. Le premier accueille le joueur : il explique que la sortie vers le dernier lieu est fermée, qu'il faut d'abord obtenir un objet gardé ici et indique qui sait le trouver. Parmi les deux autres, l'un connaît le détenteur, l'autre porte l'objet. Présente leur utilité pour la quête sans révéler le détenteur avant que l'informateur ne le nomme. Il ne s'agit PAS d'une carte d'accès ni d'un lecteur de couleur : le passage s'ouvre parce que le joueur apporte l'objet attendu, sans énigme de couleur. Le premier dit aussi que cet objet intéressera quelqu'un au dernier lieu, sans promettre qu'il faudra le donner pour accomplir l'opération."
+        "instruction": "TROIS personnages restés ici après tout le monde. LE PREMIER accueille le joueur et dit ce qui se passe ici. Parmi les deux autres, l'un sait comment on atteint le dernier lieu, l'autre en a le moyen. Le premier, dès qu'on lui parle, dit sans détour trois choses : la sortie vers le dernier lieu est fermée, elle ne s'ouvre qu'avec une carte d'accès de la couleur de son lecteur, et quelqu'un ici sait qui la détient. Il ne nomme pas le détenteur ; il désigne celui qui sait.\nDans leur présentation, distingue clairement les trois fonctions utiles : le premier connaît l'état de la sortie et oriente vers la personne qui sait ; la deuxième connaît l'identité de celui qui a la carte ; la troisième est impliquée dans l’accès sans annoncer ce qu’elle possède. Ne révèle PAS dans le texte initial lequel des deux derniers détient la carte : le joueur l'apprend en parlant à l'informateur. Le premier peut désigner l'informateur comme personne à consulter."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1294,14 +1293,14 @@
       ],
       "key_item": {
         "acquisition": "informant_then_holder",
-        "instruction": "L'OBJET-CLÉ est un OBJET PERSONNEL tangible, usé, porteur d'une histoire : une chose que son détenteur a conservée parce qu'elle prouve ce qu'il a traversé. Ce n'est JAMAIS une carte d'accès, un code, une fréquence, un laissez-passer, ni un objet défini par sa couleur. Invente-en la forme concrète à partir du lieu et de la quête du joueur. Son nom se déchiffre avec l'augmentation. Le détenteur raconte pourquoi il y tient avant de le céder ; l'informateur permet de découvrir son identité. Cet objet permet de franchir la sortie vers le dernier lieu : le joueur doit l'avoir obtenu dans CETTE scène. Une fois arrivé, il devient un objet [ÉCHANGE] que le témoin de la scène finale désire pour une raison intime. L'échange donne une lecture supplémentaire de la quête et du joueur, jamais la solution de la séquence finale. `why` explique son rapport à la sortie et à la quête, `resolving_action` nomme ce qu'il rend possible, `hook_story` raconte son passé.",
+        "instruction": "L'OBJET-CLÉ est une CARTE D'ACCÈS. Un rectangle rigide, usé aux angles, dont la tranche est teintée. Sa couleur est celle de l'ACCENT de la palette de cette scène — une couleur que ce lieu porte déjà — et c'est à cette couleur que le joueur la reconnaîtra plus tard : nomme-la par sa couleur, pas par un numéro.\nCe qu'elle ouvre : la sortie de ce lieu, vers le lieu suivant du plan de la nuit. Sans elle, le passage reste fermé, et tout le monde ici le sait.\nSon nom n'est pas lisible à l'oeil nu : il faut l'augmentation pour le déchiffrer. C'est la première chose que le joueur fait avec elle.\n`why` dit ce qu'elle ouvre. `resolving_action` dit l'acte qu'elle rend possible une fois lue. `hook_story` est ce que son détenteur raconte pour la rendre désirable.\n",
         "exchanges_before_handover": 2,
         "holder_stance": "-me",
         "informant_stance": "-to"
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Découvrir qui garde l'objet personnel nécessaire pour atteindre le dernier lieu, l'obtenir et franchir la sortie ; le conserver pour le témoin"
+        "requirement": "Obtenir la carte d'accès qui ouvre la sortie vers le dernier lieu : savoir qui la détient, puis la lui demander"
       },
       "theme_focus": {
         "facet": "destiny",
@@ -1333,7 +1332,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "la séquence d'opération affichée par l'élément focal ; le témoin peut recevoir l'objet trouvé auparavant en échange d'une lecture personnelle de la quête",
+      "mechanic": "la séquence d'opération affichée par l'élément focal — la chose où le but de la nuit s'accomplit",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `trajectory.turning_points` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -1376,7 +1375,7 @@
       ],
       "npcs": {
         "count": 1,
-        "instruction": "UN SEUL personnage, déjà là quand le joueur arrive. C'est le témoin de l'opération finale : il sait ce qui changera si le joueur agit, sans pouvoir agir à sa place ni révéler l'ordre des gestes. Il reconnaît l'objet personnel obtenu en a3s1 (id EXACT cle_a3s1, marqué [ÉCHANGE] dans l'inventaire) et en laisse comprendre la valeur pour lui. Renseigne OBLIGATOIREMENT son champ `wants` : `item_id` = \"cle_a3s1\" ; `hint` explique par sa posture et son vécu pourquoi il voudrait cet objet sans exiger le don ; `reward` livre, en trois phrases de SA voix, une lecture supplémentaire du but de la nuit, de ce que l'opération réparera ET un petit horoscope personnel. Cette lecture astrologique doit prendre la forme d’un pronostic singulier : elle réunit le but de la quête et ce que le geste final changera pour CE joueur. Cet horoscope est une intuition située, ancrée dans la tension/résolution du SIGNE et la facette destiny des NOMBRES fournis pour CE joueur ; s'ils manquent, n'invente pas de signe ou de nombre. Ne prononce ni signe, ni chiffre, ni les termes astrologie/numérologie dans la fiction : l'horoscope se ressent dans son pronostic singulier, pas dans une étiquette. Il ne donne ni ordre des quatre gestes ni solution de l'énigme. `reward_item` et `reveals_id` sont vides : la contrepartie est uniquement sa parole. L'échange est FACULTATIF pour résoudre la séquence et terminer la nuit ; il approfondit la quête, son objectif et le portrait du joueur, rien de plus. Présente dès le début ce personnage comme celui qui peut lire ce que signifie pour le joueur le geste final, sans le faire passer pour un gardien du dispositif."
+        "instruction": "UN SEUL personnage, déjà là quand le joueur arrive. Il n'empêche rien et n'aide pas : il regarde. Ce qu'il dit ramène le joueur à ce qu'il est venu réparer.\nPrésente ce témoin par son rapport à l'opération finale : il sait ce qui changera si le joueur accomplit l'acte, mais ne peut pas l'accomplir à sa place. Explique pourquoi lui parler éclaire la décision, sans lui donner le rôle de bloqueur ou d'agent de la solution."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1439,7 +1438,7 @@
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Accomplir l'opération en remettant les quatre gestes dans l'ordre ; si le joueur le souhaite, échanger l'objet du lieu précédent avec le témoin pour comprendre davantage sa quête et recevoir une lecture personnelle"
+        "requirement": "Accomplir l'opération, et voir ce que la ville en fait"
       },
       "theme_focus": {
         "facet": "destiny",

@@ -1,9 +1,9 @@
-/** A3S1 s'ouvre avec son objet, mais l'objet voyage ensuite comme offre facultative. */
+/** A2S1 s’ouvre avec l’objet trouvé ; on peut ensuite le donner en A2S2. */
 export function sceneKeyInventoryKind(sceneId: string): 'key' | 'trade' {
-  return sceneId === 'a3s1' ? 'trade' : 'key'
+  return sceneId === 'a2s1' ? 'trade' : 'key'
 }
 
-/** L'échange final ne fait jamais partie des conditions de réussite. */
+/** La séquence finale ne dépend pas des échanges précédents. */
 export function finalSequenceNeedsExchange(_givenItemIds: readonly string[]): boolean {
   return false
 }
