@@ -15,7 +15,7 @@ import { isTakeable } from '~/utils/interactables'
  * cachée ou délivrée ne différaient que par le mot. Chacune a désormais sa
  * propre épreuve, et elle se résout SUR L'APPAREIL :
  *
- * - `frequency` : un cadran à régler, les indices bornent la valeur ;
+ * - `frequency` : un cadran à régler, la valeur est écrite dans le lieu ;
  * - `code` : quatre chiffres en deux morceaux, et une consigne d'ordre ;
  * - `sequence` : les gestes du dénouement à remettre dans l'ordre ;
  * - `lock` : le lecteur ne prend que la carte d'un lieu déjà traversé ;
@@ -165,33 +165,18 @@ export function drawPuzzle(
   if (!surfaces.length) return null
 
   if (kind === 'frequency') {
-    // Un nombre de deux chiffres, et trois indices qui n'en laissent qu'un :
-    // une fourchette, la parité, la somme des chiffres. On retire tant que les
-    // trois ensemble ne suffisent pas — c'est rare, et borné.
-    for (let attempt = 0; attempt < 60; attempt++) {
-      const solution = 20 + Math.floor(rand() * 80)
-      const lo = Math.max(10, solution - Math.floor(rand() * 20))
-      const hi = Math.min(99, lo + 20)
-      const even = solution % 2 === 0
-      const sum = Math.floor(solution / 10) + (solution % 10)
-      let fits = 0
-      for (let v = lo; v <= hi; v++) {
-        if (v % 2 === (even ? 0 : 1) && Math.floor(v / 10) + (v % 10) === sum) fits++
-      }
-      if (fits !== 1) continue
-      return {
-        kind,
-        solution,
-        min: 10,
-        max: 99,
-        clues: carryOne(spread([
-          t('freq_range', { lo, hi }),
-          t(even ? 'freq_even' : 'freq_odd'),
-          t('freq_sum', { sum }),
-        ], surfaces, rand), opts.carried, rand, t),
-      }
+    // UNE SEULE VALEUR, ÉCRITE EN CLAIR sur une chose du lieu. Trois indices à
+    // combiner (fourchette, parité, somme des chiffres) rendaient la première
+    // énigme de la nuit trop dure : il suffit de trouver où elle est écrite.
+    // Elle reste dans le lieu — jamais sur un objet porté.
+    const solution = 20 + Math.floor(rand() * 80)
+    return {
+      kind,
+      solution,
+      min: 10,
+      max: 99,
+      clues: spread([t('freq_value', { value: solution })], surfaces, rand),
     }
-    return null
   }
 
   if (kind === 'code') {
