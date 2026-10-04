@@ -10,6 +10,7 @@ import { translate } from '~/utils/languages'
 import { takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
 import { useNightClock } from '~/composables/useNightClock'
+import type { Interactable } from '~/types/scene'
 
 /**
  * Le seul chemin par lequel une saisie entre dans le jeu.
@@ -197,6 +198,35 @@ export function useStorylets() {
    * moment `model` déclenche un appel facturé, et il n'est atteint que si
    * aucun des moments locaux ne l'a coiffé.
    */
+  /**
+   * Mettre dans sa poche une chose du décor dont on sait lire le nom.
+   *
+   * Deux chemins y mènent et doivent emporter la même chose : la saisie qui la
+   * nomme, et la glissière qui paraît au bout de l'analyse. Recopier ce que
+   * l'objet garde de sa scène dans chacun, et l'un d'eux oublierait un jour la
+   * couleur d'une carte.
+   */
+  function take(obj: Interactable) {
+    if (gameStore.inventory.some(o => o.id === obj.id)) return
+    gameStore.pickUp({
+      id: obj.id,
+      label: obj.label,
+      from: playerStore.scene?.place?.name,
+      // La scène a dit en le posant s'il valait pour quelqu'un d'autre :
+      // c'est ce qui décide qu'un personnage pourra le réclamer, ici ou
+      // trois scènes plus loin. Dans le doute, il n'éclaire que la quête.
+      kind: obj.item_kind === 'carte' ? 'key' : obj.item_kind === 'echange' ? 'trade' : 'lore',
+      // Une carte garde sa couleur : c'est par elle qu'un lecteur la réclame.
+      ...(obj.item_kind === 'carte' ? { color: obj.card_color, hex: obj.card_hex } : {}),
+      observation: observationOf(
+        playerStore.scene, gameStore.inventory, obj.id,
+        playerStore.language, gameStore.revealedInteractableIds),
+      icon: obj.icon,
+    })
+    gameStore.addNarrativeEntry(
+      'system', translate(playerStore.language, 'game.pickup', { label: obj.label }))
+  }
+
   async function play(input: string): Promise<void> {
     const q = snapshot(input)
     const moment = draw(q)
@@ -228,25 +258,7 @@ export function useStorylets() {
     // nommer la chose pour en arriver là.
     if (moment.play.kind === 'pickup') {
       const obj = claimed(input)
-      if (obj) {
-        gameStore.pickUp({
-          id: obj.id,
-          label: obj.label,
-          from: playerStore.scene?.place?.name,
-          // La scène a dit en le posant s'il valait pour quelqu'un d'autre :
-          // c'est ce qui décide qu'un personnage pourra le réclamer, ici ou
-          // trois scènes plus loin. Dans le doute, il n'éclaire que la quête.
-          kind: obj.item_kind === 'carte' ? 'key' : obj.item_kind === 'echange' ? 'trade' : 'lore',
-          // Une carte garde sa couleur : c'est par elle qu'un lecteur la réclame.
-          ...(obj.item_kind === 'carte' ? { color: obj.card_color, hex: obj.card_hex } : {}),
-          observation: observationOf(
-            playerStore.scene, gameStore.inventory, obj.id,
-            playerStore.language, gameStore.revealedInteractableIds),
-          icon: obj.icon,
-        })
-        gameStore.addNarrativeEntry(
-          'system', translate(playerStore.language, 'game.pickup', { label: obj.label }))
-      }
+      if (obj) take(obj)
       gameStore.setPlayingSubState('awaiting_input')
       return
     }
@@ -287,5 +299,5 @@ export function useStorylets() {
     await runTurn(input, moment.play.mode, moment.after ?? ([] as StoryletEffect[]))
   }
 
-  return { play, snapshot }
+  return { play, snapshot, take }
 }

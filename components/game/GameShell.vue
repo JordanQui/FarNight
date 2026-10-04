@@ -6,7 +6,7 @@ import { usePlayerStore } from '~/stores/player'
 import { useNarrative } from '~/composables/useNarrative'
 import { useStorylets } from '~/composables/useStorylets'
 import { useImageGen } from '~/composables/useImageGen'
-import { observationOf } from '~/utils/interactables'
+import { observationOf, analyzables } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
 import { useNightClock } from '~/composables/useNightClock'
 
@@ -16,7 +16,7 @@ const { retryLastTurn } = useNarrative()
 const { generateSceneImage } = useImageGen()
 // Une saisie n'entre plus par une cascade de `if` : elle tire un moment dans
 // le deck, dont l'ordre de priorité se lit d'un bloc dans `utils/storylets.ts`.
-const { play } = useStorylets()
+const { play, take } = useStorylets()
 const puzzle = usePuzzle()
 const night = useNightClock()
 
@@ -118,6 +118,34 @@ onUnmounted(() => { if (offerTimer) clearTimeout(offerTimer) })
 
 /** Ici, l'objet-clé n'a pas de détenteur : il est inscrit dans le lieu. */
 const isFoundItem = computed(() => playerStore.scene?.key_item?.acquisition === 'found')
+
+/**
+ * La chose du décor qu'on vient de lire et qui attend qu'on la prenne.
+ *
+ * Analyser un objet, c'est apprendre son nom : la règle « pas de nom, pas
+ * d'interaction » est remplie, et lui faire retaper « prendre » suivi du nom
+ * qu'il vient de lire ne demandait plus rien qu'un clavier. La glissière paraît
+ * donc au bout de l'analyse — jamais avant : le bouton de l'arrivée, qui
+ * court-circuitait la boucle, ne revient pas.
+ *
+ * La liste vient de `analyzables`, la même que celle du brouillage : sortie,
+ * augmentation et éléments cachés en sont déjà exclus. On n'y garde que les
+ * ramassables du décor — l'objet-clé et l'objet scellé ont leur propre chemin.
+ * Le dernier lu passe devant : c'est celui qu'il a sous les yeux.
+ */
+const readyToTake = computed(() => {
+  const scene = playerStore.scene
+  if (!scene) return null
+  const readable = new Set(
+    analyzables(scene, playerStore.language, gameStore.revealedInteractableIds).map(a => a.id))
+  const waiting = (scene.interactables ?? []).filter(o =>
+    readable.has(o.id)
+    && gameStore.decryptedObjectIds.includes(o.id)
+    && !gameStore.inventory.some(i => i.id === o.id))
+  if (!waiting.length) return null
+  const order = (id: string) => gameStore.decryptedObjectIds.indexOf(id)
+  return waiting.reduce((a, b) => order(b) > order(a) ? b : a)
+})
 
 /** Le joueur prend l'objet que le détenteur lui tend. */
 function collectItem() {
@@ -281,6 +309,18 @@ function retryImage() {
         :slide-label="t('game.slide_collect')"
         offered
         @confirm="collectItem"
+      />
+    </Transition>
+
+    <!-- Une chose du décor qu'on vient de lire : elle se prend d'un geste -->
+    <Transition name="slide">
+      <PickupPrompt
+        v-if="readyToTake && !offerReady && !gameStore.pendingChallenge && !gameStore.isInputDisabled"
+        :key="readyToTake.id"
+        :label="readyToTake.label"
+        :action="t('game.action_pickup')"
+        :slide-label="t('game.slide_pickup')"
+        @confirm="take(readyToTake)"
       />
     </Transition>
 
