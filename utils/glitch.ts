@@ -11,7 +11,7 @@
  * Une identité ne se brouille pas comme une chose : le rendu diffère.
  *
  * `mark` ne se brouille pas du tout : c'est un nom en clair qu'on touche, mis
- * en gras dans les écritures sans casse, où le gras tient lieu de majuscule.
+ * en gras dans toutes les langues ; sans casse, le gras tient lieu de majuscule.
  */
 export type TermKind = 'name' | 'object' | 'mark'
 

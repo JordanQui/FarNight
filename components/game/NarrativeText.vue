@@ -4,7 +4,6 @@ import type { Term } from '~/utils/glitch'
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { analyzables, visible } from '~/utils/interactables'
-import { signalOf } from '~/utils/languages'
 
 const props = defineProps<{ entries: NarrativeEntry[] }>()
 
@@ -46,20 +45,16 @@ const names = computed<Term[]>(() => {
     scene, playerStore.language, gameStore.revealedInteractableIds)
     .map(o => ({ value: o.label, kind: 'object', id: o.id }))
 
-  // SANS CASSE, LE GRAS TIENT LIEU DE MAJUSCULE. Les mêmes noms que ceux que
-  // `enforceNameCaps` recale ailleurs : ce qui se touche, le décor qu'on
-  // examine, le lieu, l'augmentation. Placés en tête : un nom déjà brouillé
-  // comme personne ou comme chose garde son brouillage.
-  const marks: Term[] = signalOf(playerStore.language) === 'bold'
-    ? [
-        ...visible(scene.interactables, gameStore.revealedInteractableIds).map(i => i.label),
-        ...(scene.decor ?? []).map(d => d.name),
-        scene.place?.name,
-        scene.key_item?.name,
-      ]
-        .filter((v): v is string => Boolean(v?.trim()))
-        .map(value => ({ value, kind: 'mark' }))
-    : []
+  // CE QU'ON OBSERVE POUR EN APPRENDRE QUELQUE CHOSE EST EN GRAS, DANS TOUTES
+  // LES LANGUES : les objets de la scène et le décor qu'on examine. Ni le lieu
+  // ni l'augmentation : on ne les observe pas. Placés en tête : un nom déjà
+  // brouillé comme personne ou comme chose garde son brouillage.
+  const marks: Term[] = [
+    ...visible(scene.interactables, gameStore.revealedInteractableIds).map(i => i.label),
+    ...(scene.decor ?? []).map(d => d.name),
+  ]
+    .filter((v): v is string => Boolean(v?.trim()))
+    .map(value => ({ value, kind: 'mark' }))
 
   return [...marks, ...people, ...things]
 })

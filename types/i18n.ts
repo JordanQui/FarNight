@@ -230,7 +230,8 @@ export interface LangWriting {
    *
    * `caps` : la Majuscule de Titre, écrite par le modèle et recalée par
    * `enforceNameCaps`. `bold` : l'écriture n'a pas de casse ; le modèle écrit
-   * les noms déclarés à l'identique, et `NarrativeText` les met en gras.
+   * les noms déclarés à l'identique. Dans les deux cas, `NarrativeText` met
+   * en gras ce qui se touche.
    */
   signal: 'caps' | 'bold'
   /** Sens d'écriture. `rtl` pour l'arabe : il pilote `dir` sur le document. */

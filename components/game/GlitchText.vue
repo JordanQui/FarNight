@@ -16,8 +16,8 @@ const props = defineProps<{
  * en laisserait une moitié lisible en clair — ce qui viderait la mécanique.
  */
 /**
- * Le texte sans le gras du modèle. Dans les langues où le gras marque ce qui
- * se touche, c'est l'interface qui le pose, depuis les noms déclarés : des
+ * Le texte sans le gras du modèle. Le gras marque ce qui se touche, et c'est
+ * l'interface qui le pose, depuis les noms déclarés : des
  * astérisques laissés par le modèle seraient une marque qui ne promet rien.
  */
 const plain = computed(() => props.text.replace(/\*\*(.+?)\*\*/g, '$1'))
