@@ -243,6 +243,7 @@ export default defineEventHandler(async (event) => {
    * trois centimes — et il n'est payé que sur un échec.
    */
   scene.dropUnreachable(generated)
+  scene.ensurePuzzleObjects(generated)
   scene.weldAugmentationName(generated)
   scene.pinPlayerPalette(generated, user)
 
@@ -259,6 +260,7 @@ export default defineEventHandler(async (event) => {
     ])
     generated = parseScene(repaired)
     scene.dropUnreachable(generated)
+    scene.ensurePuzzleObjects(generated)
     scene.weldAugmentationName(generated)
     scene.pinPlayerPalette(generated, user)
 

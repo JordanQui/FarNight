@@ -1107,6 +1107,86 @@ ${lines}`)
   }
 
   /**
+   * Garantit les deux objets que la fréquence demande, sans nouvelle génération.
+   *
+   * Le modèle rend parfois un seul objet malgré la consigne. Le refuser puis
+   * lui faire réécrire tout le JSON n'est pas une garantie : il peut rendre le
+   * même oubli une seconde fois et faire échouer l'entrée dans la scène. Le
+   * décor contient déjà des choses nommées et décrites ; on transforme la
+   * `trace` en priorité en objet analysable. Son nom est donc déjà dans le
+   * récit, et sa description devient son observation.
+   */
+  ensurePuzzleObjects(generated: GeneratedScene): void {
+    const kind = this.scene.key_item.puzzle
+    if (kind !== 'frequency' && kind !== 'code') return
+
+    const objects = [...(generated.interactables ?? [])]
+    const written = fold(generated.scene_text ?? '')
+    const isNamed = (label?: string) => Boolean(label?.trim()) && written.includes(fold(label!))
+    const usable = () => objects.filter(o =>
+      !o.hidden
+      && isTakeable(o, this.lang)
+      && isNamed(o.label)
+      && Boolean(o.observation?.trim()))
+    const count = () => {
+      const candidates = usable()
+      const labels = new Set(candidates.map(o => fold(o.label).trim()))
+      const ids = new Set(candidates.map(o => o.id.trim()).filter(Boolean))
+      return Math.min(labels.size, ids.size)
+    }
+    if (count() >= 2) return
+
+    const rank = (slot: string) => slot === 'trace' ? 0
+      : slot === 'focal' ? 3
+        : slot === 'lointain' ? 2 : 1
+    const decor = [...(generated.decor ?? [])]
+      .filter(d => d.name?.trim() && d.description?.trim() && isNamed(d.name))
+      .sort((a, b) => rank(a.slot_id) - rank(b.slot_id))
+    const keyName = fold(generated.key_item?.name ?? '').trim()
+    const takeVerb = this.pack.input.take[0]
+    if (!takeVerb) return
+
+    while (count() < 2) {
+      const labels = new Set(usable().map(o => fold(o.label).trim()))
+      const source = decor.find(d => {
+        const label = fold(d.name).trim()
+        return label && label !== keyName && !labels.has(label)
+      })
+      if (!source) break
+
+      const ids = new Set(objects.map(o => o.id))
+      const stem = source.slot_id.replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'objet'
+      let id = `puzzle_${this.scene.id}_${stem}`
+      for (let suffix = 2; ids.has(id); suffix++) id = `puzzle_${this.scene.id}_${stem}_${suffix}`
+      const existing = objects.find(o =>
+        !o.hidden && !o.triggers_paywall && fold(o.label).trim() === fold(source.name).trim())
+      if (existing) {
+        // Il était déjà manipulable mais le modèle l'avait laissé sans
+        // prise ou sans observation : on complète sa fiche au lieu de le
+        // dupliquer dans la liste.
+        existing.id = ids.has(existing.id) && usable().some(o => o !== existing && o.id === existing.id)
+          ? id : existing.id || id
+        existing.verb = takeVerb
+        existing.item_kind = 'recit'
+        existing.observation = source.description
+      } else {
+        objects.push({
+          id,
+          label: source.name,
+          verb: takeVerb,
+          item_kind: 'recit',
+          observation: source.description,
+        })
+      }
+      // Ne reprend jamais deux fois la même source pendant cette boucle.
+      decor.splice(decor.indexOf(source), 1)
+      console.warn(`[scene/${this.scene.id}] second objet d'énigme reconstruit depuis ${source.name}`)
+    }
+
+    generated.interactables = objects
+  }
+
+  /**
    * Le nom de l'augmentation, ressoudé avant d'être jugé.
    *
    * La consigne exige un nom sans accent, et le modèle écrit en français :
