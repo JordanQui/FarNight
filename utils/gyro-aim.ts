@@ -90,9 +90,12 @@ export function aimFrom(
   rangeDeg: number,
   neutralY: number,
   riseScale = 1,
+  restUp = upVector(restBeta, 0),
 ): { x: number; y: number } {
   // Le tangage, en radians, mesuré depuis l'origine déclarée de la posture.
-  const pitch = Math.atan2(up[1], up[2]) - (restBeta * Math.PI) / 180
+  const delta = Math.atan2(up[1], up[2]) - Math.atan2(restUp[1], restUp[2])
+  // Crossing ±180° must not fling the reclining cursor across the screen.
+  const pitch = Math.atan2(Math.sin(delta), Math.cos(delta))
   const raw = pitch / ((rangeDeg * Math.PI) / 180)
 
   // La montée et la descente n'ont pas le même gain quand la posture le demande.
@@ -101,8 +104,7 @@ export function aimFrom(
   const dy = raw < 0 ? raw * riseScale : raw
 
   // Le roulis : la projection de la verticale sur la largeur de l'écran.
-  const rest = upVector(restBeta, 0)
-  const dx = -(up[0] - rest[0]) / Math.sin((rangeDeg * Math.PI) / 180)
+  const dx = -(up[0] - restUp[0]) / Math.sin((rangeDeg * Math.PI) / 180)
 
   return { x: clamp(0.5 + dx / 2), y: clamp(neutralY + dy / 2) }
 }

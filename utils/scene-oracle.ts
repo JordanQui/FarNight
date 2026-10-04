@@ -5,6 +5,7 @@ import { hasWord, isDense, normalize, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 import { isTakeable, visible } from '~/utils/interactables'
 import { answerClue } from '~/utils/puzzles'
+import { isSecondLook } from '~/utils/puzzle-look'
 
 /**
  * Répond localement, sans appeler le modèle.
@@ -200,23 +201,11 @@ export function resolveLocally(
     // Il n'est caché sur rien : le premier regard montre le lieu, le second
     // donne la réponse, et les suivants la redonnent. On ne doit ni tourner en
     // rond ni rester bloqué — demandé ainsi par le user.
-    // SAUF LA FRÉQUENCE, gardée comme au 2026-10-03 : ses trois indices sont
-    // posés sur des choses que le récit nomme, et viennent avec leur
-    // description quand on les regarde — le premier nom reconnu décide, pour
-    // ne pas mêler les indices de deux endroits.
-    let here: string[]
-    if (scene.puzzle?.kind === 'frequency') {
-      const clues = scene.puzzle.clues.filter(c => !c.item_id)
-      const on = element?.name
-        ?? clues.find(c => c.on === thing)?.on
-        ?? clues.find(c => c.on && namedIn(text, c.on, lang))?.on
-      here = on ? clues.filter(c => c.on === on).map(c => c.text) : []
-    } else {
-      const second = Boolean(scene.puzzle) && Boolean(thing) && !state.hasKeyItem
-        && (state.lookedLabels ?? []).some(l => l !== thing)
-      // Refait depuis la solution, jamais relu dans `clues` : voir `answerClue`.
-      here = second ? [answerClue(scene.puzzle!, lang)] : []
-    }
+    // Toutes les énigmes, fréquence comprise, suivent la même règle : le
+    // premier objet regardé pose le lieu, le second donne la réponse en clair.
+    const second = Boolean(scene.puzzle) && isSecondLook(thing, state.lookedLabels ?? [], state.hasKeyItem)
+    // Refait depuis la solution, jamais relu dans `clues` : voir `answerClue`.
+    const here = second ? [answerClue(scene.puzzle!, lang)] : []
     if (element?.description || here.length) {
       return { text: [element?.description, ...here].filter(Boolean).join('\n\n'), kind: 'decor' }
     }

@@ -1464,21 +1464,23 @@ ${lines}`)
           `Scène invalide : objet à trouver, key_item.npc_id doit valoir "${FOUND_ITEM_ID}" `
           + `(reçu "${item.npc_id}")`)
       }
-      // LA FRÉQUENCE A TROIS PIÈCES, et il les faut toutes dans le texte :
-      // DEUX objets distincts à observer (c'est le second qui donne la valeur),
-      // au moins deux surfaces du lieu, et le nom de la fréquence — c'est en
-      // le déchiffrant à la loupe que s'ouvre le panneau du cadran. Compter le
-      // décor comme deux surfaces ne suffit pas : le joueur doit réellement
-      // voir deux objets dans le récit et pouvoir les distinguer.
+      // Le nom brouillé de l'objet-clé doit être dans le texte pour ouvrir le
+      // cadran à la loupe. Un autre objet visible sert au second regard.
       const puzzle = this.scene.key_item.puzzle
-      // Plus la fréquence : a1s2 est revenue à sa forme du 2026-10-03.
-      if (puzzle === 'code') {
+      // Le code et la fréquence commencent par un objet visible dans le récit :
+      // son nom brouillé est la cible que la loupe doit pouvoir ouvrir.
+      if (puzzle === 'code' || puzzle === 'frequency') {
         if (!written.includes(fold(item.name))) {
           throw new Error(
             `Scène invalide : "${item.name}" (key_item.name) n'apparaît pas dans scene_text — `
             + 'écris-le tel quel, en Majuscule, sur l\'élément focal : c\'est en le déchiffrant que le joueur ouvre le cadran')
         }
         const named = (label?: string) => Boolean(label) && written.includes(fold(label!))
+        if (puzzle === 'frequency' && !surfacesOf(generated, this.lang)
+          .some(surface => fold(surface.label) !== fold(item.name))) {
+          throw new Error('Scène invalide : aucun second objet nommé à regarder après la fréquence')
+        }
+        if (puzzle !== 'code') return
         const presentedObjects = takeable.filter(o =>
           !o.hidden && named(o.label) && Boolean(o.observation?.trim()))
         const distinctLabels = new Set(presentedObjects.map(o => fold(o.label).trim()))

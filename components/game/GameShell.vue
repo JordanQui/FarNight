@@ -45,6 +45,11 @@ function onSolved() {
 
   gameStore.markDecrypted(target.id)
   gameStore.addNarrativeEntry('system', t('game.analysis_done', { label: target.label }))
+  // La lecture à la loupe de la fréquence est le premier objet regardé.
+  // Un autre objet nommé dans le lieu livre ensuite sa valeur en clair.
+  if (playerStore.scene?.puzzle?.kind === 'frequency' && target.id === puzzle.keyId.value) {
+    gameStore.recordLook(target.label)
+  }
 
   // Ce que l'analyse révèle : l'objet scellé le porte, et depuis peu les objets
   // qu'on ramasse dans le décor aussi. Ces textes ont été écrits à la

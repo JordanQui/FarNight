@@ -145,6 +145,9 @@ export function useGyroEye() {
   let sensed = false
   let watchdog: ReturnType<typeof setTimeout> | null = null
   let target = { x: 0.5, y: POSTURE_NEUTRAL_Y[gameStore.posture] ?? 0.05 }
+  /** En position allongée, la première attitude confortable devient le centre. */
+  let lyingRest: ReturnType<typeof upVector> | null = null
+  let sampledPosture = gameStore.posture
 
   /**
    * Chaque mesure se lit seule.
@@ -161,12 +164,20 @@ export function useGyroEye() {
     sensed = true
 
     const posture = gameStore.posture
+    if (posture !== sampledPosture) {
+      sampledPosture = posture
+      lyingRest = null
+      target = { x: 0.5, y: POSTURE_NEUTRAL_Y[posture] ?? 0.05 }
+    }
+    const up = upVector(beta, gamma)
+    if (posture === 'allonge' && !lyingRest) lyingRest = up
     target = aimFrom(
-      upVector(beta, gamma),
+      up,
       REST_BETA_DEG[posture] ?? 0,
       RANGE_DEG * (POSTURE_RANGE_SCALE[posture] ?? 1),
       POSTURE_NEUTRAL_Y[posture] ?? 0.05,
       POSTURE_RISE_SCALE[posture] ?? 1,
+      posture === 'allonge' && lyingRest ? lyingRest : undefined,
     )
   }
 

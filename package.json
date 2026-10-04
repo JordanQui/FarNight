@@ -7,6 +7,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "test": "node --test utils/gyro-aim.test.ts utils/puzzle-look.test.ts",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
