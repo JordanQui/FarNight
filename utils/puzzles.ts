@@ -101,7 +101,9 @@ function surfacesOf(
 /** Répartit les indices sur les surfaces, une par indice tant qu'il y en a. */
 function spread(texts: string[], surfaces: Surface[], rand: () => number): PuzzleClue[] {
   const order = shuffle(surfaces, rand)
-  return texts.map((text, i) => ({ on: order[i % order.length]!.label, text }))
+  // Sans surface, l'indice n'est sur rien : l'oracle le livre au deuxième
+  // regard de toute façon (`answerClue`).
+  return texts.map((text, i) => ({ on: order.length ? order[i % order.length]!.label : '', text }))
 }
 
 export interface PuzzleSource {
@@ -129,8 +131,11 @@ export function drawPuzzle(
   const lang = opts.lang ?? DEFAULT_LANG
   const t = (key: string, vars?: Record<string, string | number>) => translate(lang, `puzzle.${key}`, vars)
   const rand = rng(`${scene.scene_id}|${scene.scene_text}`)
+  // PAS DE SURFACE NE FAIT PLUS TOMBER L'ÉNIGME. L'indice se livre au deuxième
+  // regard, quel qu'il soit : un récit qui ne nomme qu'un objet faisait
+  // disparaître le panneau, et la loupe rendait l'objet sans épreuve. Seule la
+  // fouille a besoin d'endroits où plonger la main.
   const surfaces = surfacesOf(scene, lang)
-  if (!surfaces.length) return null
 
   if (kind === 'frequency') {
     // UNE SEULE VALEUR, ÉCRITE EN CLAIR sur une chose du lieu. Trois indices à

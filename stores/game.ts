@@ -437,7 +437,8 @@ export const useGameStore = defineStore('game', {
     },
 
     recordLook(label: string) {
-      if (!this.lookedLabels.includes(label)) this.lookedLabels.push(label)
+      // Chaque regard, même répété : c'est le deuxième qui livre l'indice.
+      this.lookedLabels.push(label)
     },
 
     recordModelTurn() {

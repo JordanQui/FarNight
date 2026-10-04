@@ -122,6 +122,17 @@ function readStoredScene(expectedId?: string, lang?: LangCode): SceneTextRespons
       return null
     }
 
+    // LA FRÉQUENCE TOMBÉE EN SILENCE. Avant le 2026-10-04, un récit qui ne
+    // nommait qu'un objet faisait renoncer à l'énigme : plus de panneau, et la
+    // loupe rendait l'objet sans épreuve. Le tirage ne peut plus échouer pour
+    // la fréquence ; une copie gardée sans elle se régénère, une fois.
+    // Seulement a1s2 : la fouille, le lecteur et la séquence peuvent encore
+    // tomber légitimement, et les jeter ferait repayer la même scène en boucle.
+    if (stored.scene_id === 'a1s2' && stored.key_item?.acquisition === 'found' && !stored.puzzle) {
+      forgetStoredScene()
+      return null
+    }
+
     // Le SCRIPT a changé : consignes, seuils, schéma de génération. Le build,
     // lui, peut être resté le même — en développement il ne bouge pas d'un
     // rechargement à l'autre. Sans cette seconde comparaison, corriger un

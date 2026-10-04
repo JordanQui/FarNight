@@ -71,7 +71,10 @@ export default defineEventHandler(async (event) => {
   const key = mockKey(scene.id, `${lang}|${user.identity.name}|${user.identity.birthday ?? ''}|${body.journal?.length ?? 0}|${body.carried?.length ?? 0}|`, scriptFingerprint(runtime.script))
   if (import.meta.dev && !wantsFresh(event)) {
     const cached = await readMock<SceneTextResponse>('scene', key)
-    if (cached) {
+    // Une fréquence enregistrée sans son énigme (tirage d'avant le 2026-10-04)
+    // se régénère : la rejouer, ce serait reperdre le panneau.
+    const lostPuzzle = body.sceneId === 'a1s2' && cached && !cached.puzzle
+    if (cached && !lostPuzzle) {
       // La reprise doit rester testable sans repayer une génération. L'épilogue
       // fait exception, comme plus bas : il n'y a rien à reprendre après lui.
       if (scene.kind === 'ending') forgetPosition(event)
