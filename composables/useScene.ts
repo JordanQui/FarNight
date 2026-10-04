@@ -35,11 +35,10 @@ const SCENE_TEXT_TIMEOUT_MS = 240_000
 const SCENE_KEY = 'tg_scene'
 
 /**
- * DEBUG — coupé pour l'instant : chaque chargement regénère la scène et son
- * image au lieu de reposer celles gardées par le navigateur. Repasser à `true`
- * une fois la mise au point finie.
+ * La scène et son image gardées par le navigateur sont reposées au
+ * rechargement. `false` (mise au point) : chaque chargement les regénère.
  */
-const SCENE_CACHE = false
+const SCENE_CACHE = true
 
 /**
  * La mémoire du navigateur.
@@ -118,17 +117,6 @@ function readStoredScene(expectedId?: string, lang?: LangCode): SceneTextRespons
 
     // Gardée sous une autre forme que celle que ce code sait lire.
     if (stored.memory_format !== MEMORY_FORMAT) {
-      forgetStoredScene()
-      return null
-    }
-
-    // LA FRÉQUENCE TOMBÉE EN SILENCE. Avant le 2026-10-04, un récit qui ne
-    // nommait qu'un objet faisait renoncer à l'énigme : plus de panneau, et la
-    // loupe rendait l'objet sans épreuve. Le tirage ne peut plus échouer pour
-    // la fréquence ; une copie gardée sans elle se régénère, une fois.
-    // Seulement a1s2 : la fouille, le lecteur et la séquence peuvent encore
-    // tomber légitimement, et les jeter ferait repayer la même scène en boucle.
-    if (stored.scene_id === 'a1s2' && stored.key_item?.acquisition === 'found' && !stored.puzzle) {
       forgetStoredScene()
       return null
     }

@@ -138,21 +138,39 @@ export function drawPuzzle(
   const surfaces = surfacesOf(scene, lang)
 
   if (kind === 'frequency') {
-    // UNE SEULE VALEUR, ÉCRITE EN CLAIR sur une chose du lieu. Trois indices à
-    // combiner (fourchette, parité, somme des chiffres) rendaient la première
-    // énigme de la nuit trop dure : il suffit de trouver où elle est écrite.
-    // Elle reste dans le lieu — jamais sur un objet porté.
-    const solution = 20 + Math.floor(rand() * 80)
-    return {
-      kind,
-      solution,
-      min: 10,
-      max: 99,
-      clues: spread([t('freq_value', { value: solution })], surfaces, rand),
+    // Comme au 2026-10-03 (demandé par le user) : un nombre de deux chiffres,
+    // et trois indices posés sur le décor qui n'en laissent qu'un — une
+    // fourchette, la parité, la somme des chiffres. On retire tant que les
+    // trois ensemble ne suffisent pas — c'est rare, et borné. Chacun se lit
+    // en regardant la chose qui le porte (`utils/scene-oracle.ts`).
+    if (!surfaces.length) return null
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const solution = 20 + Math.floor(rand() * 80)
+      const lo = Math.max(10, solution - Math.floor(rand() * 20))
+      const hi = Math.min(99, lo + 20)
+      const even = solution % 2 === 0
+      const sum = Math.floor(solution / 10) + (solution % 10)
+      let fits = 0
+      for (let v = lo; v <= hi; v++) {
+        if (v % 2 === (even ? 0 : 1) && Math.floor(v / 10) + (v % 10) === sum) fits++
+      }
+      if (fits !== 1) continue
+      return {
+        kind,
+        solution,
+        min: 10,
+        max: 99,
+        clues: spread([
+          t('freq_range', { lo, hi }),
+          t(even ? 'freq_even' : 'freq_odd'),
+          t('freq_sum', { sum }),
+        ], surfaces, rand),
+      }
     }
+    return null
   }
 
-  // LES AUTRES SUIVENT LA MÊME RÈGLE (demandée par le user : on ne doit ni
+  // LES AUTRES (hors fréquence) SUIVENT LA RÈGLE (demandée par le user : on ne doit ni
   // tourner en rond, ni rester bloqué longtemps). Un SEUL indice, qui donne la
   // réponse entière, et que l'oracle livre au deuxième objet regardé, quel
   // qu'il soit. Plus de morceaux à recoller, plus d'indice dans la poche.

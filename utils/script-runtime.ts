@@ -1107,7 +1107,7 @@ ${lines}`)
   }
 
   /**
-   * Garantit les deux objets que la fréquence demande, sans nouvelle génération.
+   * Garantit les deux objets que le code demande, sans nouvelle génération.
    *
    * Le modèle rend parfois un seul objet malgré la consigne. Le refuser puis
    * lui faire réécrire tout le JSON n'est pas une garantie : il peut rendre le
@@ -1118,7 +1118,9 @@ ${lines}`)
    */
   ensurePuzzleObjects(generated: GeneratedScene): void {
     const kind = this.scene.key_item.puzzle
-    if (kind !== 'frequency' && kind !== 'code') return
+    // La fréquence (a1s2) est revenue à sa forme du 2026-10-03 : elle ne
+    // demande plus deux objets. Seul le code garde cette exigence.
+    if (kind !== 'code') return
 
     const objects = [...(generated.interactables ?? [])]
     const written = fold(generated.scene_text ?? '')
@@ -1469,7 +1471,8 @@ ${lines}`)
       // décor comme deux surfaces ne suffit pas : le joueur doit réellement
       // voir deux objets dans le récit et pouvoir les distinguer.
       const puzzle = this.scene.key_item.puzzle
-      if (puzzle === 'frequency' || puzzle === 'code') {
+      // Plus la fréquence : a1s2 est revenue à sa forme du 2026-10-03.
+      if (puzzle === 'code') {
         if (!written.includes(fold(item.name))) {
           throw new Error(
             `Scène invalide : "${item.name}" (key_item.name) n'apparaît pas dans scene_text — `
