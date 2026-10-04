@@ -1,6 +1,6 @@
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { requestLang } from '~/server/utils/lang'
-import { closeForStalling, closeForSleep, clearLock } from '~/server/utils/session-quota'
+import { closeForStalling, clearLock } from '~/server/utils/session-quota'
 
 /**
  * Referme la scène : le game over.
@@ -15,9 +15,6 @@ import { closeForStalling, closeForSleep, clearLock } from '~/server/utils/sessi
  * que de laisser le client fournir le sien : c'est le même texte qui reviendra
  * après un rechargement, et il ne doit pas changer entre les deux.
  *
- * `{ asleep: true }` : l'aube l'a pris avant la fin. Même cycle, mais la
- * position revient au premier lieu de la nuit.
- *
  * Aucune génération, donc aucun coût.
  *
  * En développement, et en production tant que `lockOverride` est ouvert
@@ -25,7 +22,7 @@ import { closeForStalling, closeForSleep, clearLock } from '~/server/utils/sessi
  * séance de test condamnerait la journée.
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ open?: boolean; asleep?: boolean }>(event).catch(() => null)
+  const body = await readBody<{ open?: boolean }>(event).catch(() => null)
   const runtime = await ScriptRuntime.load(requestLang(event))
 
   if (body?.open) {
@@ -34,13 +31,6 @@ export default defineEventHandler(async (event) => {
     }
     clearLock(event, runtime.limits)
     return { open: true as const }
-  }
-
-  // L'aube l'a pris : il dort un cycle, et la nuit repart de son premier lieu.
-  if (body?.asleep) {
-    const sceneId = runtime.script.defaults.night_clock.starts_at_scene
-    const index = runtime.script.progression.order.indexOf(sceneId)
-    return closeForSleep(event, runtime.limits, { sceneId, index })
   }
 
   return closeForStalling(event, runtime.limits)

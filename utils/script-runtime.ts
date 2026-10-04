@@ -426,10 +426,6 @@ export class SceneRuntime {
       budget_usd: this.script.pricing.scene_budget_usd,
       price_input_per_1m_usd: this.script.pricing.input_per_1m_usd,
       price_output_per_1m_usd: this.script.pricing.output_per_1m_usd,
-      // L'horloge est la même pour toute la nuit : elle voyage avec chaque
-      // scène pour que le client n'ait jamais à la connaître d'avance. La note
-      // reste ici.
-      night_clock: (({ note: _n, ...clock }) => clock)(this.script.defaults.night_clock),
     }
   }
 

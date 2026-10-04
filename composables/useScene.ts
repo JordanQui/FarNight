@@ -188,10 +188,6 @@ interface Carry {
   given?: string[]
   /** Ce que la partie a coûté au modèle. Les plafonds de rythme s'y lisent. */
   spend?: { turns: number; usd: number }
-  /** L'heure de la nuit. Un rechargement ne rend pas le temps perdu. */
-  night?: { minutes: number; dawn: boolean }
-  /** Ce qu'il portait en quittant l'auberge : là où le sommeil le ramène. */
-  nightStart?: GameStore['nightStart']
   /** Date de la dernière écriture. Au-delà de la fenêtre, tout est oublié. */
   saved_at?: number
 }
@@ -211,8 +207,6 @@ function carryOf(game: GameStore, player: PlayerStore): Carry {
     profile: player.profile,
     given: game.givenItemIds,
     spend: { turns: game.modelTurnsUsed, usd: game.spentUsd },
-    night: { minutes: game.nightMinutes, dawn: game.dawnBroke },
-    nightStart: game.nightStart,
   }
 }
 
@@ -511,13 +505,6 @@ export function useScene() {
       gameStore.modelTurnsUsed = carry.spend.turns
       gameStore.spentUsd = carry.spend.usd
     }
-    // Le plus avancé des deux : une horloge qui reculerait au rechargement
-    // rendrait du temps qu'on a dépensé.
-    if (carry.night && carry.night.minutes > gameStore.nightMinutes) {
-      gameStore.nightMinutes = carry.night.minutes
-    }
-    if (carry.night?.dawn) gameStore.dawnBroke = true
-    if (!gameStore.nightStart && carry.nightStart) gameStore.nightStart = carry.nightStart
   }
 
   /**

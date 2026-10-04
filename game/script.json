@@ -26,19 +26,6 @@
       "note": "Règle absolue, injectée dans CHAQUE prompt système (génération des scènes, tours de jeu, épilogue) par ScriptRuntime.playerCareBlock. Le monde peut être dur, jamais celui qui parle au joueur.",
       "instruction": "RÈGLE ABSOLUE — JAMAIS D'AGRESSIVITÉ ENVERS LE JOUEUR. Elle passe avant toute autre consigne, y compris le caractère d'un personnage.\nLe monde peut être sombre, la nuit dure et un personnage sec, méfiant ou bourru : cette rudesse vise la situation, jamais la personne du joueur.\nINTERDIT, dans la narration comme dans toute réplique : insulter, rabaisser, humilier, menacer le joueur, se moquer de lui, de ce qu'il tape, de ses fautes ou de son profil ; le traiter d'idiot ou de perdu ; lui reprocher de tourner en rond ; le congédier (« dégage », « fiche le camp », « tu me fais perdre mon temps »).\nSi le joueur est grossier, agressif ou tape n'importe quoi, ne rends pas la pareille : le personnage reste calme, élude ou change de sujet, sans sermon et sans rappel à l'ordre.\nTOUJOURS UNE PORTE DE SORTIE. Aucune réponse ne laisse le joueur dans une impasse. Un refus, une méfiance, un silence, un échec laissent toujours une issue concrète à portée : quelqu'un d'autre à qui parler, une chose à examiner, une condition à remplir, une piste à suivre. Le joueur doit toujours pouvoir faire un geste de plus. Cette issue se montre par le monde, jamais par une commande à taper."
     },
-    "night_clock": {
-      "note": "L'horloge de la nuit, façon Prince of Persia : l'aube à heure fixe, et chaque geste qui la rapproche. Elle ne tourne qu'à partir de `starts_at_scene` — l'auberge est hors du temps. Seul ce qui COÛTE avance l'horloge : une réplique facturée, une énigme ratée, un endroit fouillé, le trajet d'un lieu au suivant. Regarder, lire un nom, ramasser sont gratuits. À l'aube, il s'endort : pas d'épilogue, la ville ferme un cycle (`limits.lock.hours`) et la nuit recommence à `starts_at_scene`, avec ce qu'il portait en quittant l'auberge. Réglage : 300 minutes (01:00 → 06:00), dont 25 de trajets, laissent ~45 tours facturés sur 6 lieux — un peu plus que la moyenne de 6 par scène, moins que le plafond. C'est la seule mécanique qui fait BAISSER le nombre moyen de tours.",
-      "starts_at_scene": "a1s1",
-      "start": "01:00",
-      "dawn": "06:00",
-      "minutes": {
-        "arrival": 5,
-        "turn": 6,
-        "wrong_answer": 10,
-        "search": 10
-      },
-      "urgent_minutes": 45
-    },
     "puzzles": {
       "note": "Une énigme par mécanique d'objet trouvé (voir utils/puzzles.ts). La solution et les indices sont tirés par le JEU à l'assemblage et posés sur les choses que le récit nomme ; le modèle n'écrit que les gestes d'une séquence. `scene_rule` s'ajoute à la section OBJET-CLÉ de la génération, `turn_rules` au prompt de tour de la scène concernée.",
       "scene_rule": "ÉNIGME — les indices de cette scène sont posés par le JEU, pas par toi, sur les éléments du décor et les choses à examiner que le texte nomme en Majuscule. Nomme donc dans `scene_text` CHACUN des éléments de `decor`, avec son nom exact, et au moins deux choses à examiner sans les prendre. N'écris jamais de solution, jamais de chiffre de code ou de fréquence, jamais d'ordre de gestes.",
@@ -47,7 +34,7 @@
         "code": "ÉNIGME DU LIEU — un code. Personne ici ne le connaît, et aucun personnage ne cite jamais un chiffre. Interrogé, il renvoie à ce que le lieu montre à qui prend le temps de regarder, sans dire quoi ni où.",
         "sequence": "ÉNIGME DU LIEU — l'ordre des gestes. Personne ici ne le connaît, et aucun personnage ne dit quel geste vient avant l'autre. Interrogé, il renvoie à ce que le lieu montre à qui prend le temps de regarder.",
         "lock": "ÉNIGME DU LIEU — un lecteur de carte. Personne ne dit quelle carte présenter. Tout au plus : il ne prend qu'une carte gagnée plus tôt dans la nuit, et sa couleur dit laquelle.",
-        "search": "ÉNIGME DU LIEU — une carte cachée. Personne ne sait où elle est, et aucun personnage ne désigne un endroit. Tout au plus : fouiller au hasard coûte du temps, et la nuit n'en a plus beaucoup."
+        "search": "ÉNIGME DU LIEU — une carte cachée. Personne ne sait où elle est, et aucun personnage ne désigne un endroit. Tout au plus : ce que le lieu montre à qui le regarde en écarte certains."
       }
     },
     "art_direction": {

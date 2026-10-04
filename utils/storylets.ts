@@ -38,9 +38,6 @@ export interface Qualities {
   /** Tours déjà joués. Celui qu'on est en train de jouer n'y est pas encore. */
   turn: number
 
-  /** L'aube s'est levée : la nuit du joueur est finie, où qu'il en soit. */
-  dawn: boolean
-
   /** La commande emploie les mots de la sortie, quel qu'en soit le moment. */
   mentionsExit: boolean
   /** Tour à partir duquel la porte accepte de s'ouvrir. */
@@ -119,7 +116,7 @@ export type StoryletPlay =
   /** La porte s'ouvre : le texte de sortie, puis l'écran. */
   | { kind: 'exit' }
   /** Une réponse déjà écrite quelque part. Aucun appel, aucun token. */
-  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'dawn' | 'blocked_exit' }
+  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'blocked_exit' }
   /** Il plonge la main quelque part. Aucun appel : ça ne coûte que la nuit. */
   | { kind: 'search' }
   /** Il prend ce qu'il a nommé. Un geste, pas un tour : rien ne part au modèle. */
@@ -174,15 +171,6 @@ export const DECK: Storylet[] = [
     note: "le canal '#' court-circuite tout, y compris la porte",
     when: q => q.isCommand,
     play: { kind: 'command' },
-  },
-  {
-    id: 'aube',
-    note: "l'aube s'est levée : plus rien ne se joue, il s'endort et la nuit recommencera",
-    // Juste après le canal '#' : une fois le jour levé, aucune réplique, aucune
-    // porte, aucune énigme. Ne se tire qu'au rechargement ou pendant la courte
-    // pause qui précède le sommeil — l'aube elle-même ferme la saisie.
-    when: q => q.dawn,
-    play: { kind: 'local', say: 'dawn' },
   },
   {
     id: 'fermeture',

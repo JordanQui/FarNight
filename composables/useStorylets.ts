@@ -9,7 +9,6 @@ import { resolveLocally, buildGuidance } from '~/utils/scene-oracle'
 import { translate } from '~/utils/languages'
 import { takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
-import { useNightClock } from '~/composables/useNightClock'
 import type { Interactable } from '~/types/scene'
 
 /**
@@ -30,7 +29,6 @@ export function useStorylets() {
   const { openExit } = usePaywall()
   const { isCommand, run: runSceneCommand } = useSceneCommands()
   const puzzle = usePuzzle()
-  const night = useNightClock()
 
   /**
    * La chose du décor que cette saisie réclame, si elle en réclame une.
@@ -100,8 +98,6 @@ export function useStorylets() {
       isCommand: isCommand(input),
 
       turn: gameStore.turnCount,
-
-      dawn: gameStore.dawnBroke,
 
       // Les mots-clés viennent de la scène servie, donc du pack de langue :
       // le client et le serveur testent la MÊME liste. En conversation, une
@@ -265,15 +261,11 @@ export function useStorylets() {
 
     if (moment.play.kind === 'search') {
       puzzle.search(input)
-      if (!gameStore.dawnBroke) gameStore.setPlayingSubState('awaiting_input')
+      gameStore.setPlayingSubState('awaiting_input')
       return
     }
 
     if (moment.play.kind === 'local') {
-      if (moment.play.say === 'dawn') {
-        night.breakDawn()
-        return
-      }
       // La nuit se referme. Le texte a été écrit à la génération de la scène :
       // on ne fait pas patienter vingt secondes quelqu'un à qui on ferme la
       // porte, et la fermeture ne coûte pas un tour de plus.

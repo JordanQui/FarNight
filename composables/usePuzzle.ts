@@ -1,6 +1,5 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
-import { useNightClock } from '~/composables/useNightClock'
 import { translate } from '~/utils/languages'
 import { isSolved, searchedSpot } from '~/utils/puzzles'
 
@@ -9,13 +8,12 @@ import { isSolved, searchedSpot } from '~/utils/puzzles'
  *
  * Tout ce qui se décide est dans `utils/puzzles.ts` — la solution, les
  * indices, la vérification. Ici on branche l'issue sur le store et sur le
- * récit : une bonne réponse remet l'objet-clé, une mauvaise coûte la nuit.
+ * récit : une bonne réponse remet l'objet-clé, une mauvaise est refusée.
  * Rien ne part au modèle.
  */
 export function usePuzzle() {
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
-  const night = useNightClock()
 
   const puzzle = computed(() => playerStore.scene?.puzzle ?? null)
   /** L'id sous lequel le récit a chiffré l'objet-clé. */
@@ -75,9 +73,8 @@ export function usePuzzle() {
   /**
    * Une réponse proposée au panneau.
    *
-   * Vrai si elle ouvre. Fausse, elle coûte la nuit — c'est ce qui empêche de
-   * balayer le cadran ou le clavier à l'aveugle, et ce qui donne leur prix aux
-   * indices qu'on est allé lire.
+   * Vrai si elle ouvre. Fausse, elle est refusée, sans autre prix : la nuit
+   * n'est pas chronométrée.
    */
   function submit(answer: string | number | number[]): boolean {
     const p = puzzle.value
@@ -88,8 +85,7 @@ export function usePuzzle() {
       collect()
       return true
     }
-    if (night.spend('wrong_answer')) return false
-    gameStore.addNarrativeEntry('system', t('puzzle.wrong', { minutes: night.cost('wrong_answer') }))
+    gameStore.addNarrativeEntry('system', t('puzzle.wrong'))
     return false
   }
 
@@ -104,9 +100,8 @@ export function usePuzzle() {
   /**
    * Il plonge la main quelque part.
    *
-   * Fouiller coûte la nuit, trouvé ou non : c'est l'enjeu de l'énigme. Chaque
-   * endroit REGARDÉ innocente un autre, gratuitement ; celui qui fouille tout
-   * sans lire paie chaque tiroir.
+   * Chaque endroit REGARDÉ en innocente un autre : celui qui lit le lieu
+   * trouve vite, celui qui fouille tout sans lire ouvre chaque tiroir.
    */
   function search(input: string) {
     const p = puzzle.value
@@ -117,15 +112,12 @@ export function usePuzzle() {
       return
     }
     gameStore.recordSearch(spot.id)
-    if (night.spend('search')) return
     if (spot.id === p.solution) {
       gameStore.addNarrativeEntry('narration', t('puzzle.search_found', { spot: spot.label }))
       collect()
       return
     }
-    gameStore.addNarrativeEntry('narration', t('puzzle.search_empty', {
-      spot: spot.label, minutes: night.cost('search'),
-    }))
+    gameStore.addNarrativeEntry('narration', t('puzzle.search_empty', { spot: spot.label }))
   }
 
   return { puzzle, keyId, collect, keyItemRead, submit, spotOf, search }

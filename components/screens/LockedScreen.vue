@@ -6,14 +6,11 @@ import { useGameStore } from '~/stores/game'
 /**
  * La ville fermée.
  *
- * Trois fins, un seul écran. La nuit a patiné : elle rouvre après un cycle, et
- * le compte à rebours le dit. Il s'est endormi : même cycle, et l'écran
- * l'invite à revenir — la nuit recommencera à son premier lieu. L'histoire est
- * allée jusqu'au bout : elle ne rouvre pas, et il n'y a rien à attendre — on
+ * Deux fins, un seul écran. La nuit a patiné : elle rouvre après un cycle, et
+ * le compte à rebours le dit. L'histoire est allée jusqu'au bout : elle ne rouvre pas, et il n'y a rien à attendre — on
  * ne montre alors aucun décompte, ce serait promettre un retour.
  *
- * Le texte du sommeil est fixe : rien n'y commente sa nuit. Les autres
- * viennent du modèle, écrits pour ce joueur-là à la génération de sa scène ou
+ * Le texte vient du modèle, écrits pour ce joueur-là à la génération de sa scène ou
  * de son épilogue. Il est déjà payé : l'afficher ne coûte aucun appel, et
  * c'est voulu — on ne fait pas patienter quelqu'un devant une porte qui se
  * ferme.
@@ -22,7 +19,6 @@ const gameStore = useGameStore()
 
 const lock = computed(() => gameStore.lock)
 const definitive = computed(() => lock.value?.reason === 'completed')
-const asleep = computed(() => lock.value?.reason === 'asleep')
 
 /** Le temps qui reste, rafraîchi à la minute. Inutile d'être à la seconde. */
 const now = ref(Date.now())
@@ -62,24 +58,14 @@ const remaining = computed(() => {
   <div class="min-h-[100dvh] flex items-center justify-center px-6 py-12 bg-ink-900">
     <div class="w-full max-w-md space-y-8 text-center">
       <p class="text-neon-400/80 font-display uppercase text-[10px] tracking-[0.32em]">
-        {{ definitive ? t('locked.eyebrow_end') : asleep ? t('locked.eyebrow_asleep') : t('locked.eyebrow_recalibrating') }}
+        {{ definitive ? t('locked.eyebrow_end') : t('locked.eyebrow_recalibrating') }}
       </p>
 
       <div class="neon-rule w-20 mx-auto" />
 
-      <!-- Il s'est endormi : un texte fixe, qui ne juge rien et dit quand revenir. -->
-      <template v-if="asleep">
-        <p class="font-display uppercase tracking-[0.24em] text-[13px] text-neon-300">
-          {{ t('night.asleep_title') }}
-        </p>
-        <p class="narrative-text text-parchment/90 text-[15px] sm:text-sm leading-relaxed text-left">
-          {{ t('locked.asleep_text') }}
-        </p>
-      </template>
-
       <!-- Ce que le modèle a écrit pour ce joueur. Le seul texte de l'écran. -->
       <p
-        v-else-if="lock?.text"
+        v-if="lock?.text"
         class="narrative-text text-parchment/90 text-[15px] sm:text-sm leading-relaxed whitespace-pre-line text-left"
       >{{ lock.text }}</p>
       <p v-else class="text-ink-200/70 text-sm leading-relaxed">

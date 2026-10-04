@@ -8,7 +8,6 @@ import { useStorylets } from '~/composables/useStorylets'
 import { useImageGen } from '~/composables/useImageGen'
 import { observationOf, analyzables } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
-import { useNightClock } from '~/composables/useNightClock'
 
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -18,7 +17,6 @@ const { generateSceneImage } = useImageGen()
 // le deck, dont l'ordre de priorité se lit d'un bloc dans `utils/storylets.ts`.
 const { play, take } = useStorylets()
 const puzzle = usePuzzle()
-const night = useNightClock()
 
 /**
  * Ouvert par défaut : le joueur doit voir tout de suite avec qui parler, c'est
@@ -212,14 +210,6 @@ function retryImage() {
       <p class="flex-1 min-w-0 truncate text-neon-400/90 font-display uppercase tracking-[0.14em] text-[11px]">
         {{ playerStore.place?.name ?? playerStore.scene?.scene_title }}
       </p>
-      <!-- L'heure de la nuit. Elle ne bouge qu'avec ce qui coûte : une
-           réplique, une énigme ratée, un endroit fouillé, un trajet. -->
-      <span
-        v-if="night.running.value"
-        class="shrink-0 font-mono tabular-nums text-[11px] tracking-[0.08em]"
-        :class="night.urgent.value ? 'text-neon-200 animate-pulse' : 'text-neon-500/80'"
-        :title="t('night.clock_title', { dawn: night.config.value?.dawn ?? '', left: night.duration(night.left.value.total) })"
-      >{{ night.clock.value }}</span>
       <button
         v-if="playerStore.npcs.length"
         class="shrink-0 text-xs text-neon-600/80 hover:text-neon-400 transition-colors py-1 px-2 -my-1"

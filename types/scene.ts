@@ -488,8 +488,6 @@ export interface ScenePacing {
   /** Tarifs, pour convertir des tokens en dollars côté client. */
   price_input_per_1m_usd: number
   price_output_per_1m_usd: number
-  /** L'horloge de la nuit, telle que le script la règle. */
-  night_clock?: import('~/utils/night-clock').NightClockConfig
 }
 
 /** Consommation réelle d'un appel, telle que la rapporte OpenAI. */

@@ -2,7 +2,6 @@ import type { SceneNPC, TurnContext, TurnMode, TurnUsage } from '~/types/scene'
 import type { StoryletEffect } from '~/utils/storylets'
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
-import { useNightClock } from '~/composables/useNightClock'
 import { normalize, matchesKeyword, significant } from '~/utils/text-match'
 import { pack, translate } from '~/utils/languages'
 
@@ -29,7 +28,6 @@ export function useNarrative() {
   const playerStore = usePlayerStore()
   // Pris ici, pas au fil du tour : après un `await`, le contexte de Nuxt n'est
   // plus garanti, et l'horloge en a besoin pour connaître l'ordre des scènes.
-  const night = useNightClock()
 
   function buildContext(): TurnContext | null {
     const scene = playerStore.scene
@@ -469,10 +467,6 @@ export function useNarrative() {
 
     gameStore.incrementTurn(input, text, npc?.id)
     applyEffects(after)
-    // Une réplique facturée coûte la nuit — seulement celle qui a abouti : un
-    // tour en échec ne doit rien coûter au joueur. APRÈS les effets, pour
-    // qu'une remise arrachée au dernier moment ne se perde pas dans l'aube.
-    night.spend('turn')
     // Refus, ou tour qui n'était pas un don : la proposition retombe. Sans ça
     // l'objet resterait tendu et le tour suivant repartirait en échange.
     if (!after.includes('consume_given_item')) gameStore.clearPendingGive()

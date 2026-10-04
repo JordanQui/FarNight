@@ -55,17 +55,15 @@ export interface SessionQuota {
 /**
  * Fermeture de la ville. Signée, donc infalsifiable.
  *
- * Trois motifs, deux durées. `stalled` : le joueur a passé une scène entière
- * sans en sortir, la ville se recharge le temps d'un cycle. `asleep` : l'aube
- * l'a pris avant la fin, il dort un cycle et la nuit recommence à son premier
- * lieu. `completed` : il a
+ * Deux motifs, deux durées. `stalled` : le joueur a passé une scène entière
+ * sans en sortir, la ville se recharge le temps d'un cycle. `completed` : il a
  * traversé toute l'histoire, et elle ne se rejoue pas — ce monde-là était le
  * sien, il n'y en aura pas d'autre.
  */
 export interface LockPass {
   /** Fin de la fermeture, en millisecondes. */
   until: number
-  reason: 'stalled' | 'completed' | 'asleep'
+  reason: 'stalled' | 'completed'
   /**
    * Le texte de l'écran, écrit pour CE joueur par le modèle : le `game_over` de
    * la scène qui s'est refermée, ou l'adieu de l'épilogue.
@@ -344,38 +342,6 @@ export function closeForStalling(event: H3Event, limits: LimitsConfig): LockPass
   const quota = readQuota(event, windowHours)
   quota.locked_until = lock.until
   writeQuota(event, quota, windowHours)
-
-  return lock
-}
-
-/**
- * Il s'est endormi : la ville ferme un cycle, et la position revient au
- * premier lieu de la nuit.
- *
- * Aucun texte dans le cookie : l'écran du sommeil est fixe, rien n'y est
- * écrit pour lui. La position est ramenée ici et non par le client — c'est
- * elle qui décide de la reprise, et un sommeil ne fait jamais avancer.
- */
-export function closeForSleep(
-  event: H3Event, limits: LimitsConfig, nightStart: { sceneId: string; index: number },
-): LockPass {
-  const existing = readLock(event)
-  if (existing) return existing
-
-  const lock = lockOut(event, limits.lock.hours, 'asleep')
-  rememberPosition(event, nightStart.sceneId, nightStart.index, limits.paid.window_days)
-
-  // Même raison que pour `stalled` : l'échéance passée rend ses tours à la scène.
-  const windowHours = readAccess(event) ? limits.paid.window_days * 24 : limits.window_hours
-  const quota = readQuota(event, windowHours)
-  quota.locked_until = lock.until
-  writeQuota(event, quota, windowHours)
-
-  // La nuit est finie, même sans épilogue : le droit d'accès part avec elle.
-  // Après le retrait, le quota ci-dessus est lu dans la fenêtre gratuite — il
-  // doit donc être écrit AVANT. La position reste : un nouveau paiement
-  // reprendra au premier lieu, inventaire compris.
-  revokeAccess(event)
 
   return lock
 }

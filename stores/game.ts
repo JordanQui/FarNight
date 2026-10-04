@@ -115,16 +115,14 @@ export const useGameStore = defineStore('game', {
     /**
      * La ville est fermée.
      *
-     * `stalled` : la nuit a patiné, elle rouvre après un cycle. `asleep` : il
-     * s'est endormi avant la fin, la nuit recommence après un cycle depuis son
-     * premier lieu. `completed` : l'histoire est allée jusqu'au bout et ne se
-     * rejoue pas.
+     * `stalled` : la nuit a patiné, elle rouvre après un cycle. `completed` :
+     * l'histoire est allée jusqu'au bout et ne se rejoue pas.
      *
      * `text` est écrit par le modèle — la nuit qui se referme vient de la scène,
      * l'adieu vient de l'épilogue et voyage dans le cookie signé pour survivre
      * au rechargement.
      */
-    lock: null as { until: number; reason: 'stalled' | 'completed' | 'asleep'; text?: string } | null,
+    lock: null as { until: number; reason: 'stalled' | 'completed'; text?: string } | null,
     /** Le panneau de réglages est ouvert. */
     settingsOpen: false,
     /**
@@ -275,28 +273,6 @@ export const useGameStore = defineStore('game', {
     turnError: null as string | null,
 
     /**
-     * Minutes de nuit déjà passées, depuis la sortie de l'auberge.
-     *
-     * Appartient à la PARTIE : une scène neuve ne rend pas le temps perdu dans
-     * la précédente. Voir `utils/night-clock.ts`.
-     */
-    nightMinutes: 0,
-    /** L'aube est venue avant la fin : il s'endort, la nuit recommencera. */
-    dawnBroke: false,
-    /**
-     * Ce qu'il portait en quittant l'auberge.
-     *
-     * Pris à l'entrée du premier lieu de la nuit : c'est là que le sommeil le
-     * ramène. Sans cette photo, rien ne distingue ce qui a été ramassé avant la
-     * nuit de ce qui l'a été pendant — `from` est un nom de lieu, pas un rang.
-     */
-    nightStart: null as null | {
-      journal: number
-      inventory: Array<{ id: string; label: string; from?: string; kind: 'key' | 'lore' | 'trade'; color?: string; hex?: string; observation?: string; icon?: string }>
-      decrypted: string[]
-      given: string[]
-    },
-    /**
      * L'énigme de la scène a été ouverte — l'objet-clé déchiffré à la loupe.
      *
      * Avant, le lire suffisait à l'obtenir. Maintenant le lire la montre : il
@@ -443,53 +419,6 @@ export const useGameStore = defineStore('game', {
       // grossisse pas indéfiniment : le coût d'un tour est déjà le poste qu'on
       // surveille.
       this.npcThreads[npcId] = thread.slice(-12)
-    },
-
-    /**
-     * La nuit avance de `minutes`, sans dépasser l'aube.
-     *
-     * Rend l'avant et l'après : c'est l'appelant qui décide d'annoncer l'heure
-     * qui tombe ou l'aube qui se lève — le store ne parle pas au joueur.
-     */
-    spendNight(minutes: number, length: number): { before: number; after: number; dawn: boolean } {
-      const before = this.nightMinutes
-      if (this.dawnBroke || minutes <= 0) return { before, after: before, dawn: false }
-      this.nightMinutes = Math.min(length, before + minutes)
-      const dawn = this.nightMinutes >= length
-      if (dawn) this.dawnBroke = true
-      return { before, after: this.nightMinutes, dawn }
-    },
-
-    /** Photographie la sortie de l'auberge : là où le sommeil le ramènera. */
-    markNightStart(journalLength: number) {
-      this.nightStart = {
-        journal: journalLength,
-        inventory: this.inventory.map(o => ({ ...o })),
-        decrypted: [...this.decryptedObjectIds],
-        given: [...this.givenItemIds],
-      }
-    },
-
-    /**
-     * Il s'est endormi : la nuit repart de son premier lieu.
-     *
-     * L'horloge revient à son départ, et il retrouve ce qu'il portait en
-     * quittant l'auberge — l'augmentation comprise, qui n'est pas dans
-     * l'inventaire. Le journal, lui, est coupé par le store du joueur. Rend
-     * la longueur de journal à garder.
-     */
-    rewindNight(sceneId: string): number {
-      const start = this.nightStart
-      if (start) {
-        this.inventory = start.inventory.map(o => ({ ...o }))
-        this.decryptedObjectIds = [...start.decrypted]
-        this.givenItemIds = [...start.given]
-      }
-      this.nightMinutes = 0
-      this.dawnBroke = false
-      this.startNewScene(sceneId)
-      this.resumeSceneId = sceneId
-      return start?.journal ?? 1
     },
 
     unlockPuzzle() {
@@ -773,7 +702,7 @@ export const useGameStore = defineStore('game', {
      * franchit. Ceci n'est que l'affichage : sans lui, le joueur resterait
      * devant sa saisie et découvrirait la fermeture par une erreur 423.
      */
-    closeCity(lock: { until: number; reason: 'stalled' | 'completed' | 'asleep'; text?: string }) {
+    closeCity(lock: { until: number; reason: 'stalled' | 'completed'; text?: string }) {
       this.lock = lock
       this.currentScreen = 'locked'
     },
@@ -881,9 +810,6 @@ export const useGameStore = defineStore('game', {
       this.lastMode = null
       this.lastEffects = []
       this.turnError = null
-      this.nightMinutes = 0
-      this.dawnBroke = false
-      this.nightStart = null
       this.puzzleUnlocked = false
       this.puzzleOpen = false
       this.searchedSpotIds = []

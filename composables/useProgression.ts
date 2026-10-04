@@ -1,9 +1,8 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
-import { forgetStoredScene, saveRun } from '~/composables/useScene'
+import { forgetStoredScene } from '~/composables/useScene'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { overlayValue } from '~/utils/languages'
-import { inNight, nightLength } from '~/utils/night-clock'
 
 /**
  * Le passage d'une scène à la suivante.
@@ -73,30 +72,7 @@ export function useProgression() {
    */
   function goTo(target: SceneRef) {
     const scene = target
-    // LE TRAJET COÛTE LA NUIT, et l'aube peut tomber en chemin : il s'endort
-    // alors en route plutôt que d'arriver. Lu sur la scène qu'on quitte — la
-    // suivante n'est pas encore là. Le premier lieu de la nuit ne coûte rien :
-    // c'est là que l'horloge part. Une aube déjà levée ne laisse plus entrer
-    // nulle part.
-    const clock = playerStore.scene?.pacing?.night_clock
-    if (scene.kind !== 'ending' && clock) {
-      if (gameStore.dawnBroke) {
-        void fallAsleep()
-        return
-      }
-      if (scene.id !== clock.starts_at_scene && inNight(scene.id, scenes(), clock)
-        && gameStore.spendNight(clock.minutes.arrival, nightLength(clock)).dawn) {
-        void fallAsleep()
-        return
-      }
-    }
-
     playerStore.closeScene()
-    // Il quitte l'auberge : ce qu'il porte à cet instant est ce que le
-    // sommeil lui rendra.
-    if (clock && scene.id === clock.starts_at_scene) {
-      gameStore.markNightStart(playerStore.journal.length)
-    }
     gameStore.startNewScene(scene.id)
     forgetStoredScene()
     // L'épilogue a son propre écran : il demande son texte et son image seul.
@@ -127,32 +103,6 @@ export function useProgression() {
     return true
   }
 
-  /**
-   * Il s'est endormi : la ville ferme un cycle, puis la nuit recommence.
-   *
-   * Pas d'épilogue, pas de texte généré : un écran fixe, et le premier lieu
-   * de la nuit au réveil. Il y retrouve ce qu'il portait en quittant
-   * l'auberge, l'horloge à son départ ; les lieux d'après se régénèrent.
-   *
-   * Le serveur ferme ET ramène la position au premier lieu : c'est lui qui
-   * décidera de la reprise. Le navigateur rembobine sa propre mémoire avant,
-   * pour qu'un rechargement ne rende pas la partie d'avant le sommeil.
-   */
-  async function fallAsleep() {
-    const start = playerStore.scene?.pacing?.night_clock?.starts_at_scene ?? 'a1s1'
-    const keep = gameStore.rewindNight(start)
-    playerStore.journal = playerStore.journal.slice(0, keep)
-    forgetStoredScene()
-    saveRun(gameStore, playerStore)
-
-    const lock = await $fetch<{ until: number }>('/api/lockout', {
-      method: 'POST', body: { asleep: true },
-    }).catch(() => null)
-    // Le serveur injoignable n'empêche pas l'écran : il dort quand même,
-    // seule la fermeture n'est pas signée.
-    gameStore.closeCity({ until: lock?.until ?? Date.now() + 24 * 3600_000, reason: 'asleep' })
-  }
-
   /** La scène retenue, telle qu'on peut la nommer au joueur. */
   function resumeTarget(): SceneRef | null {
     const id = gameStore.resumeSceneId
@@ -167,5 +117,5 @@ export function useProgression() {
     return true
   }
 
-  return { scenes, next, goTo, advance, resume, resumeTarget, fallAsleep }
+  return { scenes, next, goTo, advance, resume, resumeTarget }
 }

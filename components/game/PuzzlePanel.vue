@@ -3,7 +3,6 @@ const { t } = useLang()
 
 import type { ScenePuzzle } from '~/types/scene'
 import { useGameStore } from '~/stores/game'
-import { useNightClock } from '~/composables/useNightClock'
 
 /**
  * Le panneau de l'énigme : un cadran, un clavier, une séquence, un lecteur.
@@ -23,7 +22,6 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const gameStore = useGameStore()
-const night = useNightClock()
 
 const failed = ref(false)
 function refuse() {
@@ -183,8 +181,8 @@ const known = (id: string) => gameStore.decryptedObjectIds.includes(id)
         </div>
       </div>
 
-      <p class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display text-center">
-        {{ failed ? t('puzzle.refused') : t('puzzle.cost', { minutes: night.cost('wrong_answer') }) }}
+      <p v-if="failed" class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display text-center">
+        {{ t('puzzle.refused') }}
       </p>
       <button class="block mx-auto text-[10px] uppercase tracking-[0.2em] text-steel-400 hover:text-neon-300" @click="emit('close')">
         {{ t('puzzle.later') }}
