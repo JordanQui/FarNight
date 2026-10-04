@@ -3,7 +3,6 @@ const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
-import { useInventory } from '~/composables/useInventory'
 
 /**
  * Les outils de lecture.
@@ -26,9 +25,6 @@ const playerStore = usePlayerStore()
 
 const emit = defineEmits<{ inventory: [] }>()
 
-const { items } = useInventory()
-/** La rangée tient sur une ligne : au-delà, le compte dit le reste. */
-const shown = computed(() => items.value.slice(-5))
 
 // Le nom de L'AUGMENTATION, pas celui de l'objet-clé de la scène en cours :
 // dès la scène 2, la loupe prenait le nom d'une carte d'accès.
@@ -73,48 +69,15 @@ const lensLabel = computed(() => gameStore.augmentation?.name
       </svg>
     </button>
 
-    <!--
-      Ce que le joueur porte, À VUE. Un pictogramme muet en bout de rangée ne
-      se remarquait pas : on ramassait une carte en scène 2 sans trouver où
-      elle était passée. Les objets eux-mêmes s'alignent donc ici — leur
-      symbole, et pour une carte sa pastille de couleur —, et toute la poignée
-      ouvre la grille où les noms s'écrivent en entier.
-    -->
+    <!-- Un seul bouton : il ouvre la grille où les objets portés sont listés. -->
     <button
-      class="ml-1 flex items-center gap-2 min-w-0 px-2 py-1 -my-0.5 border border-neon-700/40
-             text-steel-400 hover:text-neon-300 hover:border-neon-500/60 transition-colors"
+      class="ml-1 px-2 py-1 -my-0.5 border border-neon-700/40 text-[10px] uppercase tracking-[0.2em]
+             font-display text-neon-400/80 hover:text-neon-300 hover:border-neon-500/60 transition-colors"
       :aria-label="t('game.inventory_all')"
       :title="t('game.inventory_all')"
       @click="emit('inventory')"
     >
-      <span class="text-[10px] uppercase tracking-[0.2em] font-display text-neon-400/80 shrink-0">
-        {{ t('game.inventory') }}
-      </span>
-      <span class="flex items-center gap-1 min-w-0 overflow-hidden">
-        <span
-          v-for="o in shown"
-          :key="o.id"
-          class="relative shrink-0"
-        >
-          <ItemIcon
-            :icon="o.icon"
-            :kind="o.kind"
-            :known="o.known"
-            class="w-4 h-4"
-            :class="o.known ? 'text-neon-300' : 'text-steel-500'"
-          />
-          <span
-            v-if="o.kind === 'key'"
-            class="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border border-ink-900"
-            :style="{ background: o.hex || 'rgb(var(--neon-500))' }"
-            aria-hidden="true"
-          />
-        </span>
-      </span>
-      <span
-        class="text-[10px] font-mono tabular-nums shrink-0"
-        :class="items.length ? 'text-steel-400' : 'text-steel-600'"
-      >{{ items.length }}</span>
+      {{ t('game.inventory') }}
     </button>
   </div>
 </template>
