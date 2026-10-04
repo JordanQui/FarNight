@@ -131,6 +131,22 @@ function colorSeed(parts: Array<string | undefined>): string {
     .replace(/\s+/g, ' ')
 }
 
+const NAMED_HUES: Array<[RegExp, number]> = [
+  [/\b(rouge|red|scarlet|vermeil|crimson)\b/u, 0],
+  [/\b(orange|ambre|amber|coucher de soleil|sunset)\b/u, 0.08],
+  [/\b(jaune|yellow|dore|gold)\b/u, 0.15],
+  [/\b(vert|green|emeraude|emerald)\b/u, 0.35],
+  [/\b(turquoise|cyan)\b/u, 0.48],
+  [/\b(bleu|bleue|blue|azur|azure)\b/u, 0.59],
+  [/\b(violet|purple|mauve|lilas|lilac)\b/u, 0.76],
+  [/\b(rose|pink|magenta|fuchsia)\b/u, 0.9],
+]
+
+/** An explicitly named colour takes precedence over any scene-specific offset. */
+function namedHue(source: string): number | undefined {
+  return NAMED_HUES.find(([pattern]) => pattern.test(source))?.[1]
+}
+
 const turn = (h: number) => ((h % 1) + 1) % 1
 const seededHue = (source: string, role: string, sceneId: string) =>
   hashText(`${role}|${source}|${sceneId}`) / 4294967296
@@ -159,10 +175,9 @@ export interface DeterministicPaletteHexes {
 /**
  * Les trois couleurs calculées depuis le formulaire, sans modèle génératif.
  *
- * Le lieu entre dans la graine : deux régénérations du même lieu sont
- * identiques, tandis que les cartes gagnées dans des lieux différents gardent
- * des couleurs distinctes pour les lecteurs de fin d'acte. Les sources restent
- * exactement celles annoncées dans `script.json`.
+ * Une couleur explicitement nommée garde sa teinte entre les lieux. Sans nom
+ * de couleur, le lieu entre dans la graine : ses régénérations sont identiques
+ * et ses cartes restent distinctes. Les sources suivent `script.json`.
  */
 export function deterministicPaletteHexes(
   user: UserProfile,
@@ -186,11 +201,12 @@ export function deterministicPaletteHexes(
     user.touchstones?.moment || user.touchstones?.animal,
   ]) || identity
 
-  let dominantHue = seededHue(dominantSource, 'dominant', sceneId)
-  let secondaryHue = seededHue(secondarySource, 'secondary', sceneId)
-  // L'accent porte la réponse du formulaire ; le lieu ne fait que la tourner
-  // d'un secteur connu pour que chaque carte reste reconnaissable.
-  const accentHue = turn(seededHue(accentSource, 'accent', 'player') + sceneHueOffset(sceneId))
+  let dominantHue = namedHue(dominantSource) ?? seededHue(dominantSource, 'dominant', sceneId)
+  let secondaryHue = namedHue(secondarySource) ?? seededHue(secondarySource, 'secondary', sceneId)
+  // Une couleur explicitement nommée a un seul sens, quel que soit le lieu.
+  // Sans indice de couleur, le secteur du lieu différencie les cartes.
+  const accentHue = namedHue(accentSource)
+    ?? turn(seededHue(accentSource, 'accent', 'player') + sceneHueOffset(sceneId))
 
   // Une palette hashée peut tomber par hasard trois fois dans la même famille.
   // L'accent reste intact : ce sont les deux teintes de fond que l'on décale.

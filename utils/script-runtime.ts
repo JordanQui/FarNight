@@ -706,7 +706,7 @@ ${this.pack.generation.naming_form}
 
 PALETTE
 ${s.palette_derivation.instruction}
-Le calcul depuis le formulaire est déjà fait pour CE lieu. Ces trois hexadécimaux sont la réponse définitive : recopie-les à l'identique dans le champ palette, sans les éclaircir, les assombrir ni les remplacer. Donne seulement à chacun un nom cohérent dans la langue du joueur et explique sa dérivation dans le champ rationale.
+Le calcul depuis le formulaire est déjà fait pour CE lieu. Ces trois hexadécimaux sont la réponse définitive : recopie-les à l'identique dans le champ palette, sans les éclaircir, les assombrir ni les remplacer. Donne seulement à chacun un nom cohérent dans la langue du joueur et explique sa dérivation dans le champ rationale. Une couleur explicitement nommée dans le dossier est un indice à réponse unique : conserve son nom et sa teinte d’une scène à l’autre, ne la réinterprète pas.
 - dominante : ${exactPalette.dominant}
 - secondaire : ${exactPalette.secondary}
 - accent : ${exactPalette.accent}

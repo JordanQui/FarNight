@@ -6,6 +6,7 @@ import { usePlayerStore } from '~/stores/player'
 import { useNameChime } from '~/composables/useNameChime'
 import { voiceOfName } from '~/utils/voices'
 import { scramble } from '~/utils/glitch'
+import { canChimeName } from '~/utils/name-chime-policy'
 
 const props = defineProps<{ name: string }>()
 
@@ -68,23 +69,23 @@ watch(revealed, (isRevealed, wasRevealed) => {
   if (!isRevealed && wasRevealed) stopChime(props.name)
 })
 
-onUnmounted(() => { if (revealed.value) stopChime(props.name) })
+onUnmounted(() => { stopChime(props.name) })
 
 /** Sur desktop, la souris EST l'instrument — une fois l'oeil ouvert. */
 function onEnter() {
   // Oeil fermé, rien ne se lit : c'est le bouton qui l'ouvre, sur desktop
   // comme sur mobile.
-  if (!gameStore.eyeActive) return
-  // En conversation l'oeil n'est plus à l'écran : il ne lit rien non plus.
-  if (gameStore.eyeHidden) return
-  // Un nom déjà en clair n'a rien à révéler : l'effacement du reste du texte
-  // serait une punition sans contrepartie.
-  if (known.value) return
-  // Avec la loupe en main, on analyse les objets — pas les gens.
-  if (gameStore.activeTool !== 'eye') return
+  if (!canChimeName(gameStore.eyeActive, gameStore.eyeHidden, gameStore.activeTool)) return
+  // Déjà rencontré : il reste lisible sans masquer le récit, mais sa voix
+  // doit toujours répondre au survol.
+  if (known.value) {
+    void startChime(props.name, assigned.value.mode, assigned.value.voice)
+    return
+  }
   gameStore.setRevealing(props.name)
 }
 function onLeave() {
+  if (known.value) stopChime(props.name)
   if (gameStore.revealing === props.name) gameStore.setRevealing(null)
 }
 
