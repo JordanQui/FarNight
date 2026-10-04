@@ -35,6 +35,13 @@ const SCENE_TEXT_TIMEOUT_MS = 240_000
 const SCENE_KEY = 'tg_scene'
 
 /**
+ * DEBUG — coupé pour l'instant : chaque chargement regénère la scène et son
+ * image au lieu de reposer celles gardées par le navigateur. Repasser à `true`
+ * une fois la mise au point finie.
+ */
+const SCENE_CACHE = false
+
+/**
  * La mémoire du navigateur.
  *
  * `localStorage` et non `sessionStorage` : la partie ne dure pas une visite.
@@ -581,7 +588,7 @@ export function useScene() {
     }
 
     // Rechargement de page : la scène est déjà là, on la repose telle quelle.
-    const stored = wantsFresh() ? null : readStoredScene(sceneId, playerStore.language)
+    const stored = !SCENE_CACHE || wantsFresh() ? null : readStoredScene(sceneId, playerStore.language)
     if (stored) {
       scene.value = stored
       // Un rechargement de page repart d'une racine CSS neuve : sans ceci, la
@@ -683,7 +690,7 @@ export function useScene() {
     // Rechargement de page : l'image de CETTE scène est déjà dans le navigateur.
     const stamp = sceneStamp(res)
     gameStore.startSceneImage()
-    const kept = await readSceneImage(stamp, memoryWindowMs)
+    const kept = SCENE_CACHE ? await readSceneImage(stamp, memoryWindowMs) : null
     if (kept) {
       gameStore.setSceneImage(kept)
       gameStore.finishSceneImage()
