@@ -45,6 +45,7 @@ export function usePuzzle() {
       hex: scene.palette?.accent?.hex,
       observation: item.observation,
       icon: item.icon,
+      kind: scene.scene_id === 'a3s1' ? 'trade' : 'key',
     })
     // Le récit brouille ce nom tant que la loupe ne l'a pas ouvert : l'écrire
     // ici ne le livre pas.

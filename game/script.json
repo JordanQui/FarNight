@@ -1194,7 +1194,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "une carte d'accès qu'un personnage détient — un autre sait lequel — et qui mène au dernier lieu",
+      "mechanic": "un objet personnel remis par un détenteur après l'avoir identifié grâce à l'informateur ; il permet d'accéder au dernier lieu et peut être confié au témoin de la scène suivante",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `imprints.refuge` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -1237,7 +1237,7 @@
       ],
       "npcs": {
         "count": 3,
-        "instruction": "TROIS personnages restés ici après tout le monde. LE PREMIER accueille le joueur et dit ce qui se passe ici. Parmi les deux autres, l'un sait comment on atteint le dernier lieu, l'autre en a le moyen. Le premier, dès qu'on lui parle, dit sans détour trois choses : la sortie vers le dernier lieu est fermée, elle ne s'ouvre qu'avec une carte d'accès de la couleur de son lecteur, et quelqu'un ici sait qui la détient. Il ne nomme pas le détenteur ; il désigne celui qui sait.\nDans leur présentation, distingue clairement les trois fonctions utiles : le premier connaît l'état de la sortie et oriente vers la personne qui sait ; la deuxième connaît l'identité de celui qui a la carte ; la troisième est impliquée dans l’accès sans annoncer ce qu’elle possède. Ne révèle PAS dans le texte initial lequel des deux derniers détient la carte : le joueur l'apprend en parlant à l'informateur. Le premier peut désigner l'informateur comme personne à consulter."
+        "instruction": "TROIS personnages restés ici après tout le monde. Le premier accueille le joueur : il explique que la sortie vers le dernier lieu est fermée, qu'il faut d'abord obtenir un objet gardé ici et indique qui sait le trouver. Parmi les deux autres, l'un connaît le détenteur, l'autre porte l'objet. Présente leur utilité pour la quête sans révéler le détenteur avant que l'informateur ne le nomme. Il ne s'agit PAS d'une carte d'accès ni d'un lecteur de couleur : le passage s'ouvre parce que le joueur apporte l'objet attendu, sans énigme de couleur. Le premier dit aussi que cet objet intéressera quelqu'un au dernier lieu, sans promettre qu'il faudra le donner pour accomplir l'opération."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1294,14 +1294,14 @@
       ],
       "key_item": {
         "acquisition": "informant_then_holder",
-        "instruction": "L'OBJET-CLÉ est une CARTE D'ACCÈS. Un rectangle rigide, usé aux angles, dont la tranche est teintée. Sa couleur est celle de l'ACCENT de la palette de cette scène — une couleur que ce lieu porte déjà — et c'est à cette couleur que le joueur la reconnaîtra plus tard : nomme-la par sa couleur, pas par un numéro.\nCe qu'elle ouvre : la sortie de ce lieu, vers le lieu suivant du plan de la nuit. Sans elle, le passage reste fermé, et tout le monde ici le sait.\nSon nom n'est pas lisible à l'oeil nu : il faut l'augmentation pour le déchiffrer. C'est la première chose que le joueur fait avec elle.\n`why` dit ce qu'elle ouvre. `resolving_action` dit l'acte qu'elle rend possible une fois lue. `hook_story` est ce que son détenteur raconte pour la rendre désirable.\n",
+        "instruction": "L'OBJET-CLÉ est un OBJET PERSONNEL tangible, usé, porteur d'une histoire : une chose que son détenteur a conservée parce qu'elle prouve ce qu'il a traversé. Ce n'est JAMAIS une carte d'accès, un code, une fréquence, un laissez-passer, ni un objet défini par sa couleur. Invente-en la forme concrète à partir du lieu et de la quête du joueur. Son nom se déchiffre avec l'augmentation. Le détenteur raconte pourquoi il y tient avant de le céder ; l'informateur permet de découvrir son identité. Cet objet permet de franchir la sortie vers le dernier lieu : le joueur doit l'avoir obtenu dans CETTE scène. Une fois arrivé, il devient un objet [ÉCHANGE] que le témoin de la scène finale désire pour une raison intime. L'échange donne une lecture supplémentaire de la quête et du joueur, jamais la solution de la séquence finale. `why` explique son rapport à la sortie et à la quête, `resolving_action` nomme ce qu'il rend possible, `hook_story` raconte son passé.",
         "exchanges_before_handover": 2,
         "holder_stance": "-me",
         "informant_stance": "-to"
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Obtenir la carte d'accès qui ouvre la sortie vers le dernier lieu : savoir qui la détient, puis la lui demander"
+        "requirement": "Découvrir qui garde l'objet personnel nécessaire pour atteindre le dernier lieu, l'obtenir et franchir la sortie ; le conserver pour le témoin"
       },
       "theme_focus": {
         "facet": "destiny",
@@ -1333,7 +1333,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "la séquence d'opération affichée par l'élément focal — la chose où le but de la nuit s'accomplit",
+      "mechanic": "la séquence d'opération affichée par l'élément focal ; le témoin peut recevoir l'objet trouvé auparavant en échange d'une lecture personnelle de la quête",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `trajectory.turning_points` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -1376,7 +1376,7 @@
       ],
       "npcs": {
         "count": 1,
-        "instruction": "UN SEUL personnage, déjà là quand le joueur arrive. Il n'empêche rien et n'aide pas : il regarde. Ce qu'il dit ramène le joueur à ce qu'il est venu réparer.\nPrésente ce témoin par son rapport à l'opération finale : il sait ce qui changera si le joueur accomplit l'acte, mais ne peut pas l'accomplir à sa place. Explique pourquoi lui parler éclaire la décision, sans lui donner le rôle de bloqueur ou d'agent de la solution."
+        "instruction": "UN SEUL personnage, déjà là quand le joueur arrive. C'est le témoin de l'opération finale : il sait ce qui changera si le joueur agit, sans pouvoir agir à sa place ni révéler l'ordre des gestes. Il reconnaît l'objet personnel obtenu en a3s1 (id EXACT cle_a3s1, marqué [ÉCHANGE] dans l'inventaire) et en laisse comprendre la valeur pour lui. Renseigne OBLIGATOIREMENT son champ `wants` : `item_id` = \"cle_a3s1\" ; `hint` explique par sa posture et son vécu pourquoi il voudrait cet objet sans exiger le don ; `reward` livre, en trois phrases de SA voix, une lecture supplémentaire du but de la nuit, de ce que l'opération réparera ET un petit horoscope personnel. Cette lecture astrologique doit prendre la forme d’un pronostic singulier : elle réunit le but de la quête et ce que le geste final changera pour CE joueur. Cet horoscope est une intuition située, ancrée dans la tension/résolution du SIGNE et la facette destiny des NOMBRES fournis pour CE joueur ; s'ils manquent, n'invente pas de signe ou de nombre. Ne prononce ni signe, ni chiffre, ni les termes astrologie/numérologie dans la fiction : l'horoscope se ressent dans son pronostic singulier, pas dans une étiquette. Il ne donne ni ordre des quatre gestes ni solution de l'énigme. `reward_item` et `reveals_id` sont vides : la contrepartie est uniquement sa parole. L'échange est FACULTATIF pour résoudre la séquence et terminer la nuit ; il approfondit la quête, son objectif et le portrait du joueur, rien de plus. Présente dès le début ce personnage comme celui qui peut lire ce que signifie pour le joueur le geste final, sans le faire passer pour un gardien du dispositif."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1439,7 +1439,7 @@
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Accomplir l'opération, et voir ce que la ville en fait"
+        "requirement": "Accomplir l'opération en remettant les quatre gestes dans l'ordre ; si le joueur le souhaite, échanger l'objet du lieu précédent avec le témoin pour comprendre davantage sa quête et recevoir une lecture personnelle"
       },
       "theme_focus": {
         "facet": "destiny",

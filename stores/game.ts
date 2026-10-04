@@ -658,6 +658,7 @@ export const useGameStore = defineStore('game', {
       item?: {
         id?: string; name: string; from?: string
         color?: string; hex?: string; observation?: string; icon?: string
+        kind?: 'key' | 'trade'
       },
     ) {
       this.hasKeyItem = true
@@ -683,7 +684,7 @@ export const useGameStore = defineStore('game', {
           id: item.id || `cle_${this.inventory.length + 1}`,
           label: item.name,
           from: item.from,
-          kind: 'key',
+          kind: item.kind ?? 'key',
           color: item.color,
           hex: item.hex,
           observation: item.observation,

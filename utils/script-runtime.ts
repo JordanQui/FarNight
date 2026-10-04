@@ -291,6 +291,7 @@ export class SceneRuntime {
   private get keyItemIsCard(): boolean {
     const puzzle = this.scene.key_item?.puzzle
     return this.scene.objective?.kind === 'advance'
+      && this.scene.id !== 'a3s1'
       && puzzle !== 'frequency' && puzzle !== 'code' && puzzle !== 'sequence'
   }
 
@@ -1709,7 +1710,7 @@ ${lines}`)
         // est l'accent de son lieu, on la lui rend.
         color: this.keyItemIsCard
           ? palette.accent.name
-          : generated.key_item?.color?.trim(),
+          : this.scene.id === 'a3s1' ? undefined : generated.key_item?.color?.trim(),
         exchanges_before_handover: this.scene.key_item.exchanges_before_handover,
         // Comment il s'obtient voyage avec la scène : le client doit savoir
         // qu'ici personne ne le tend, et que c'est le déchiffrage qui le donne.
