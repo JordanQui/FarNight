@@ -232,6 +232,9 @@ export function useStorylets() {
     const scene = playerStore.scene
     const looked = scene ? lookedThing(input, scene, oracleState(), playerStore.language) : null
     if (looked) gameStore.recordLook(looked)
+    // Le regard qui livre l'indice : voir `clueRead`.
+    const oracle = moment.play.kind === 'local' && moment.play.say === 'oracle'
+    if (looked && oracle && gameStore.lookedLabels.length >= 2) puzzle.clueRead()
 
     // Le canal '#' inscrit lui-même la commande au fil : il ne passe pas par
     // le monde, il parle au scénario.
