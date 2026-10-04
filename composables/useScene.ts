@@ -432,6 +432,23 @@ export function forgetRun(): void {
 }
 
 /**
+ * Oublie l'aventure, garde le dossier.
+ *
+ * Pour « vider la mémoire » : on rejoue la nuit sans retaper le formulaire. Le
+ * profil vit dans la même entrée que la partie — on la vide, puis on y remet
+ * le dossier seul, sans journal, inventaire ni augmentation.
+ */
+export function forgetAdventure(): void {
+  const profile = rememberedProfile()
+  forgetRun()
+  if (!profile) return
+  storeCarry({
+    journal: [], inventory: [], decrypted: [],
+    augmentation: false, primerSeen: false, profile,
+  })
+}
+
+/**
  * `?fresh=1` demandé dans l'URL.
  *
  * Il vaut dans TOUS les environnements : il jette la scène gardée par le navigateur.

@@ -2,7 +2,7 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdmission, forgetRun, rememberedAdmission, rememberedProfile, storeAdmission } from '~/composables/useScene'
+import { forgetAdventure, forgetRun, rememberedAdmission, rememberedProfile, storeAdmission } from '~/composables/useScene'
 import { sampleAdmissionForm } from '~/utils/admission'
 import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
@@ -168,7 +168,8 @@ function goOutAgain() {
  *
  * Plus radical que « repartir de zéro » : les cookies signés partent aussi —
  * quota, accès payé, verrou, position. Ils sont `httpOnly`, seul le serveur
- * peut les effacer. La langue reste. Même garde que la levée du verrou : le
+ * peut les effacer. La langue reste, le formulaire aussi : ses réponses et le
+ * dossier qui en sort — on vide l'aventure, pas l'admission. Même garde que la levée du verrou : le
  * bouton n'est pas rendu quand `lockOverride` est fermé.
  */
 const canForget = import.meta.dev || useRuntimeConfig().public.lockOverride
@@ -176,8 +177,7 @@ const canForget = import.meta.dev || useRuntimeConfig().public.lockOverride
 async function forgetEverything() {
   if (!window.confirm(t('login.dev_forget') + ' ?')) return
   await $fetch('/api/dev/forget', { method: 'POST' }).catch(() => null)
-  forgetRun()
-  forgetAdmission()
+  forgetAdventure()
   await forgetSceneImage()
   window.location.reload()
 }
