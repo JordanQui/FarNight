@@ -16,11 +16,14 @@ import { isTakeable } from '~/utils/interactables'
  * propre épreuve, et elle se résout SUR L'APPAREIL :
  *
  * - `frequency` : un cadran à régler, la valeur est écrite dans le lieu ;
- * - `code` : quatre chiffres en deux morceaux, et une consigne d'ordre ;
- * - `sequence` : les gestes du dénouement à remettre dans l'ordre ;
- * - `lock` : le lecteur ne prend que la carte d'un lieu déjà traversé ;
- * - `search` : la carte est cachée, et ce que montre chaque endroit innocente
- *   un autre — on déduit avant de fouiller, parce que fouiller coûte la nuit.
+ * - `code` : quatre chiffres, écrits dans le lieu ;
+ * - `sequence` : les gestes du dénouement, leur ordre écrit dans le lieu ;
+ * - `lock` : le lecteur ne prend que la carte du lieu que l'indice nomme ;
+ * - `search` : la carte est cachée, et l'indice dit où.
+ *
+ * Chaque énigme n'a qu'UN indice, qui donne la réponse entière, et il se lit
+ * au DEUXIÈME objet regardé, quel qu'il soit (`utils/scene-oracle.ts`) : on
+ * ne doit ni tourner en rond, ni rester bloqué longtemps.
  *
  * LE MODÈLE N'Y EST POUR RIEN, sauf les libellés de la séquence. La solution et
  * ses indices sont tirés ICI, à l'assemblage, d'une graine propre à la scène :
@@ -101,41 +104,6 @@ function spread(texts: string[], surfaces: Surface[], rand: () => number): Puzzl
   return texts.map((text, i) => ({ on: order[i % order.length]!.label, text }))
 }
 
-/**
- * Un morceau de l'énigme voyage dans la poche du joueur.
- *
- * Dans Zork, on ramassait tout parce que tout pouvait servir dix pièces plus
- * loin. Ici, un indice de CE lieu est posé sur un objet ramassé AVANT —
- * un objet qui éclaire, jamais une carte ni un objet d'échange : le premier
- * n'a rien à voir avec une inscription, le second peut quitter la poche au
- * premier troc, et l'énigme deviendrait insoluble.
- *
- * LE TIRAGE PART DE CE QU'IL PORTE VRAIMENT, et c'est ce qui évite l'impasse
- * des vieux jeux : on ne revient pas en arrière ici, alors l'énigme ne réclame
- * jamais un objet qu'il n'a pas ramassé. Sans objet qui éclaire, l'indice
- * reste dans le lieu, comme avant.
- *
- * Le plus récent est évité quand il y a le choix : c'est la distance qui fait
- * le plaisir du rapprochement.
- */
-function carryOne(
-  clues: PuzzleClue[],
-  carried: CarriedItem[] | undefined,
-  rand: () => number,
-  t: (key: string, vars?: Record<string, string | number>) => string,
-): PuzzleClue[] {
-  const lore = (carried ?? []).filter(c => c.kind === 'lore' && c.label)
-  if (!lore.length || !clues.length) return clues
-  const pool = lore.length > 1 ? lore.slice(0, -1) : lore
-  const holder = pool[Math.floor(rand() * pool.length)]!
-  const at = Math.floor(rand() * clues.length)
-  return clues.map((c, i) => i !== at ? c : {
-    on: holder.label,
-    item_id: holder.id,
-    text: t('carried_mark', { clue: c.text }),
-  })
-}
-
 export interface PuzzleSource {
   scene_id: string
   scene_text: string
@@ -179,44 +147,29 @@ export function drawPuzzle(
     }
   }
 
+  // LES AUTRES SUIVENT LA MÊME RÈGLE (demandée par le user : on ne doit ni
+  // tourner en rond, ni rester bloqué longtemps). Un SEUL indice, qui donne la
+  // réponse entière, et que l'oracle livre au deuxième objet regardé, quel
+  // qu'il soit. Plus de morceaux à recoller, plus d'indice dans la poche.
+
   if (kind === 'code') {
-    // Deux morceaux de deux chiffres, différents, et la seule consigne qui
-    // dise lequel vient d'abord. Chaque morceau seul ne sert à rien.
-    let a = 0
-    let b = 0
-    while (a === b) {
-      a = Math.floor(rand() * 100)
-      b = Math.floor(rand() * 100)
-    }
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const lowFirst = rand() < 0.5
-    const [first, second] = lowFirst ? [Math.min(a, b), Math.max(a, b)] : [Math.max(a, b), Math.min(a, b)]
-    return {
-      kind,
-      solution: `${pad(first)}${pad(second)}`,
-      clues: carryOne(spread([
-        t('code_fragment', { digits: pad(a) }),
-        t('code_fragment', { digits: pad(b) }),
-        t(lowFirst ? 'code_order_low' : 'code_order_high'),
-      ], surfaces, rand), opts.carried, rand, t),
-    }
+    const code = String(Math.floor(rand() * 10000)).padStart(4, '0')
+    return { kind, solution: code, clues: spread([t('code_value', { code })], surfaces, rand) }
   }
 
   if (kind === 'sequence') {
     // Les gestes viennent du modèle — ce sont ceux du dénouement de CE joueur.
-    // L'ordre, lui, se donne par paires : chaque consigne ne lie que deux
-    // gestes voisins, et il faut les trois pour tout remettre en place.
+    // L'indice les recopie dans l'ordre, d'un bout à l'autre.
     const steps = (scene.key_item?.steps ?? []).map(s => s?.trim()).filter((s): s is string => Boolean(s))
     if (steps.length < 3 || steps.length > 5 || new Set(steps.map(fold)).size !== steps.length) return null
     let display = shuffle(steps.map((_, i) => i), rand)
     // Présentée déjà dans l'ordre, elle serait résolue avant d'être lue.
     if (display.every((v, i) => v === i)) display = [...display.slice(1), display[0]!]
-    const clues = steps.slice(1).map((later, i) => t('seq_after', { later, earlier: steps[i]! }))
     return {
       kind,
       steps: display.map(i => steps[i]!),
       solution: steps.map((_, i) => display.indexOf(i)),
-      clues: carryOne(spread(shuffle(clues, rand), surfaces, rand), opts.carried, rand, t),
+      clues: spread([t('seq_order', { steps: steps.join(' → ') })], surfaces, rand),
     }
   }
 
@@ -229,50 +182,34 @@ export function drawPuzzle(
     const cards = (opts.carried ?? [])
       .filter(c => c.kind === 'key' && c.id !== 'cle_auberge' && c.from && c.color)
     if (cards.length < 2) return null
-    // LA RÉPONSE EST UNE CARTE QU'UN LIEU A DÉLIVRÉE. Sa couleur est l'accent
-    // de ce lieu, et c'est ce que l'indice rappelle ; les cartes ramassées en
-    // plus ont une autre couleur, elles sont là pour qu'il faille choisir. Une
-    // couleur portée deux fois ne peut pas être la réponse : l'indice ne
-    // saurait pas laquelle désigner.
+    // LA RÉPONSE EST UNE CARTE QU'UN LIEU A DÉLIVRÉE. Une couleur portée deux
+    // fois ne peut pas être la réponse : l'indice ne saurait laquelle désigner.
     const twice = (c: CarriedItem) => cards.filter(o => fold(o.color!) === fold(c.color!)).length > 1
     const answers = cards.filter(c => c.id.startsWith('cle_') && !twice(c))
     if (!answers.length) return null
     const card = answers[Math.floor(rand() * answers.length)]!
-    const focal = surfaces.find(s => s.id === 'decor:focal') ?? surfaces[0]!
-    // LE LECTEUR DÉCRIT, IL NE NOMME PAS. Ce que le joueur a vu dominer ce
-    // lieu-là, s'il reste au journal ; sinon le nom du lieu, comme avant. Le
-    // rapprochement, c'est à lui de le faire : le jeu ne se souvient pas à sa
-    // place de l'endroit où il a pris quoi.
-    const seen = opts.journal?.find(e => e.place_name === card.from)?.focal
+    // L'indice NOMME le lieu où la carte a été prise : le lecteur affiche ce
+    // lieu à côté de chaque carte, il n'y a plus qu'à les rapprocher.
     return {
       kind,
       card_id: card.id,
       place: card.from!,
-      clues: [{
-        on: focal.label,
-        text: seen ? t('lock_clue_recall', { focal: seen }) : t('lock_clue', { place: card.from! }),
-      }],
+      clues: spread([t('lock_clue', { place: card.from! })], surfaces, rand),
     }
   }
 
   if (kind === 'search') {
-    // Chaque endroit, regardé, en innocente un AUTRE. Aucun ne se désigne
-    // lui-même : il faut en avoir lu plusieurs pour savoir où plonger la main.
+    // L'indice dit où elle est. Fouiller ailleurs coûte toujours la nuit,
+    // mais il suffit d'avoir regardé deux choses pour savoir où plonger la main.
     // Le lointain se regarde mais ne se fouille pas.
     const spots = shuffle(surfaces.filter(s => !s.far), rand).slice(0, 4)
     if (spots.length < 3) return null
     const solution = spots[Math.floor(rand() * spots.length)]!
-    const empty = spots.filter(s => s !== solution)
-    const clues: PuzzleClue[] = empty.map((spot, i) => ({
-      on: spot.label,
-      text: t('search_still', { spot: empty[(i + 1) % empty.length]!.label }),
-    }))
-    clues.push({ on: solution.label, text: t('search_still', { spot: empty[0]!.label }) })
     return {
       kind,
       spots: spots.map(s => ({ id: s.id, label: s.label })),
       solution: solution.id,
-      clues,
+      clues: spread([t('search_here', { spot: solution.label })], surfaces, rand),
     }
   }
 

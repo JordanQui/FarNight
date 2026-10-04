@@ -236,9 +236,10 @@ interface SceneProgress {
   resolved: boolean
   conversationHistory: GameStore['conversationHistory']
   npcThreads: GameStore['npcThreads']
-  /** L'énigme ouverte, et ce qui a déjà été fouillé. */
+  /** L'énigme ouverte, ce qui a déjà été fouillé, et regardé. */
   puzzleUnlocked?: boolean
   searchedSpotIds?: string[]
+  lookedLabels?: string[]
 }
 
 /**
@@ -302,6 +303,7 @@ export function savePlaying(game: GameStore, player: PlayerStore): void {
     npcThreads: game.npcThreads,
     puzzleUnlocked: game.puzzleUnlocked,
     searchedSpotIds: game.searchedSpotIds,
+    lookedLabels: game.lookedLabels,
   }
   try {
     memory()?.setItem(PROGRESS_KEY, JSON.stringify(progress))
@@ -530,6 +532,7 @@ export function useScene() {
     gameStore.npcThreads = progress.npcThreads
     gameStore.puzzleUnlocked = progress.puzzleUnlocked ?? false
     gameStore.searchedSpotIds = progress.searchedSpotIds ?? []
+    gameStore.lookedLabels = progress.lookedLabels ?? []
     return true
   }
 

@@ -5,7 +5,7 @@ import { usePlayerStore } from '~/stores/player'
 import { useNarrative } from '~/composables/useNarrative'
 import { usePaywall } from '~/composables/usePaywall'
 import { useSceneCommands } from '~/composables/useSceneCommands'
-import { resolveLocally, buildGuidance } from '~/utils/scene-oracle'
+import { resolveLocally, buildGuidance, lookedThing } from '~/utils/scene-oracle'
 import { translate } from '~/utils/languages'
 import { takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
@@ -58,6 +58,7 @@ export function useStorylets() {
       // dans la salle que tant qu'il ne l'a pas ramassé.
       carriedIds: gameStore.inventory.map(o => o.id),
       revealedIds: gameStore.revealedInteractableIds,
+      lookedLabels: gameStore.lookedLabels,
     }
   }
 
@@ -226,6 +227,11 @@ export function useStorylets() {
   async function play(input: string): Promise<void> {
     const q = snapshot(input)
     const moment = draw(q)
+    // Noté APRÈS l'instantané : le regard qui compte pour la fréquence est le
+    // deuxième, celui-ci ne se compte pas lui-même.
+    const scene = playerStore.scene
+    const looked = scene ? lookedThing(input, scene, oracleState(), playerStore.language) : null
+    if (looked) gameStore.recordLook(looked)
 
     // Le canal '#' inscrit lui-même la commande au fil : il ne passe pas par
     // le monde, il parle au scénario.

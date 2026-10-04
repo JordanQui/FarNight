@@ -175,8 +175,8 @@ const known = (id: string) => gameStore.decryptedObjectIds.includes(id)
           >
             <ItemIcon :icon="card.icon" kind="key" :known="known(card.id)" class="w-5 h-5 shrink-0 text-steel-300" />
             <span class="flex-1 min-w-0 truncate text-sm text-ink-200">{{ known(card.id) ? card.label : t('game.sealed_object') }}</span>
-            <!-- Scellée, elle n'a plus que son lieu pour la distinguer de l'autre. -->
-            <span v-if="!known(card.id) && card.from" class="shrink-0 text-[10px] text-steel-400 truncate max-w-[40%]">{{ card.from }}</span>
+            <!-- Toujours son lieu : l'indice du lecteur nomme le lieu, il suffit de rapprocher. -->
+            <span v-if="card.from" class="shrink-0 text-[10px] text-steel-400 truncate max-w-[40%]">{{ card.from }}</span>
           </button>
         </div>
       </div>

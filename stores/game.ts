@@ -283,6 +283,8 @@ export const useGameStore = defineStore('game', {
     puzzleOpen: false,
     /** Les endroits déjà fouillés : on ne paie pas deux fois le même. */
     searchedSpotIds: [] as string[],
+    /** Les choses déjà regardées ici : la fréquence se lit au deuxième regard. */
+    lookedLabels: [] as string[],
   }),
 
   getters: {
@@ -432,6 +434,10 @@ export const useGameStore = defineStore('game', {
 
     recordSearch(spotId: string) {
       if (!this.searchedSpotIds.includes(spotId)) this.searchedSpotIds.push(spotId)
+    },
+
+    recordLook(label: string) {
+      if (!this.lookedLabels.includes(label)) this.lookedLabels.push(label)
     },
 
     recordModelTurn() {
@@ -763,6 +769,7 @@ export const useGameStore = defineStore('game', {
       this.puzzleUnlocked = false
       this.puzzleOpen = false
       this.searchedSpotIds = []
+      this.lookedLabels = []
     },
 
     resetGame() {
@@ -813,6 +820,7 @@ export const useGameStore = defineStore('game', {
       this.puzzleUnlocked = false
       this.puzzleOpen = false
       this.searchedSpotIds = []
+      this.lookedLabels = []
     },
   },
 })

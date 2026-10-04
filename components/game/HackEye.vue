@@ -38,12 +38,28 @@ async function confirmPrimer() {
   await enable()
 }
 
-// Nouvelle scène, même page : l'oeil ouvert dans la précédente le reste. Le
-// bouton est tu pendant ce temps, sinon il clignote le temps de la permission.
-const reopening = ref(gameStore.eyeWasOpen)
-onMounted(async () => {
-  if (reopening.value) await enable({ auto: true })
+/**
+ * Le bouton n'existe qu'à l'auberge, première scène : c'est là qu'on apprend ce
+ * qu'est l'oeil. Ensuite il est ouvert d'office à l'arrivée sur la page —
+ * changement de scène comme rechargement.
+ */
+const firstSceneId = (useRuntimeConfig().public.sceneIndex as Array<{ id: string }>)?.[0]?.id
+const isFirstScene = computed(() => !playerStore.scene || playerStore.scene.scene_id === firstSceneId)
+
+// Le bouton est tu pendant l'ouverture, sinon il clignote le temps de la
+// permission. S'il revient hors de l'auberge, c'est que l'ouverture sans geste
+// a échoué (iOS après un rechargement) : il reste alors le seul moyen d'ouvrir.
+const reopening = ref(!isFirstScene.value || gameStore.eyeWasOpen)
+async function autoOpen() {
+  reopening.value = true
+  if (!enabled.value) await enable({ auto: true })
   reopening.value = false
+}
+onMounted(() => {
+  if (reopening.value) void autoOpen()
+})
+watch(isFirstScene, (first) => {
+  if (!first) void autoOpen()
 })
 
 const style = computed(() => ({

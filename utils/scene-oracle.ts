@@ -26,6 +26,8 @@ export interface OracleState {
   carriedIds: string[]
   /** Ce qu'un échange a fait apparaître : avant ça, l'élément n'existe pas. */
   revealedIds: string[]
+  /** Les choses déjà regardées dans ce lieu, par leur nom. */
+  lookedLabels?: string[]
 }
 
 export interface LocalAnswer {
@@ -54,6 +56,23 @@ function namedIn(input: string, name: string, lang: LangCode): boolean {
     .filter(w => significant(w, 3) && !stopwords.includes(w))
   if (!words.length) return false
   return words.some(w => input.includes(w))
+}
+
+/**
+ * La chose que cette saisie regarde, s'il y en a une : un élément du décor ou
+ * un objet que le récit nomme. Null sans verbe de regard.
+ */
+export function lookedThing(
+  input: string,
+  scene: SceneTextResponse,
+  state: Pick<OracleState, 'revealedIds'>,
+  lang: LangCode = DEFAULT_LANG,
+): string | null {
+  const text = normalize(input)
+  if (!containsAny(text, pack(lang).input.look)) return null
+  return scene.decor.find(dec => dec.name && namedIn(text, dec.name, lang))?.name
+    ?? visible(scene.interactables, state.revealedIds).find(o => o.label && namedIn(text, o.label, lang))?.label
+    ?? null
 }
 
 /**
@@ -144,16 +163,14 @@ export function resolveLocally(
   // Observation d'un élément de décor : sa description est déjà écrite.
   if (containsAny(text, look)) {
     const element = scene.decor.find(dec => dec.name && namedIn(text, dec.name, lang))
-    // LES INDICES DE L'ÉNIGME SE LISENT ICI : posés sur une chose que le récit
-    // nomme, ils viennent avec sa description quand on la regarde. Sur le
-    // décor ou sur une chose qu'on examine sans la prendre — le premier nom
-    // reconnu décide, pour ne pas mêler les indices de deux endroits.
-    // Ceux que porte un objet de l'inventaire ne se lisent pas ici : ils se
-    // lisent en l'observant, une fois son nom déchiffré.
-    const clues = (scene.puzzle?.clues ?? []).filter(c => !c.item_id)
-    const on = element?.name
-      ?? clues.find(c => namedIn(text, c.on, lang))?.on
-    const here = on ? clues.filter(c => c.on === on).map(c => c.text) : []
+    // L'INDICE DE L'ÉNIGME SE LIT AU DEUXIÈME OBJET REGARDÉ, quel qu'il soit.
+    // Il n'est caché sur rien : le premier regard montre le lieu, le second
+    // donne la réponse, et les suivants la redonnent. On ne doit ni tourner en
+    // rond ni rester bloqué — demandé ainsi par le user.
+    const thing = lookedThing(input, scene, state, lang)
+    const second = Boolean(scene.puzzle) && Boolean(thing) && !state.hasKeyItem
+      && (state.lookedLabels ?? []).some(l => l !== thing)
+    const here = second ? scene.puzzle!.clues.map(c => c.text) : []
     if (element?.description || here.length) {
       return { text: [element?.description, ...here].filter(Boolean).join('\n\n'), kind: 'decor' }
     }

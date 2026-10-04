@@ -790,7 +790,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "une fréquence affichée par l'élément focal, que personne ne détient, et qui donne la direction de la suite",
+      "mechanic": "une fréquence à régler sur un PANNEAU — le cadran d'un récepteur du lieu, qui s'ouvre quand le joueur a déchiffré le nom de la fréquence. POURQUOI : le lieu suivant n'est sur aucun plan, il ne se trouve qu'en captant ce qu'il émet ; réglé sur la bonne fréquence, le récepteur donne sa direction. La fréquence est écrite quelque part dans ce lieu, personne ne la détient",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `trajectory.turning_points` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -891,13 +891,13 @@
       ],
       "key_item": {
         "acquisition": "found",
-        "instruction": "L'OBJET-CLÉ n'est PAS une carte : c'est une FRÉQUENCE, une suite que l'élément focal du lieu affiche et que personne ne peut retenir à l'oeil nu. Le joueur la lit avec son augmentation, et c'est tout ce qu'il emporte.\nElle ne s'obtient d'aucun personnage : elle est SUR L'ÉLÉMENT FOCAL, dans le décor. `npc_id` doit valoir la chaîne \"trouve\".\nElle ne dit pas quoi faire. Elle dit OÙ : la direction du lieu suivant du plan, et rien d'autre. Sa formulation reprend la tension du SIGNE du joueur, sans jamais la nommer.\n`resolving_action` est l'acte que cette fréquence rendra possible plus loin.\nLA VALEUR N'EST PAS À TOI : le jeu la tire, et pose lui-même ses indices sur les choses du lieu. N'écris AUCUN nombre, ni dans le texte ni dans les champs : l'élément focal affiche une fréquence brouillée, c'est tout.\n",
+        "instruction": "L'OBJET-CLÉ n'est PAS une carte : c'est une FRÉQUENCE, celle sur laquelle il faut régler UN RÉCEPTEUR du lieu, un appareil qui grésille dans le vide tant qu'il n'est pas réglé. Sa forme vient du lieu : poste radio, terminal d'écoute, borne de relais, haut-parleur de quai. Il se règle sur un PANNEAU, son cadran, que le jeu ouvre lui-même.\nLE TEXTE DOIT LE DIRE EN CLAIR, en une ou deux phrases, comme un jeu d'aventure des années 80 : ce qu'est le récepteur, qu'il se règle sur une fréquence, et POURQUOI le régler — le lieu suivant n'est sur aucun plan, il ne se trouve qu'en captant ce qu'il émet, et le récepteur réglé en donnera la direction. Le joueur doit savoir, en lisant, sur quoi il agit et ce que ça lui rapportera.\nElle ne s'obtient d'aucun personnage : `npc_id` doit valoir la chaîne \"trouve\". Son nom est celui de la fréquence, illisible à l'oeil nu : il faut l'augmentation pour le déchiffrer, et le déchiffrer ouvre le cadran du récepteur.\nUne fois réglé, le récepteur dit OÙ : la direction du lieu suivant du plan, et rien d'autre. Sa formulation reprend la tension du SIGNE du joueur, sans jamais la nommer.\n`resolving_action` est l'acte que cette fréquence rendra possible plus loin.\nLA VALEUR N'EST PAS À TOI : le jeu la tire et l'écrit lui-même dans le lieu. N'écris AUCUN nombre, ni dans le texte ni dans les champs.\n",
         "exchanges_before_handover": 2,
         "puzzle": "frequency"
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Lire la fréquence sur l'élément focal et prendre la direction qu'elle donne"
+        "requirement": "Régler le récepteur sur la bonne fréquence et prendre la direction qu'il donne"
       },
       "theme_focus": {
         "facet": "terrain",
