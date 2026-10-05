@@ -925,7 +925,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "un objet personnel resté dans ce lieu, à retrouver pour franchir la sortie, puis susceptible d’être confié à quelqu'un au lieu suivant",
+      "mechanic": "un objet personnel lié au formulaire d'admission, détenu par un personnage qui le remet au terme d'une conversation, puis susceptible d’être confié à quelqu'un au lieu suivant",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `touchstones.fear_film` dans le profil — de sa manière de faire peur, jamais du film : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -968,7 +968,7 @@
       ],
       "npcs": {
         "count": 2,
-        "instruction": "DEUX personnages liés à ce lieu. L'un comprend pourquoi le passage vers le lieu suivant exige la trace personnelle restée ici ; l'autre connaît l'histoire de la personne qui l'a perdue. Présente chacun par sa fonction dans cette recherche : leurs paroles indiquent pourquoi le joueur doit chercher cet objet pour avancer vers son but, et pourquoi quelqu'un au prochain lieu pourrait le réclamer. Ils ne le détiennent pas, ne le donnent pas et ne révèlent pas son emplacement exact."
+        "instruction": "DEUX personnages liés à ce lieu. L'un détient l'objet personnel recherché : il l'a retrouvé ici et ne le remet qu'au terme d'une vraie conversation avec le joueur. L'autre connaît l'histoire de la personne qui l'a perdu et explique pourquoi cet objet permettra de franchir le passage. Présente clairement leurs fonctions sans révéler d'emblée lequel détient l'objet. Le détenteur ne demande aucun paiement ni autre objet : après le nombre d'échanges prévu, sa dernière réplique nomme l'objet et le tend au joueur."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1025,13 +1025,14 @@
         }
       ],
       "key_item": {
-        "acquisition": "found",
-        "instruction": "L'OBJET-CLÉ est un OBJET PERSONNEL tangible, usé, chargé de l'histoire de son ancien propriétaire. Ce n'est JAMAIS une carte d'accès, une couleur, un code ou une fréquence. Il est RESTÉ dans le décor de ce lieu : l'élément focal le porte ou le laisse apercevoir, sans personnage qui le détient. `npc_id` vaut exactement \"trouve\". Nomme cet objet en Majuscules de Titre tel quel dans `scene_text` sur l'élément focal : le joueur doit pouvoir le repérer, le regarder et déchiffrer son nom à la loupe pour le prendre. L'observation révèle son histoire, sans inventer une carte cachée ni une fouille à résoudre. La sortie ne s'ouvre qu'après l'avoir pris : c'est une preuve concrète du passage de quelqu'un ici et un lien avec la personne du lieu suivant qui sait ce que cette preuve signifie pour le but du joueur. Explique clairement dans le texte pourquoi il faut le chercher : le passage est fermé sans cette trace et l'étape suivante exige de comprendre ce qu'elle représente. Suggère dans le texte, sans désigner de PNJ du lieu suivant ni ordonner un don, qu'une personne là-bas reconnaîtra l'objet. `why` précise le lien entre cet objet, la sortie et le but ; `resolving_action` nomme le passage rendu possible ; `hook_story` raconte son histoire. Ne donne ni solution du lecteur de la scène suivante, ni couleur de sa carte.",
-        "exchanges_before_handover": 2
+        "acquisition": "holder",
+        "instruction": "L'OBJET-CLÉ est un OBJET PERSONNEL tangible, usé, chargé de l'histoire de son ancien propriétaire. Ce n'est JAMAIS une carte d'accès, une couleur, un code ou une fréquence. Sa nature et son histoire sont PERSONNALISÉES à partir du formulaire d'admission et du profil fournis : deux joueurs ne doivent pas recevoir le même objet générique. Un des personnages l'a retrouvé dans ce lieu et le détient ; `npc_id` désigne exactement ce personnage. Il ne le remet qu'au TERME D'UNE CONVERSATION, après `exchanges_before_handover` échanges. Dans la dernière réplique, le détenteur nomme l'objet, explique brièvement pourquoi il compte et le tend au joueur. Le joueur le récupère alors par le geste de collecte et il rejoint son inventaire. L'autre personnage peut éclairer son histoire, mais ne le donne pas. La sortie ne s'ouvre qu'après cette remise : l'objet est une preuve concrète du passage de quelqu'un ici et un lien avec la personne du lieu suivant qui sait ce que cette preuve signifie pour le but du joueur. Suggère, sans désigner de PNJ du lieu suivant ni ordonner un don, qu'une personne là-bas le reconnaîtra. `why` précise le lien entre cet objet, la sortie et le but ; `resolving_action` nomme le passage rendu possible ; `hook_story` raconte son histoire. Ne donne ni solution du lecteur de la scène suivante, ni couleur de sa carte.",
+        "exchanges_before_handover": 2,
+        "holder_stance": "-ru"
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Repérer l'objet personnel resté dans le décor, comprendre pourquoi il permettra de franchir le passage, le prendre et l'emporter vers la personne qui le reconnaîtra au lieu suivant"
+        "requirement": "Identifier le personnage qui détient l'objet personnel lié au dossier du joueur, aller au terme de la conversation, accepter l'objet et l'emporter vers la personne qui le reconnaîtra au lieu suivant"
       },
       "theme_focus": {
         "facet": "reception",
