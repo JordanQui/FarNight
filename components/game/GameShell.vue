@@ -186,7 +186,7 @@ function retryImage() {
 <template>
   <div
     class="flex flex-col h-[100dvh] bg-ink-900 tool-cursor"
-    :class="gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive && !gameStore.eyeHidden && 'cursor-eye'"
+    :class="gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive && 'cursor-eye'"
   >
     <!--
       L'outil en main EST le curseur, sur toute la surface de jeu.

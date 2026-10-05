@@ -84,7 +84,7 @@ function address() {
 
 /** Sur desktop, la souris EST l'instrument — une fois l'oeil ouvert. */
 function onEnter() {
-  const canRead = canChimeName(gameStore.eyeActive, gameStore.eyeHidden, gameStore.activeTool)
+  const canRead = canChimeName(gameStore.eyeActive, gameStore.activeTool)
   // Déjà rencontré : il reste lisible sans masquer le récit, mais sa voix
   // doit toujours répondre au survol. Écrit en clair, il s'aborde sans l'oeil.
   if (known.value) {
@@ -111,7 +111,6 @@ function onLeave() {
  */
 function onTouch() {
   if (known.value) return
-  if (gameStore.eyeHidden) return
   if (!gameStore.eyeActive) gameStore.denyRead()
 }
 </script>
@@ -132,7 +131,7 @@ function onTouch() {
       known
         ? 'is-known'
         : gameStore.activeTool === 'lens' ? 'cursor-lens'
-          : gameStore.eyeActive && !gameStore.eyeHidden ? (revealed ? 'cursor-eye-open' : 'cursor-eye') : null,
+          : gameStore.eyeActive ? (revealed ? 'cursor-eye-open' : 'cursor-eye') : null,
       revealed && 'is-revealed',
     ]"
     :data-glitch-name="known ? undefined : name"

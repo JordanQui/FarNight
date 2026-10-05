@@ -110,7 +110,7 @@ function onActivate() {
     class="glitch-object"
     :class="[
       decrypted ? 'is-clear' : 'is-sealed',
-      !decrypted && gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive && !gameStore.eyeHidden ? 'cursor-eye' : null,
+      !decrypted && gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive ? 'cursor-eye' : null,
     ]"
     :tabindex="decrypted ? -1 : 0"
     :role="decrypted ? undefined : 'button'"

@@ -1142,12 +1142,15 @@ ${lines}`)
    * décor contient déjà des choses nommées et décrites ; on transforme la
    * `trace` en priorité en objet analysable. Son nom est donc déjà dans le
    * récit, et sa description devient son observation.
+   *
+   * Toute autre scène en exige un, et le modèle l'oublie de la même façon :
+   * il fait tout passer par les gens, la reprise aussi, et l'aventure tombait
+   * en 502 au lancement. Le même geste le reconstruit.
    */
   ensurePuzzleObjects(generated: GeneratedScene): void {
-    const kind = this.scene.key_item.puzzle
     // La fréquence (a1s2) est revenue à sa forme du 2026-10-03 : elle ne
     // demande plus deux objets. Seul le code garde cette exigence.
-    if (kind !== 'code') return
+    const needed = this.scene.key_item.puzzle === 'code' ? 2 : 1
 
     const objects = [...(generated.interactables ?? [])]
     const written = fold(generated.scene_text ?? '')
@@ -1163,7 +1166,7 @@ ${lines}`)
       const ids = new Set(candidates.map(o => o.id.trim()).filter(Boolean))
       return Math.min(labels.size, ids.size)
     }
-    if (count() >= 2) return
+    if (count() >= needed) return
 
     const rank = (slot: string) => slot === 'trace' ? 0
       : slot === 'focal' ? 3
@@ -1175,7 +1178,7 @@ ${lines}`)
     const takeVerb = this.pack.input.take[0]
     if (!takeVerb) return
 
-    while (count() < 2) {
+    while (count() < needed) {
       const labels = new Set(usable().map(o => fold(o.label).trim()))
       const source = decor.find(d => {
         const label = fold(d.name).trim()
@@ -1209,7 +1212,7 @@ ${lines}`)
       }
       // Ne reprend jamais deux fois la même source pendant cette boucle.
       decor.splice(decor.indexOf(source), 1)
-      console.warn(`[scene/${this.scene.id}] second objet d'énigme reconstruit depuis ${source.name}`)
+      console.warn(`[scene/${this.scene.id}] objet à ramasser reconstruit depuis ${source.name}`)
     }
 
     generated.interactables = objects

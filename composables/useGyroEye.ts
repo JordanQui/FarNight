@@ -312,8 +312,7 @@ export function useGyroEye() {
     } else {
       dwellOn = null
       dwellSpent = false
-      // En conversation l'oeil est masqué : il ne lit rien qu'on ne voie viser.
-      const name = gameStore.eyeHidden ? null : node?.dataset.glitchName ?? null
+      const name = node?.dataset.glitchName ?? null
       if (name !== gameStore.revealing) {
         // Quitter un nom qu'on a vraiment lu arme la saisie vers lui, comme le
         // survol à la souris. Un nom traversé d'un tremblement ne compte pas :

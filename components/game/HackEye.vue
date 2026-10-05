@@ -80,7 +80,7 @@ const style = computed(() => ({
          que la permission d'iOS exige. La flèche le désigne tant que l'oeil
          reste fermé, et part avec lui. -->
     <div
-      v-if="!enabled && !reopening && !gameStore.eyeHidden"
+      v-if="!enabled && !reopening"
       class="fixed top-3 left-3 z-40 flex items-center gap-2"
     >
       <button
@@ -106,7 +106,7 @@ const style = computed(() => ({
 
     <!-- Actif, au tactile : l'oeil suit l'inclinaison de l'appareil. -->
     <div
-      v-else-if="enabled && usesTouch && (gameStore.activeTool === 'lens' || !gameStore.eyeHidden)"
+      v-else-if="enabled && usesTouch"
       class="eye pointer-events-none fixed z-40"
       :class="gameStore.revealing && 'is-locked-on'"
       :style="style"
