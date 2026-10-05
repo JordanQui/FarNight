@@ -205,6 +205,26 @@
       "zoek in",
       "voelen in",
       "voel in"
+    ],
+    "question": [
+      "waarom",
+      "hoe",
+      "wat",
+      "waar",
+      "wanneer",
+      "wie",
+      "welke",
+      "welk",
+      "weet je",
+      "ken je",
+      "kun je",
+      "kan je",
+      "heb je",
+      "ben je",
+      "is er",
+      "vertel",
+      "zeg me",
+      "leg uit"
     ]
   },
   "ui": {
@@ -478,7 +498,8 @@
     "errors.image_gen": "Fout bij het genereren van de afbeelding",
     "errors.payment_form": "Betaalformulier niet geïnitialiseerd",
     "errors.tokenize": "Fout bij tokenisatie",
-    "errors.payment_refused": "Betaling geweigerd"
+    "errors.payment_refused": "Betaling geweigerd",
+    "npc.no_question": "{{name}} reageert niet: je woorden glijden weg als regen langs een ruit. Hier krijgt alleen wie vraagt een antwoord — stel een vraag."
   },
   "script": {
     "error_fallbacks": {

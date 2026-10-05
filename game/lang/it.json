@@ -248,6 +248,30 @@
       "cercare in",
       "cerco in",
       "cerca in"
+    ],
+    "question": [
+      "perche",
+      "come",
+      "quanto",
+      "quanta",
+      "quanti",
+      "quante",
+      "quando",
+      "dove",
+      "chi",
+      "quale",
+      "quali",
+      "cosa",
+      "che cosa",
+      "sai",
+      "conosci",
+      "puoi",
+      "hai",
+      "sei",
+      "dimmi",
+      "raccontami",
+      "spiegami",
+      "parlami"
     ]
   },
   "ui": {
@@ -521,7 +545,8 @@
     "errors.image_gen": "Errore nella generazione dell'immagine",
     "errors.payment_form": "Modulo di pagamento non inizializzato",
     "errors.tokenize": "Errore di tokenizzazione",
-    "errors.payment_refused": "Pagamento rifiutato"
+    "errors.payment_refused": "Pagamento rifiutato",
+    "npc.no_question": "{{name}} non reagisce: le tue parole scivolano via come pioggia su un vetro. Qui si risponde solo a chi chiede — fai una domanda."
   },
   "script": {
     "error_fallbacks": {

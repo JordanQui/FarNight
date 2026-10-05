@@ -208,6 +208,27 @@
       "szukac w",
       "szukam w",
       "szukaj w"
+    ],
+    "question": [
+      "dlaczego",
+      "czemu",
+      "jak",
+      "co",
+      "gdzie",
+      "kiedy",
+      "kto",
+      "kogo",
+      "komu",
+      "który",
+      "która",
+      "które",
+      "czy",
+      "ile",
+      "skąd",
+      "dokąd",
+      "powiedz",
+      "opowiedz",
+      "wyjaśnij"
     ]
   },
   "ui": {
@@ -481,7 +502,8 @@
     "errors.image_gen": "Błąd generowania obrazu",
     "errors.payment_form": "Formularz płatności nie został zainicjowany",
     "errors.tokenize": "Błąd tokenizacji",
-    "errors.payment_refused": "Płatność odrzucona"
+    "errors.payment_refused": "Płatność odrzucona",
+    "npc.no_question": "{{name}} nie reaguje: twoje słowa spływają jak deszcz po szybie. Tu odpowiada się tylko tym, którzy pytają — zadaj pytanie."
   },
   "script": {
     "error_fallbacks": {

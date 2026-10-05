@@ -241,6 +241,30 @@
       "buscar en",
       "busco en",
       "busca en"
+    ],
+    "question": [
+      "por que",
+      "como",
+      "cuanto",
+      "cuanta",
+      "cuantos",
+      "cuantas",
+      "donde",
+      "adonde",
+      "cuando",
+      "quien",
+      "quienes",
+      "cual",
+      "cuales",
+      "sabes",
+      "conoces",
+      "puedes",
+      "tienes",
+      "eres",
+      "dime",
+      "cuentame",
+      "explicame",
+      "hablame"
     ]
   },
   "ui": {
@@ -514,7 +538,8 @@
     "errors.image_gen": "Error al generar la imagen",
     "errors.payment_form": "Formulario de pago no inicializado",
     "errors.tokenize": "Error de tokenización",
-    "errors.payment_refused": "Pago rechazado"
+    "errors.payment_refused": "Pago rechazado",
+    "npc.no_question": "{{name}} no reacciona: tus palabras resbalan como la lluvia sobre un cristal. Aquí solo se responde a quien pregunta: haz una pregunta."
   },
   "script": {
     "error_fallbacks": {

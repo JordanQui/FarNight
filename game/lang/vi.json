@@ -181,6 +181,26 @@
       "mở ra",
       "tìm trong",
       "sờ vào trong"
+    ],
+    "question": [
+      "tại sao",
+      "vì sao",
+      "sao",
+      "thế nào",
+      "như thế nào",
+      "gì",
+      "ở đâu",
+      "đâu",
+      "khi nào",
+      "bao giờ",
+      "ai",
+      "bao nhiêu",
+      "nào",
+      "có phải",
+      "kể cho",
+      "hãy kể",
+      "cho tôi biết",
+      "giải thích"
     ]
   },
   "ui": {
@@ -454,7 +474,8 @@
     "errors.image_gen": "Lỗi tạo hình ảnh",
     "errors.payment_form": "Biểu mẫu thanh toán chưa được khởi tạo",
     "errors.tokenize": "Lỗi mã hóa thẻ",
-    "errors.payment_refused": "Thanh toán bị từ chối"
+    "errors.payment_refused": "Thanh toán bị từ chối",
+    "npc.no_question": "{{name}} không đáp lại: lời bạn trôi đi như mưa trên ô kính. Ở đây, chỉ người hỏi mới được trả lời — hãy đặt một câu hỏi."
   },
   "script": {
     "error_fallbacks": {

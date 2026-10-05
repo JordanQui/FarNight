@@ -79,3 +79,18 @@ export function matchesKeyword(input: string, keywords: string[]): boolean {
       || haystack.includes(` ${needle}?`)
   })
 }
+
+/**
+ * La saisie est-elle une question ?
+ *
+ * Le point d'interrogation suffit, dans toutes ses graphies — l'espagnol
+ * l'ouvre, l'arabe le retourne, et la pleine chasse japonaise est déjà ramenée
+ * à « ? » par `normalize`. Sans lui, un mot interrogatif du pack de langue :
+ * sur un téléphone, « pourquoi tu restes là » se tape sans ponctuation, et
+ * c'est bien une question. Le trait d'union tombe avant : « sais-tu » doit
+ * se lire comme « sais tu ».
+ */
+export function isQuestion(input: string, words: string[]): boolean {
+  if (/[?¿؟？]/.test(input)) return true
+  return matchesKeyword(input.replace(/[-‐]/g, ' '), words)
+}

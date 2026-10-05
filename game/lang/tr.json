@@ -202,6 +202,32 @@
       "acmak",
       "iceriye bak",
       "icini ara"
+    ],
+    "question": [
+      "neden",
+      "niye",
+      "niçin",
+      "nasıl",
+      "ne",
+      "nerede",
+      "nereye",
+      "nereden",
+      "ne zaman",
+      "kim",
+      "kimin",
+      "hangi",
+      "kaç",
+      "mı",
+      "mi",
+      "mu",
+      "mü",
+      "mısın",
+      "misin",
+      "musun",
+      "müsün",
+      "anlat",
+      "söyle",
+      "açıkla"
     ]
   },
   "ui": {
@@ -475,7 +501,8 @@
     "errors.image_gen": "Görüntü oluşturma hatası",
     "errors.payment_form": "Ödeme formu başlatılamadı",
     "errors.tokenize": "Belirteç oluşturma hatası",
-    "errors.payment_refused": "Ödeme reddedildi"
+    "errors.payment_refused": "Ödeme reddedildi",
+    "npc.no_question": "{{name}} tepki vermiyor: sözlerin camdaki yağmur gibi akıp gidiyor. Burada yalnızca soran cevap alır — bir soru sor."
   },
   "script": {
     "error_fallbacks": {

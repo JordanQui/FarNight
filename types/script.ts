@@ -125,6 +125,8 @@ export interface TurnRules {
    * Interpole `{{npc_beyond}}` ; ignorée pour un PNJ sans `beyond`.
    */
   beyond_rule?: string
+  /** Un personnage ne répond qu'à une question — voir `questions_only_note`. */
+  questions_only?: boolean
   /** Échanges avec un personnage avant qu'il livre ce qu'il sait. */
   exchanges_before_steer?: number
   /** Ce que dit l'informateur tant qu'il jauge encore le joueur. */

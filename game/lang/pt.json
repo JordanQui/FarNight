@@ -236,6 +236,31 @@
       "procurar em",
       "procuro em",
       "procura em"
+    ],
+    "question": [
+      "por que",
+      "como",
+      "quanto",
+      "quanta",
+      "quantos",
+      "quantas",
+      "quando",
+      "onde",
+      "quem",
+      "qual",
+      "quais",
+      "o que",
+      "sabe",
+      "conhece",
+      "pode",
+      "voce tem",
+      "voce e",
+      "me diga",
+      "diga me",
+      "me conta",
+      "conta me",
+      "me fala",
+      "explica"
     ]
   },
   "ui": {
@@ -509,7 +534,8 @@
     "errors.image_gen": "Erro ao gerar a imagem",
     "errors.payment_form": "Formulário de pagamento não inicializado",
     "errors.tokenize": "Erro de tokenização",
-    "errors.payment_refused": "Pagamento recusado"
+    "errors.payment_refused": "Pagamento recusado",
+    "npc.no_question": "{{name}} não reage: suas palavras escorrem como chuva numa vidraça. Aqui, só quem pergunta recebe resposta — faça uma pergunta."
   },
   "script": {
     "error_fallbacks": {

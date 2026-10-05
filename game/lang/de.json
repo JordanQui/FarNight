@@ -227,6 +227,35 @@
       "suchen in",
       "suche in",
       "greife in"
+    ],
+    "question": [
+      "warum",
+      "wieso",
+      "weshalb",
+      "wie",
+      "was",
+      "wo",
+      "woher",
+      "wohin",
+      "wann",
+      "wer",
+      "wen",
+      "wem",
+      "wessen",
+      "welche",
+      "welcher",
+      "welches",
+      "weißt du",
+      "weisst du",
+      "kennst du",
+      "kannst du",
+      "hast du",
+      "bist du",
+      "gibt es",
+      "erzähl",
+      "erzähle",
+      "sag mir",
+      "erklär"
     ]
   },
   "ui": {
@@ -500,7 +529,8 @@
     "errors.image_gen": "Fehler bei der Bilderzeugung",
     "errors.payment_form": "Zahlungsformular nicht initialisiert",
     "errors.tokenize": "Fehler bei der Tokenisierung",
-    "errors.payment_refused": "Zahlung abgelehnt"
+    "errors.payment_refused": "Zahlung abgelehnt",
+    "npc.no_question": "{{name}} reagiert nicht: deine Worte perlen ab wie Regen an einer Scheibe. Hier bekommt nur eine Antwort, wer fragt — stell eine Frage."
   },
   "script": {
     "error_fallbacks": {

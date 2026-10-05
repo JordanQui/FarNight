@@ -193,6 +193,26 @@
       "turn over",
       "check inside",
       "look inside"
+    ],
+    "question": [
+      "why",
+      "how",
+      "what",
+      "where",
+      "when",
+      "who",
+      "whose",
+      "which",
+      "do you",
+      "did you",
+      "are you",
+      "is there",
+      "is it",
+      "can you",
+      "could you",
+      "have you",
+      "tell me",
+      "explain"
     ]
   },
   "ui": {
@@ -466,7 +486,8 @@
     "errors.image_gen": "Image generation error",
     "errors.payment_form": "Payment form not initialised",
     "errors.tokenize": "Card tokenisation error",
-    "errors.payment_refused": "Payment declined"
+    "errors.payment_refused": "Payment declined",
+    "npc.no_question": "{{name}} doesn't react: your words run off like rain down a window. Around here, only those who ask get an answer — ask a question."
   },
   "script": {
     "error_fallbacks": {

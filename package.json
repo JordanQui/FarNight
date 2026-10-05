@@ -7,7 +7,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "test": "node --test utils/gyro-aim.test.ts utils/puzzle-look.test.ts utils/frequency-text.test.ts utils/name-chime-policy.test.ts utils/palette.test.ts utils/scene-item-policy.test.ts",
+    "test": "node --test utils/gyro-aim.test.ts utils/puzzle-look.test.ts utils/frequency-text.test.ts utils/name-chime-policy.test.ts utils/palette.test.ts utils/scene-item-policy.test.ts utils/npc-question.test.ts",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {

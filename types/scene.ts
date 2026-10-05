@@ -474,6 +474,8 @@ export interface PlayerTheme {
 export interface ScenePacing {
   /** Échanges avec un personnage avant qu'il livre ce qu'il sait. */
   exchanges_before_steer?: number
+  /** Un personnage ne répond qu'à une question : le reste glisse sur lui. */
+  questions_only?: boolean
   /** Tour à partir duquel le narrateur oriente vers la sortie. */
   steer_after_turns: number
   /** Tour où la nuit se referme si le joueur n'a toujours pas ce qu'il faut. */

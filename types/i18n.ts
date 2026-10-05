@@ -162,6 +162,12 @@ export interface LangInput {
    */
   leave: string[]
   /**
+   * Mots qui font d'une phrase sans « ? » une question — « pourquoi tu restes
+   * là » se tape ainsi sur un téléphone. Un personnage ne répond qu'à une
+   * question : voir `turn.questions_only`.
+   */
+  question?: string[]
+  /**
    * Fouiller un endroit — plonger la main, pas seulement regarder. Seul geste
    * de la fouille qui coûte la nuit : « regarder » lit l'indice gratuitement.
    */

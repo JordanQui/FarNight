@@ -55,6 +55,17 @@ export interface Qualities {
   talksToNpc: boolean
   /** Le joueur s'adresse au détenteur de l'objet-clé. */
   addressesHolder: boolean
+  /** Les personnages de cette scène ne répondent qu'à une question. */
+  questionsOnly: boolean
+  /** La saisie est une question. */
+  asksQuestion: boolean
+  /**
+   * Son interlocuteur vient de LUI poser une question : sa phrase est une
+   * réponse, et elle mérite qu'on l'entende même sans point d'interrogation.
+   */
+  npcAwaitsAnswer: boolean
+  /** La saisie cite un nom qu'on peut taper, ou le nom du personnage seul. */
+  citesName: boolean
 
   /** Cette scène exige un objet pour être quittée. */
   sceneHasKeyItem: boolean
@@ -116,7 +127,7 @@ export type StoryletPlay =
   /** La porte s'ouvre : le texte de sortie, puis l'écran. */
   | { kind: 'exit' }
   /** Une réponse déjà écrite quelque part. Aucun appel, aucun token. */
-  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'blocked_exit' }
+  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'blocked_exit' | 'not_asked' }
   /** Il plonge la main quelque part. Aucun appel : ça ne coûte que la nuit. */
   | { kind: 'search' }
   /** Il prend ce qu'il a nommé. Un geste, pas un tour : rien ne part au modèle. */
@@ -278,6 +289,17 @@ export const DECK: Storylet[] = [
     // Aucun effet : l'objet reste dans l'inventaire, c'est tout le propos.
     when: q => q.offersItem,
     play: { kind: 'model', mode: 'give_refused' },
+  },
+  {
+    id: 'sans_question',
+    note: "il parle à quelqu'un sans rien lui demander : sa phrase glisse, on lui montre ce qui accroche",
+    // APRÈS la remise et les dons : tendre un objet ou conclure l'échange avec
+    // le détenteur n'a pas à prendre la forme d'une question. AVANT l'oracle et
+    // le tour ordinaire : c'est un moment local, il ne coûte rien. Et jamais
+    // quand le personnage vient d'interroger le joueur — lui répondre est
+    // exactement ce qu'on attend de lui.
+    when: q => q.talksToNpc && q.questionsOnly && !q.asksQuestion && !q.npcAwaitsAnswer && !q.citesName,
+    play: { kind: 'local', say: 'not_asked' },
   },
   {
     id: 'deja_ecrit',

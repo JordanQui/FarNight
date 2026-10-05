@@ -6,7 +6,8 @@ import { useNarrative } from '~/composables/useNarrative'
 import { usePaywall } from '~/composables/usePaywall'
 import { useSceneCommands } from '~/composables/useSceneCommands'
 import { resolveLocally, buildGuidance, lookedThing } from '~/utils/scene-oracle'
-import { translate } from '~/utils/languages'
+import { translate, pack } from '~/utils/languages'
+import { isQuestion, normalize } from '~/utils/text-match'
 import { takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
 import type { Interactable } from '~/types/scene'
@@ -47,6 +48,51 @@ export function useStorylets() {
     // dira mieux que nous qu'il l'a sur lui.
     if (!obj || gameStore.inventory.some(o => o.id === obj.id)) return null
     return obj
+  }
+
+  /**
+   * Le personnage attend-il une réponse ?
+   *
+   * Oui si sa dernière réplique à ce joueur était une question : ce qu'on lui
+   * tape ensuite y répond, même sans point d'interrogation. Lu sur son fil à
+   * lui, pas sur le récit — un autre personnage a pu parler entre-temps.
+   */
+  function awaitsAnswer(npcId: string): boolean {
+    const said = (gameStore.npcThreads[npcId] ?? []).filter(m => m.role === 'assistant').at(-1)?.content ?? ''
+    return /[?¿؟？]\s*\S{0,3}\s*$/.test(said.trim())
+  }
+
+  /**
+   * La saisie cite-t-elle un nom qu'on peut taper ?
+   *
+   * Les noms en PascalCase du récit — objet, décor, augmentation, sortie — sont
+   * ce que le joueur est invité à saisir : en parler à quelqu'un n'a pas à
+   * prendre la forme d'une question. Le nom du personnage seul aussi : c'est
+   * ainsi qu'on l'aborde. Soudés ou non : « FocaleBraise » se tape aussi
+   * « focale braise ».
+   */
+  function citesName(input: string, npc?: { name: string }): boolean {
+    const scene = playerStore.scene
+    if (!scene) return false
+    const text = normalize(input)
+    const flat = text.replace(/[\s-]+/g, '')
+    const names = [
+      ...scene.interactables.map(i => i.label),
+      ...(scene.decor ?? []).map(d => d.name),
+      scene.key_item?.name,
+      scene.sealed_object?.name,
+      scene.exit_label,
+      scene.place?.name,
+    ]
+    const cited = names.some((name) => {
+      const n = normalize(name ?? '').replace(/[\s-]+/g, '')
+      return n.length >= 3 && flat.includes(n)
+    })
+    if (cited) return true
+    if (!npc) return false
+    const rest = normalize(npc.name).split(' ')
+      .reduce((left, part) => left.replace(part, ''), text)
+    return !rest.replace(/[^\p{L}\p{N}]+/gu, '')
   }
 
   /** Ce que l'oracle et le récapitulatif ont besoin de savoir du joueur. */
@@ -109,6 +155,10 @@ export function useStorylets() {
       addressesNobody: scene ? addressesNobody(input) : false,
       talksToNpc: Boolean(npc),
       addressesHolder: Boolean(npc && item && npc.id === item.npc_id),
+      questionsOnly: Boolean(pacing?.questions_only),
+      asksQuestion: isQuestion(input, pack(playerStore.language).input.question ?? []),
+      npcAwaitsAnswer: Boolean(npc) && awaitsAnswer(npc!.id),
+      citesName: citesName(input, npc),
 
       sceneHasKeyItem: Boolean(item),
       hasKeyItem: gameStore.hasKeyItem,
@@ -134,8 +184,9 @@ export function useStorylets() {
 
   /** Le texte d'une réponse qui ne passe pas par le modèle. */
   function localText(
-    say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'blocked_exit',
+    say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'blocked_exit' | 'not_asked',
     q: Qualities,
+    input = '',
   ): string {
     const scene = playerStore.scene
     const lang = playerStore.language
@@ -144,6 +195,10 @@ export function useStorylets() {
     if (say === 'oracle') return q.localAnswer?.text ?? ''
     if (say === 'nobody') return t('oracle.no_name')
     if (say === 'unread_object') return t('oracle.unread_object')
+    // Il ne relève pas : la phrase glisse, et le récit dit pourquoi.
+    if (say === 'not_asked') {
+      return t('npc.no_question', { name: interlocutor(input)?.name ?? '' })
+    }
     // Deux tournures, en alternance : la même phrase deux fois de suite se lit
     // comme un message d'erreur.
     if (say === 'blocked_exit') {
@@ -245,6 +300,15 @@ export function useStorylets() {
     // Tout ce qui n'est pas une réplique referme la conversation en cours : on
     // ne reste pas en tête-à-tête avec quelqu'un pendant qu'on pousse la porte
     // ou qu'on lit le récapitulatif de sa quête.
+    // Seule exception : le personnage qui ne relève pas. Il reste en face, et la
+    // question qu'on lui posera ensuite doit lui parvenir sans retaper son nom.
+    if (moment.play.kind === 'local' && moment.play.say === 'not_asked') {
+      const npc = interlocutor(input)
+      gameStore.setActiveNpc(npc?.id ?? null)
+      gameStore.addNarrativeEntry('narration', localText('not_asked', q, input))
+      gameStore.setPlayingSubState('awaiting_input')
+      return
+    }
     if (moment.play.kind !== 'model') gameStore.leaveConversation()
 
     if (moment.play.kind === 'exit') {

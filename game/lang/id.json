@@ -186,6 +186,25 @@
       "cari di",
       "mencari di",
       "periksa dalam"
+    ],
+    "question": [
+      "kenapa",
+      "mengapa",
+      "bagaimana",
+      "apa",
+      "apakah",
+      "di mana",
+      "dimana",
+      "ke mana",
+      "kemana",
+      "kapan",
+      "siapa",
+      "berapa",
+      "yang mana",
+      "bisakah",
+      "tahukah",
+      "ceritakan",
+      "jelaskan"
     ]
   },
   "ui": {
@@ -459,7 +478,8 @@
     "errors.image_gen": "Kesalahan pembuatan gambar",
     "errors.payment_form": "Formulir pembayaran belum siap",
     "errors.tokenize": "Kesalahan tokenisasi",
-    "errors.payment_refused": "Pembayaran ditolak"
+    "errors.payment_refused": "Pembayaran ditolak",
+    "npc.no_question": "{{name}} tidak menanggapi: kata-katamu mengalir pergi seperti hujan di kaca. Di sini, hanya yang bertanya yang dijawab — ajukan pertanyaan."
   },
   "script": {
     "error_fallbacks": {
