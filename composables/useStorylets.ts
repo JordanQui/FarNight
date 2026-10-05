@@ -135,10 +135,13 @@ export function useStorylets() {
       : false
 
     // Les deux plafonds : le compte de tours mord en pratique, le budget en
-    // dollars n'est qu'un filet si les prompts venaient à grossir.
-    const capReached = (pacing?.hard_turn_cap ?? 0) > 0
+    // dollars n'est qu'un filet si les prompts venaient à grossir. En
+    // développement ni l'un ni l'autre : une scène se teste jusqu'au bout.
+    const capReached = !import.meta.dev
+      && (pacing?.hard_turn_cap ?? 0) > 0
       && gameStore.modelTurnsUsed >= pacing!.hard_turn_cap
-    const budgetReached = (pacing?.budget_usd ?? 0) > 0
+    const budgetReached = !import.meta.dev
+      && (pacing?.budget_usd ?? 0) > 0
       && gameStore.spentUsd >= pacing!.budget_usd
 
     return {
