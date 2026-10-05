@@ -101,6 +101,8 @@ export interface TurnRules {
   key_item_context: string
   /** Variante sans détenteur : l'objet est inscrit dans le lieu, personne ne le tend. */
   key_item_context_found: string
+  /** Variante où le détenteur ne cède que contre l'offrande posée dans le décor. */
+  key_item_context_offering?: string
   /** Ce qu'un personnage réclame, greffé à ses répliques. Interpole `{{npc_wants_hint}}`. */
   wants_rule?: string
   /** Il prend l'objet et lâche ce qu'il sait. */
@@ -143,12 +145,16 @@ export interface TurnRules {
   holder_locked_prompt: string
   /** Réplique du détenteur une fois le joueur informé : il amorce, il relance. */
   holder_prompt: string
+  /** La même, là où il attend l'offrande : il dit ce qui lui manque, pas où c'est. */
+  holder_offering_prompt?: string
   /** Greffé au don quand l'échange remet un objet. Interpole `{{reward_label}}`. */
   give_reward_item_rule: string
   /** Greffé au don quand l'échange découvre un élément caché du décor. */
   give_reveal_rule: string
   /** Greffé au don quand il n'y a rien d'autre à en tirer que ce qu'il sait. */
   give_reward_none_rule: string
+  /** Greffé au don de l'offrande : il remet la carte. Interpole `{{item_name}}`, `{{item_why}}`, `{{exit_label}}`. */
+  give_key_item_rule?: string
   /** Réplique du détenteur au moment où il remet l'objet. */
   handover_prompt: string
   /** Narration quand le joueur veut sortir sans l'objet. */
@@ -243,6 +249,8 @@ export interface ScriptDefaults {
    * `instruction_second` pose l'autre là où l'objet-clé la complète.
    */
   card_half: { note?: string; instruction: string; instruction_second: string }
+  /** L'objet que le détenteur attend pour céder la carte. Voir `key_item.offering`. */
+  offering?: { note?: string; instruction: string }
   /** Le pictogramme que chaque objet porté reçoit à sa génération. */
   item_icons: { note?: string; instruction: string }
   /** La fenêtre du bouton de l'oeil. Texte fixe : ce n'est pas de la fiction. */
@@ -422,6 +430,11 @@ export interface SceneScript {
      * reprend le nom et la couleur et les remplace en poche.
      */
     completes_half?: boolean
+    /**
+     * Le détenteur ne cède la carte que contre une chose posée dans le décor,
+     * écho poétique de l'objet auquel le joueur tient. Voir `defaults.offering`.
+     */
+    offering?: boolean
   }
   /** L'acte auquel la scène appartient. Voir `acts` à la racine du script. */
   act?: string

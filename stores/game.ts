@@ -575,7 +575,7 @@ export const useGameStore = defineStore('game', {
       augmentation?: boolean
       items?: Array<{
         id: string; label: string; kind: 'key' | 'lore' | 'trade'
-        color?: string; from?: string; decrypted?: boolean
+        color?: string; hex?: string; from?: string; decrypted?: boolean
       }>
     } | null): number {
       if (!kit?.items?.length) return 0
@@ -583,7 +583,10 @@ export const useGameStore = defineStore('game', {
       let added = 0
       for (const o of kit.items) {
         const before = this.inventory.length
-        this.pickUp({ id: o.id, label: o.label, from: o.from, kind: o.kind, color: o.color || undefined })
+        this.pickUp({
+          id: o.id, label: o.label, from: o.from, kind: o.kind,
+          color: o.color || undefined, hex: o.hex || undefined,
+        })
         if (this.inventory.length > before) added++
         if (o.decrypted) this.markDecrypted(o.id)
       }

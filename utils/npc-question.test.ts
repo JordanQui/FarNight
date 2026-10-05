@@ -30,12 +30,14 @@ const talking: Qualities = {
   informed: false,
   holderExchanges: 1,
   exchangesBeforeHandover: 2,
+  holderAwaitsOffering: false,
   failureAtTurn: 10,
   takesReadableObject: false,
   takesUnreadObject: false,
   searchesSpot: false,
   offersItem: false,
   offersWantedItem: false,
+  givesOffering: false,
   localAnswer: null,
   canCallModel: true,
 }
@@ -99,6 +101,23 @@ test('question, question en retour, réponse, remise', () => {
   assert.equal(draw(answering).id, 'remise')
   // Même s'il répond par une question, ou de travers : pas de mauvaise réponse.
   assert.equal(draw({ ...answering, asksQuestion: true, npcAwaitsAnswer: false }).id, 'remise')
+})
+
+// A3S1 : le détenteur ne cède la carte que contre l'offrande posée dans le
+// décor. Parler ne suffit plus ; la lui tendre suffit, même au dernier tour.
+test('là où il attend une offrande, seul le don remet la carte', () => {
+  const holder: Qualities = {
+    ...talking, addressesHolder: true, informed: true, holderExchanges: 3,
+    npcAwaitsAnswer: true, holderAwaitsOffering: true,
+  }
+  assert.equal(draw(holder).id, 'tour')
+  const giving: Qualities = { ...holder, offersItem: true, offersWantedItem: true, givesOffering: true }
+  const remise = draw(giving)
+  assert.equal(remise.id, 'remise_contre_offrande')
+  assert.deepEqual(remise.after, ['consume_given_item', 'offer_key_item'])
+  assert.equal(draw({ ...giving, turn: 9 }).id, 'remise_contre_offrande')
+  // Un autre objet, ou à quelqu'un d'autre : le don ordinaire, sans carte.
+  assert.equal(draw({ ...giving, givesOffering: false }).id, 'don')
 })
 
 // LE MÊME RYTHME POUR TOUS : l'informateur et les habitués ordinaires

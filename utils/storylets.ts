@@ -89,6 +89,11 @@ export interface Qualities {
   holderExchanges: number
   /** Échanges qu'il exige avant de céder. */
   exchangesBeforeHandover: number
+  /**
+   * Il ne cède pas pour des mots : seulement contre l'offrande posée dans le
+   * décor. Les échanges ne comptent plus, le don seul fait la remise.
+   */
+  holderAwaitsOffering: boolean
 
   /**
    * Tour où la nuit se referme si le joueur n'a toujours pas l'objet.
@@ -123,6 +128,8 @@ export interface Qualities {
   offersItem: boolean
   /** Et cette personne attendait précisément celui-là. */
   offersWantedItem: boolean
+  /** C'est l'offrande, et il la tend au détenteur de la carte. */
+  givesOffering: boolean
 
   /** Une réponse déjà écrite dans la scène couvre la saisie. */
   localAnswer: LocalAnswer | null
@@ -184,6 +191,11 @@ function leaves(q: Qualities): boolean {
   return (q.mentionsExit || (q.cardDoor && q.usesCard)) && doorOpen(q)
 }
 
+/** Il tend l'offrande au détenteur, qui n'attendait qu'elle pour céder. */
+function remiseContreOffrande(q: Qualities): boolean {
+  return q.givesOffering && q.sceneHasKeyItem && !q.hasKeyItem && !q.pendingKeyItem
+}
+
 /**
  * Le détenteur cède-t-il MAINTENANT ?
  *
@@ -194,6 +206,7 @@ function leaves(q: Qualities): boolean {
 function remiseImminente(q: Qualities): boolean {
   return q.addressesHolder
     && q.sceneHasKeyItem
+    && !q.holderAwaitsOffering
     && q.informed
     && !q.hasKeyItem
     && !q.pendingKeyItem
@@ -221,7 +234,8 @@ export const DECK: Storylet[] = [
       && q.turn + 1 >= q.failureAtTurn
       && !q.pendingKeyItem
       && !leaves(q)
-      && !remiseImminente(q),
+      && !remiseImminente(q)
+      && !remiseContreOffrande(q),
     play: { kind: 'local', say: 'game_over' },
   },
   {
@@ -301,6 +315,16 @@ export const DECK: Storylet[] = [
     when: remiseImminente,
     play: { kind: 'model', mode: 'handover' },
     after: ['offer_key_item'],
+  },
+  {
+    id: 'remise_contre_offrande',
+    note: "il tend au détenteur la chose qui lui manquait : la carte change de main",
+    // AVANT le don ordinaire, qui la prendrait sans rien rendre. Le prompt
+    // reste celui du don — c'est le serveur qui, reconnaissant l'offrande,
+    // y greffe la remise de la carte.
+    when: remiseContreOffrande,
+    play: { kind: 'model', mode: 'give' },
+    after: ['consume_given_item', 'offer_key_item'],
   },
   {
     id: 'don',

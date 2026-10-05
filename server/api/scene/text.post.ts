@@ -224,6 +224,7 @@ export default defineEventHandler(async (event) => {
    * trois centimes — et il n'est payé que sur un échec.
    */
   scene.dropUnreachable(generated)
+  scene.bindOffering(generated)
   scene.ensurePuzzleObjects(generated)
   scene.weldAugmentationName(generated)
   if (scene.id === 'a1s2') ensureFrequencyTarget(generated)
@@ -242,6 +243,7 @@ export default defineEventHandler(async (event) => {
     ])
     generated = parseScene(repaired)
     scene.dropUnreachable(generated)
+    scene.bindOffering(generated)
     scene.ensurePuzzleObjects(generated)
     scene.weldAugmentationName(generated)
     if (scene.id === 'a1s2') ensureFrequencyTarget(generated)

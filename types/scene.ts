@@ -139,6 +139,11 @@ export interface SceneKeyItem {
    */
   acquisition?: 'informant_then_holder' | 'holder' | 'found'
   /**
+   * L'id de l'offrande que le détenteur attend avant de céder, là où la scène
+   * en pose une. Ni question ni compte d'échanges : la donner est la remise.
+   */
+  offering_id?: string
+  /**
    * Les gestes du dénouement, DANS L'ORDRE, quand l'énigme est une séquence.
    *
    * Le seul morceau d'énigme que le modèle écrit : ce sont les gestes de CE

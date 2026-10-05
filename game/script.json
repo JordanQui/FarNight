@@ -148,7 +148,10 @@
       "steer_instruction_missing_found": "AIDE ACTIVE — ce qu'il cherche n'est sur personne, et il continue de le demander aux gens.\nÀ CHAQUE réponse, termine par un signe concret venu du LIEU lui-même : un reflet sur la surface où c'est inscrit, un voyant qui repasse, quelqu'un qui y jette un oeil sans rien dire. De plus en plus net à chaque tour.\nUn personnage peut dire OÙ regarder ; aucun ne le porte sur lui, aucun ne le lit à sa place. Ne pousse pas vers la sortie : sans ça, sortir ne mène nulle part. Ne dis jamais quelle commande taper.",
       "give_reward_item_rule": "ET TU LUI REMETS {{reward_label}} : sors-le, tends-le, en une phrase. Nomme-le EXACTEMENT ainsi, à la lettre près. N'explique pas à quoi ça sert — tu ne le sais pas toi-même, ou tu ne le dis pas.",
       "give_reveal_rule": "ET TU LUI MONTRES {{reward_label}}, que personne ne voyait : tu écartes quelque chose, tu indiques un angle, et c'est là. Nomme-le EXACTEMENT ainsi, à la lettre près, dans ta réplique — c'est le seul endroit où le joueur peut l'apprendre. Tu ne le prends pas, tu ne l'ouvres pas : tu le découvres, il fait le reste.",
-      "give_reward_none_rule": "Tu ne rends rien, tu ne donnes aucun objet, tu n'ouvres aucune porte."
+      "give_reward_none_rule": "Tu ne rends rien, tu ne donnes aucun objet, tu n'ouvres aucune porte.",
+      "key_item_context_offering": "OBJET-CLÉ DE LA SCÈNE : {{item_name}} — {{item_description}}\nDétenu par {{item_holder}}. Il permet de rétablir : {{item_why}}\nUne fois les noms lisibles, le joueur pourra : {{item_action}}\n{{item_holder}} ne le cède PAS pour des mots, ni pour une réponse : seulement contre une chose posée dans ce lieu, qui lui manque — {{item_handover_hint}}. Personne ne dit où elle est ; on peut en évoquer la forme.\nTant que le joueur ne l'a pas, franchir {{exit_label}} ne sert à rien, et tous les personnages le savent. Ne remets jamais l'objet de ta propre initiative : on te dira quand.\nSi le joueur demande comment sortir ou ce qui lui manque, dis-le franchement : la sortie est fermée, il lui faut {{item_name}}, et celui qui la garde attend en retour une chose de ce lieu.",
+      "holder_offering_prompt": "Tu incarnes {{npc_name}}, {{npc_archetype}}. Personnalité : {{npc_personality}}.\n{{role_rule}} Ce personnage sait : {{npc_knows}}.\nLe joueur te dit : « {{player_input}} ».\n{{reply_rule}}\n{{thread_rule}}\nTu détiens {{item_name}} et tu peux maintenant l'avouer : tu la gardes, et tu ne la céderas que contre une chose qui te manque. Aucune réponse, aucun argument ne la lui obtiendra — seulement cette chose, qu'il doit trouver lui-même, ici.\nCe qui te manque : {{npc_wants_hint}}\nTu en parles par sa forme et par ce qu'elle faisait pour toi, jamais par son nom, jamais par l'endroit où elle se trouve. Raconte-lui ceci, à ta manière — {{item_hook_story}}\nRéponds en 2 à 4 phrases, uniquement ta réplique, sans guillemets et sans ton nom devant. Ne dis jamais « donne-moi », ni quelle commande taper.\n{{beyond_rule}}",
+      "give_key_item_rule": "ET TU LUI REMETS {{item_name}} : c'est pour ce moment-là que tu la gardais. Sors-la, tends-la, en une phrase, et nomme-la EXACTEMENT ainsi, à la lettre près. Dis en une demi-phrase ce qu'elle ouvre — {{item_why}} — et termine en le poussant vers {{exit_label}}."
     },
     "generation": {
       "model": "gpt-4o",
@@ -410,6 +413,10 @@
       "note": "La carte d'A2S2 est en deux moitiés, et ce sont deux bouts de LA MÊME carte, pas des objets de plus. La première est la carte de plus d'A2S1 : on ne quitte pas A2S1 sans elle. La seconde est posée dans le décor d'A2S2 : la ramasser l'emboîte dans la première, et la carte entière ouvre la sortie.",
       "instruction": "CETTE CARTE DE PLUS EST UNE MOITIÉ. Elle est cassée net en travers : le joueur n'en trouve qu'un bout, l'autre moitié l'attend plus loin dans la nuit. C'est la même carte que celle qui ouvrira plus loin, pas un objet de plus. Son `label` la nomme comme toute carte, par sa couleur (« la Carte Ocre »), sans le mot « moitié » : c'est le nom de la carte entière. Son `observation` dit qu'elle est cassée, qu'un bout de carte n'ouvre rien seul, et que l'autre moitié existe quelque part — sans dire où. Une phrase du texte la rend remarquable : un bord net, une tranche colorée qui dépasse de quelque chose. Elle est posée dans le décor : personne ne la tend, personne n'en parle comme d'un don. Le joueur ne quitte pas ce lieu sans elle.",
       "instruction_second": "LA SECONDE MOITIÉ. Parmi les objets à PRENDRE, EXACTEMENT UN est l'autre moitié de la carte cassée que le joueur porte (voir CE QUE LE JOUEUR PORTE, la carte trouvée au lieu précédent) : `item_kind` vaut \"carte\". Son `label` reprend À LA LETTRE le nom de la moitié qu'il porte — c'est la même carte. Elle est posée dans le décor : personne ne la tend, personne n'en parle comme d'un don, et une phrase du texte la rend remarquable — un bord net, une tranche de la même couleur qui dépasse de quelque chose. Son `observation` dit que sa cassure épouse celle de la moitié qu'il porte. Elle est la seule chose qui ouvre ce lieu : le texte montre la sortie fermée et son lecteur, et la moitié en poche qui ne suffit pas."
+    },
+    "offering": {
+      "note": "A3S1 : le détenteur ne cède la carte que contre une chose posée dans le décor. Elle est l'écho de l'objet auquel le joueur tient, jamais cet objet. La donner EST la remise : ni question, ni compte d'échanges.",
+      "instruction": "L'OFFRANDE. Le détenteur ne cède pas la carte pour des mots : il la cède contre UNE chose qui lui manque, et cette chose est POSÉE DANS CE LIEU, parmi les objets à PRENDRE.\nEXACTEMENT UN des objets à prendre est cette offrande : son `id` vaut exactement \"offrande\", son `item_kind` vaut \"echange\", son verbe est un verbe de prise, et elle porte une `observation`. Elle est posée dans le décor, à l'écart du détenteur : personne ne la tend, personne ne dit que c'est elle.\nCE QU'ELLE EST SE TIRE DU DOSSIER. C'est un ÉCHO de l'objet auquel le joueur tient (« Objet auquel il tient » dans le PROFIL), transposé dans cette ville : jamais cet objet lui-même, jamais son nom ni sa matière recopiés. Garde ce qu'il FAIT pour lui — ce qu'il retient, ce qu'il protège, ce qu'il rappelle — et donne-lui une autre forme, une forme de la mégapole, colorée par la tension du SIGNE. S'il n'a rien déclaré, tire-la de son refuge. Le joueur doit pouvoir s'y reconnaître sans que rien ne le cite.\nSon `label` la nomme en 2 à 4 mots, en Majuscules de Titre, avec son article : une image concrète et poétique, une chose de la ville qu'on n'aurait jamais regardée ainsi — sans exemple à imiter, elle n'appartient qu'à ce joueur. Son `observation` dit ce qu'elle est et pourquoi elle compte pour quelqu'un ici, sans dire qui.\nLE DÉTENTEUR LA VEUT, ET LUI SEUL. Son champ `wants` lui est RÉSERVÉ : `item_id` = \"offrande\" ; `hint` dit en une phrase, dans sa voix, ce qui lui manque, par la forme et par l'usage, sans la nommer ni dire où elle est ; `reward` dit en 2 à 3 phrases ce qu'elle lui rend, comme une chose qui lui est arrivée. `reward_item` et `reveals_id` restent vides : ce qu'il rend, c'est la carte. Aucun autre personnage ne renseigne `wants` dans cette scène. `key_item.handover_hint` dit la même attente, en une phrase, par la forme.\nL'informateur sait qui détient la carte ET qu'il attend une chose de ce lieu en retour ; il peut en esquisser la forme, jamais la désigner.\nLE TEXTE D'OUVERTURE LE FAIT COMPRENDRE, SUBTILEMENT, comme toujours. La sortie est fermée et son lecteur attend une carte de la couleur de l'accent. Quelqu'un ici garde cette carte et ne la lâchera pas pour rien — dis-le sans dire qui. Le détenteur se présente par un manque visible : une main qui se referme sur du vide, un regard qui revient vers un coin du lieu, une place vide à côté de lui. L'offrande est nommée par son label dans une phrase de description, rendue remarquable sans être désignée : une chose posée là qui n'y a pas sa place. Le joueur doit pouvoir déduire seul l'enchaînement — trouver la chose, la donner, recevoir la carte — sans qu'aucune phrase ne l'écrive : ni « il te faut », ni « échange », ni « offrande ».\nLA CARTE N'EST DANS AUCUNE MACHINE. Ni terminal, ni console, ni distributeur ne la délivre, et le texte ne le laisse jamais croire : si le décor comporte un écran ou un terminal, il ne contient pas la carte."
     },
     "augmentation_primer": {
       "note": "La fenêtre qui s'ouvre au PREMIER passage à la loupe, une seule fois. Celui qui l'a cédée en a dit deux mots dans la conversation ; celle-ci dit le reste, au moment où le joueur a l'outil en main et quelque chose à en faire. Le récit est brodé à partir des champs DÉJÀ générés de l'objet — nom, description, port, ce qu'elle permet, l'acte qu'elle rend possible — donc rien n'est régénéré et ça ne coûte pas un token. Le mode d'emploi, lui, est fixe : c'est une mécanique, pas de la fiction. `caps_note` est la règle d'observation : elle dit au joueur que la Majuscule est le signal d'interaction et que le décor garde des objets que personne ne lui donnera. Fixe elle aussi.",
@@ -1208,7 +1215,7 @@
       "is_paywall_gate": false,
       "image_setting": "Un lieu de la mégapole, la nuit — celui que le plan de la nuit a fixé pour cette étape",
       "focal_element": "Ce que le plan désigne comme la première chose qu'on voit en arrivant",
-      "mechanic": "une carte d'accès qu'un personnage détient — un autre sait lequel — et qui mène au dernier lieu",
+      "mechanic": "une carte d'accès qu'un personnage ne cède que contre une chose posée dans le lieu — l'écho de l'objet auquel le joueur tient",
       "naming": {
         "instruction": "Invente le nom de ce lieu en {{language}}, 2 à 5 mots, avec son article. Le lieu est décidé par LA QUÊTE DE LA NUIT : le nom dit ce qu'il est, tel qu'on le voit en arrivant, sans reprendre mot pour mot son titre de chapitre.\nLE NOM DOIT TENIR À CE QU'ON VOIT. Il nomme soit la COULEUR D'ACCENT que tu viens de choisir pour la palette, soit l'élément du décor qui la porte (`focal`) — jamais une abstraction, jamais une idée. Un joueur qui regarde l'image doit comprendre d'où vient le nom.\nEt il dérive MÉTAPHORIQUEMENT de `imprints.refuge` dans le profil : c'est ce qui fait que deux joueurs ne traversent pas la même ville. Jamais littéralement, jamais une marque, jamais une ville réelle.\nLe lieu précédent est déjà nommé dans le résumé : ne reprends ni son mot, ni sa forme.",
         "sources": [
@@ -1251,7 +1258,7 @@
       ],
       "npcs": {
         "count": 3,
-        "instruction": "TROIS personnages restés ici après tout le monde. LE PREMIER accueille le joueur et dit ce qui se passe ici. Parmi les deux autres, l'un sait comment on atteint le dernier lieu, l'autre en a le moyen. Le premier, dès qu'on lui parle, dit sans détour trois choses : la sortie vers le dernier lieu est fermée, elle ne s'ouvre qu'avec une carte d'accès de la couleur de son lecteur, et quelqu'un ici sait qui la détient. Il ne nomme pas le détenteur ; il désigne celui qui sait.\nDans leur présentation, distingue clairement les trois fonctions utiles : le premier connaît l'état de la sortie et oriente vers la personne qui sait ; la deuxième connaît l'identité de celui qui a la carte ; la troisième est impliquée dans l’accès sans annoncer ce qu’elle possède. Ne révèle PAS dans le texte initial lequel des deux derniers détient la carte : le joueur l'apprend en parlant à l'informateur. Le premier peut désigner l'informateur comme personne à consulter."
+        "instruction": "TROIS personnages restés ici après tout le monde. LE PREMIER accueille le joueur et dit ce qui se passe ici. Parmi les deux autres, l'un sait qui détient la carte et ce qui lui manque, l'autre détient la carte et ne la cède que contre cette chose (voir L'OFFRANDE). Le premier, dès qu'on lui parle, dit sans détour trois choses : la sortie vers le dernier lieu est fermée, elle ne s'ouvre qu'avec une carte d'accès de la couleur de son lecteur, et quelqu'un ici sait qui la détient. Il ne nomme pas le détenteur ; il désigne celui qui sait.\nDans leur présentation, distingue clairement les trois fonctions utiles : le premier connaît l'état de la sortie et oriente vers la personne qui sait ; la deuxième connaît celui qui a la carte et ce qu'il attend ; la troisième est impliquée dans l'accès sans annoncer ce qu'elle possède, et laisse voir qu'il lui manque quelque chose. Ne révèle PAS dans le texte initial lequel des deux derniers détient la carte : le joueur l'apprend en parlant à l'informateur. Le premier peut désigner l'informateur comme personne à consulter."
       },
       "quest": {
         "instruction": "Reprends la quête EN COURS, celle posée à l'auberge : ne la remplace pas, ne la renomme pas. Cette scène en est une étape. `objective` est ce qu'il faut accomplir ICI, `stakes` ce qu'on perd à s'arrêter là. `artifact` reste l'horizon final, toujours hors de portée.",
@@ -1308,14 +1315,15 @@
       ],
       "key_item": {
         "acquisition": "informant_then_holder",
-        "instruction": "L'OBJET-CLÉ est une CARTE D'ACCÈS. Un rectangle rigide, usé aux angles, dont la tranche est teintée. Sa couleur est celle de l'ACCENT de la palette de cette scène — une couleur que ce lieu porte déjà — et c'est à cette couleur que le joueur la reconnaîtra plus tard : nomme-la par sa couleur, pas par un numéro.\nCe qu'elle ouvre : la sortie de ce lieu, vers le lieu suivant du plan de la nuit. Sans elle, le passage reste fermé, et tout le monde ici le sait.\nSon nom est EN CLAIR : le détenteur la nomme en la tendant, elle ne se déchiffre pas. Ce qui se déchiffre ici, avec l'augmentation, traîne dans le décor.\n`why` dit ce qu'elle ouvre. `resolving_action` dit l'acte qu'elle rend possible une fois en main. `hook_story` est ce que son détenteur raconte pour la rendre désirable.\n",
+        "instruction": "L'OBJET-CLÉ est une CARTE D'ACCÈS. Un rectangle rigide, usé aux angles, dont la tranche est teintée. Sa couleur est celle de l'ACCENT de la palette de cette scène — une couleur que ce lieu porte déjà — et c'est à cette couleur que le joueur la reconnaîtra plus tard : nomme-la par sa couleur, pas par un numéro.\nCe qu'elle ouvre : la sortie de ce lieu, vers le lieu suivant du plan de la nuit. Sans elle, le passage reste fermé, et tout le monde ici le sait.\nELLE SE GAGNE PAR UN ÉCHANGE : son détenteur la garde sur lui et ne la tend qu'en recevant l'offrande (voir L'OFFRANDE). Son nom est EN CLAIR : le détenteur la nomme en la tendant, elle ne se déchiffre pas. Ce qui se déchiffre ici, avec l'augmentation, traîne dans le décor.\n`why` dit ce qu'elle ouvre. `resolving_action` dit l'acte qu'elle rend possible une fois en main. `hook_story` est ce que son détenteur raconte pour la rendre désirable.\n",
         "exchanges_before_handover": 2,
         "holder_stance": "-me",
-        "informant_stance": "-to"
+        "informant_stance": "-to",
+        "offering": true
       },
       "objective": {
         "kind": "advance",
-        "requirement": "Obtenir la carte d'accès qui ouvre la sortie vers le dernier lieu : savoir qui la détient, puis la lui demander"
+        "requirement": "Obtenir la carte d'accès qui ouvre la sortie vers le dernier lieu : savoir qui la détient, trouver dans le lieu la chose qui lui manque, et la lui donner"
       },
       "theme_focus": {
         "facet": "destiny",
@@ -1921,7 +1929,7 @@
     }
   ],
   "dev_inventory": {
-    "note": "L'inventaire complet du jeu, pour le DÉVELOPPEMENT seulement. Les noms sont écrits ici une fois pour toutes et ne sont jamais générés : c'est ce qui permet de tester une scène tardive sans rejouer les précédentes, et d'avoir toujours les mêmes noms d'une session à l'autre. Exposé au client uniquement hors production.",
+    "note": "L'inventaire complet du jeu, pour le DÉVELOPPEMENT seulement. Les noms sont écrits ici une fois pour toutes et ne sont jamais générés : c'est ce qui permet de tester une scène tardive sans rejouer les précédentes, et d'avoir toujours les mêmes noms d'une session à l'autre. Exposé au client uniquement hors production. `demi_carte` est la première moitié que pose a2s1 : avec elle, a2s2 se joue sans repasser par a2s1 — sa seconde moitié prend sa couleur et sa pastille.",
     "augmentation": true,
     "items": [
       {
@@ -1970,6 +1978,15 @@
         "kind": "key",
         "color": "Blanc Cassé",
         "from": "Le Premier Étage",
+        "decrypted": true
+      },
+      {
+        "id": "demi_carte",
+        "label": "La Carte Ocre",
+        "kind": "key",
+        "color": "Ocre",
+        "hex": "#C8862A",
+        "from": "Le Quai des Fardiers",
         "decrypted": true
       },
       {

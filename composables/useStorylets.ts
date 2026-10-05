@@ -188,6 +188,7 @@ export function useStorylets() {
       informed: gameStore.informedAboutItem,
       holderExchanges: gameStore.keyItemExchanges + 1,
       exchangesBeforeHandover: item?.exchanges_before_handover ?? 0,
+      holderAwaitsOffering: Boolean(item?.offering_id),
 
       failureAtTurn: pacing?.failure_after_turns ?? 0,
 
@@ -198,6 +199,8 @@ export function useStorylets() {
 
       offersItem: Boolean(give),
       offersWantedItem: Boolean(give) && wanted,
+      givesOffering: Boolean(give) && wanted && Boolean(item?.offering_id)
+        && give!.itemId === item!.offering_id && give!.npcId === item!.npc_id,
 
       localAnswer: scene ? resolveLocally(input, scene, oracleState(), playerStore.language) : null,
       canCallModel: !capReached && !budgetReached,

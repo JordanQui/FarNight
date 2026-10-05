@@ -196,6 +196,12 @@ export function resolveTheme(user: UserProfile, script: Script): PlayerTheme | n
 
 /** `npc_id` d'un objet qui n'est sur personne : il est dans le décor. */
 export const FOUND_ITEM_ID = 'trouve'
+/**
+ * L'id de l'offrande, là où le détenteur ne cède la carte que contre elle.
+ * Fixé plutôt que laissé au modèle : le détenteur la réclame par cet id, et
+ * le client reconnaît le don qui vaut remise sans lire une seule phrase.
+ */
+export const OFFERING_ID = 'offrande'
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
@@ -755,7 +761,7 @@ ${questFields}
 
 
 OBJET-CLÉ
-${s.key_item.instruction}${s.key_item.puzzle ? `\n${this.script.defaults.puzzles.scene_rule}` : ''}
+${s.key_item.instruction}${s.key_item.puzzle ? `\n${this.script.defaults.puzzles.scene_rule}` : ''}${s.key_item.offering && this.script.defaults.offering ? `\n\n${this.script.defaults.offering.instruction}` : ''}
 
 ${this.script.defaults.locks.instruction}
 
@@ -1142,6 +1148,43 @@ ${lines}`)
   }
 
   /**
+   * Attache l'offrande au détenteur, sans nouvelle génération.
+   *
+   * Le modèle écrit volontiers la bonne chose sous un autre id, ou fait
+   * rendre au détenteur un objet en plus de la carte. Rien de tout ça ne
+   * vaut une reprise : on renomme, on retire, et `assertValid` ne refuse que
+   * ce qui manque vraiment — l'objet, son nom dans le texte, l'attente.
+   */
+  bindOffering(generated: GeneratedScene): void {
+    if (!this.scene.key_item.offering) return
+    const holder = (generated.npcs ?? []).find(n => n.id === generated.key_item?.npc_id)
+    const objects = generated.interactables ?? []
+    // Le détenteur réclame une chose de la scène sous un autre id : c'est elle.
+    if (!objects.some(o => o.id === OFFERING_ID)) {
+      const aimed = holder?.wants?.item_id
+      const found = aimed ? objects.find(o => o.id === aimed && isTakeable(o, this.lang)) : undefined
+      if (found) found.id = OFFERING_ID
+    }
+    const offering = objects.find(o => o.id === OFFERING_ID)
+    if (offering) {
+      offering.item_kind = 'echange'
+      delete offering.hidden
+    }
+    // Lui seul la réclame.
+    for (const npc of generated.npcs ?? []) {
+      if (npc !== holder && npc.wants?.item_id === OFFERING_ID) delete npc.wants
+    }
+    if (!holder) return
+    // Ce qu'il rend, c'est la carte : ni objet en plus, ni trappe.
+    const { reward_item: _r, reveals_id: _v, ...wants } = holder.wants ?? { item_id: '', hint: '', reward: '' }
+    holder.wants = {
+      ...wants,
+      item_id: OFFERING_ID,
+      hint: wants.hint?.trim() || generated.key_item?.handover_hint || '',
+    }
+  }
+
+  /**
    * Garantit les deux objets que le code demande, sans nouvelle génération.
    *
    * Le modèle rend parfois un seul objet malgré la consigne. Le refuser puis
@@ -1403,6 +1446,25 @@ ${lines}`)
       if (id && !hidden.some(o => o.id === id)) {
         throw new Error(
           `Scène invalide : un personnage découvre "${id}", qui n'est pas un interactable caché`)
+      }
+    }
+
+    // L'OFFRANDE OUVRE LA SORTIE. Absente du texte, le détenteur réclamerait
+    // une chose que le joueur ne peut ni voir ni prendre, et la carte resterait
+    // dans sa poche pour toujours.
+    if (this.scene.key_item.offering) {
+      const written = fold(generated.scene_text ?? '')
+      const offering = takeable.find(o => o.id === OFFERING_ID)
+      if (!offering || offering.hidden || !offering.label?.trim()
+        || !written.includes(fold(offering.label)) || !offering.observation?.trim()) {
+        throw new Error(
+          `Scène invalide : aucune offrande — un objet de \`interactables\` doit avoir l'id "${OFFERING_ID}", `
+          + `item_kind "echange", une observation, un verbe ${this.takeVerbs}, et son label exact en Majuscules dans scene_text`)
+      }
+      const holder = generated.npcs.find(n => n.id === generated.key_item?.npc_id)
+      if (!holder?.wants?.hint?.trim()) {
+        throw new Error(
+          `Scène invalide : le détenteur de la carte doit réclamer l'offrande — wants.item_id "${OFFERING_ID}" et un wants.hint`)
       }
     }
 
@@ -1704,6 +1766,9 @@ ${lines}`)
       ...n,
       wants: {
         ...n.wants,
+        // L'offrande est un objet d'ICI : renommée avec lui si elle collisionne.
+        item_id: n.wants.item_id === OFFERING_ID && this.scene.key_item.offering
+          ? fresh(OFFERING_ID) : n.wants.item_id,
         reveals_id: n.wants.reveals_id ? fresh(n.wants.reveals_id) : n.wants.reveals_id,
         reward_item: n.wants.reward_item
           ? drawn({ ...n.wants.reward_item, id: fresh(n.wants.reward_item.id) })
@@ -1822,6 +1887,8 @@ ${lines}`)
         // Comment il s'obtient voyage avec la scène : le client doit savoir
         // qu'ici personne ne le tend, et que c'est le déchiffrage qui le donne.
         acquisition: this.scene.key_item.acquisition ?? 'informant_then_holder',
+        // Le don qui vaut remise : le client le reconnaît à cet id.
+        offering_id: this.scene.key_item.offering ? fresh(OFFERING_ID) : undefined,
       },
       palette_audit: {
         adjusted: audit.adjusted,
@@ -1912,7 +1979,8 @@ ${lines}`)
       : ''
 
     const withItem = ctx.key_item
-      ? `${agreed}${puzzleRule}\n\n${interpolate(this.itemIsFound ? t.key_item_context_found : t.key_item_context, {
+      ? `${agreed}${puzzleRule}\n\n${interpolate(this.itemIsFound ? t.key_item_context_found
+        : this.awaitsOffering && t.key_item_context_offering ? t.key_item_context_offering : t.key_item_context, {
           item_name: ctx.key_item.name,
           item_description: ctx.key_item.description,
           item_why: ctx.key_item.why,
@@ -1971,6 +2039,14 @@ ${lines}`)
   private rewardRule(npc: SceneNPC, ctx: TurnContext): string {
     const t = this.scene.turn
     const wants = npc.wants
+    // L'offrande reçue, le détenteur rend ce qu'il gardait pour ce moment.
+    if (this.isOffering(npc, ctx) && ctx.key_item && t.give_key_item_rule) {
+      return interpolate(t.give_key_item_rule, {
+        item_name: ctx.key_item.name,
+        item_why: ctx.key_item.why,
+        exit_label: this.exitLabel,
+      })
+    }
     const gift = wants?.reward_item
     if (gift?.label) return interpolate(t.give_reward_item_rule, { reward_label: gift.label })
 
@@ -1982,6 +2058,17 @@ ${lines}`)
       })
     }
     return t.give_reward_none_rule
+  }
+
+  /** Le détenteur de cette scène attend-il une offrande plutôt qu'une réponse ? */
+  private get awaitsOffering(): boolean {
+    return Boolean(this.scene.key_item?.offering)
+  }
+
+  /** Ce personnage est-il le détenteur, et réclame-t-il l'offrande ? */
+  private isOffering(npc: SceneNPC | undefined, ctx: TurnContext): boolean {
+    return this.awaitsOffering && Boolean(npc) && npc!.id === ctx.key_item?.npc_id
+      && Boolean(ctx.key_item?.offering_id) && npc!.wants?.item_id === ctx.key_item?.offering_id
   }
 
   /**
@@ -2023,7 +2110,9 @@ ${lines}`)
       // Ce que ce personnage-là veut de ce que le joueur porte. Il se tait dès
       // que l'objet a changé de main : `offered_item` est alors consommé et
       // `wants` ne pointe plus sur rien que le joueur ait encore.
-      wants_rule: npc?.wants?.item_id && this.stillCarried(ctx, npc.wants.item_id)
+      wants_rule: npc?.wants?.item_id && (this.isOffering(npc, ctx)
+        ? !ctx.has_key_item
+        : this.stillCarried(ctx, npc.wants.item_id))
         ? interpolate(t.wants_rule ?? '', { npc_wants_hint: npc.wants.hint })
         : '',
       // Ce qu'il est dans la quête du joueur : il le tient sans le dire.
@@ -2136,6 +2225,23 @@ ${lines}`)
         npc_knows: npc.knows,
         player_input: input,
         quest_title: ctx.quest.title,
+      })
+    }
+
+    // Le détenteur qui attend l'offrande : il avoue ce qu'il garde, et ce qui
+    // lui manque. Pas de question à poser — aucune réponse ne l'ouvrira.
+    if (item && !ctx.has_key_item && npc.id === item.npc_id && this.isOffering(npc, ctx)
+      && t.holder_offering_prompt) {
+      return interpolate(t.holder_offering_prompt, {
+        ...rules,
+        npc_name: npc.name,
+        npc_archetype: archetypeOf(npc),
+        npc_personality: npc.personality,
+        npc_knows: npc.knows,
+        player_input: input,
+        item_name: item.name,
+        npc_wants_hint: npc.wants?.hint || item.handover_hint || '',
+        item_hook_story: item.hook_story || ctx.quest.hook,
       })
     }
 
