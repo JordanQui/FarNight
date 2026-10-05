@@ -71,22 +71,42 @@ watch(revealed, (isRevealed, wasRevealed) => {
 
 onUnmounted(() => { stopChime(props.name) })
 
+/**
+ * Survoler un nom l'arme dans la saisie : la prochaine phrase part chez lui.
+ *
+ * Pour un nom chiffré, ça n'arrive qu'en QUITTANT le nom après l'avoir lu :
+ * armer à l'entrée ouvrirait la conversation, l'oeil s'effacerait aussitôt et
+ * le nom se rechiffrerait avant d'avoir été vu. Pendant un tour en cours, on
+ * ne change pas d'interlocuteur sous les pieds du récit.
+ */
+function address() {
+  if (gameStore.isInputDisabled) return
+  const npc = playerStore.npcs.find(n => n.name.toLowerCase() === props.name.toLowerCase())
+  if (npc && gameStore.activeNpcId !== npc.id) gameStore.setActiveNpc(npc.id)
+}
+
 /** Sur desktop, la souris EST l'instrument — une fois l'oeil ouvert. */
 function onEnter() {
-  // Oeil fermé, rien ne se lit : c'est le bouton qui l'ouvre, sur desktop
-  // comme sur mobile.
-  if (!canChimeName(gameStore.eyeActive, gameStore.eyeHidden, gameStore.activeTool)) return
+  const canRead = canChimeName(gameStore.eyeActive, gameStore.eyeHidden, gameStore.activeTool)
   // Déjà rencontré : il reste lisible sans masquer le récit, mais sa voix
-  // doit toujours répondre au survol.
+  // doit toujours répondre au survol — avant d'armer la saisie, qui efface
+  // l'oeil. Écrit en clair, il s'aborde sans l'oeil.
   if (known.value) {
-    void startChime(props.name, assigned.value.mode, assigned.value.voice)
+    if (canRead) void startChime(props.name, assigned.value.mode, assigned.value.voice)
+    address()
     return
   }
+  // Oeil fermé, rien ne se lit : c'est le bouton qui l'ouvre, sur desktop
+  // comme sur mobile.
+  if (!canRead) return
   gameStore.setRevealing(props.name)
 }
 function onLeave() {
   if (known.value) stopChime(props.name)
-  if (gameStore.revealing === props.name) gameStore.setRevealing(null)
+  if (gameStore.revealing === props.name) {
+    gameStore.setRevealing(null)
+    address()
+  }
 }
 
 /**
