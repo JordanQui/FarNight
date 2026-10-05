@@ -486,6 +486,8 @@
     "puzzle.halves_joined": "Las dos mitades encajan, fractura contra fractura. La tarjeta está entera, y su canto tiene justo el tono del aro que rodea la ranura del lector, junto al paso.",
     "puzzle.use_card_prompt": "Usa {{name}} para abrir el paso.",
     "puzzle.reader_waits": "El paso no cede. Al lado, la ranura del lector espera, vacía.",
+    "puzzle.reader_open": "{{name}} despierta: su ranura espera una tarjeta.",
+    "puzzle.reader_hint": "Solo acepta una tarjeta entera.",
     "puzzle.unlocked_frequency": "{{name}} espera una frecuencia. Lo que la acota está en algún sitio del lugar.",
     "puzzle.unlocked_code": "{{name}} espera cuatro cifras. Mira a tu alrededor: están escritas en este lugar.",
     "puzzle.unlocked_sequence": "{{name}} espera una serie de gestos. Mira a tu alrededor: su orden está escrito en este lugar.",

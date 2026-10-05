@@ -19,7 +19,7 @@ import type { UserProfile } from '~/types/user'
 import { interpolate } from '~/utils/prompt-builder'
 import { matchesKeyword } from '~/utils/text-match'
 import { deterministicPaletteHexes, enforceAccentVisibility } from '~/utils/palette'
-import { enforceNameCaps, fold, titleCase } from '~/utils/naming'
+import { enforceNameCaps, fold, stripArticle, titleCase } from '~/utils/naming'
 import { CARD_HALF_2_ID, CARD_HALF_ID, isPieceId, isTakeable } from '~/utils/interactables'
 import { sanitizeHtml } from '~/utils/sanitize-html'
 import { sanitizeItemIcon } from '~/utils/item-icon'
@@ -461,6 +461,14 @@ export class SceneRuntime {
     // LA SÉQUENCE est la seule énigme dont le modèle écrit un morceau : les
     // gestes du dénouement, qui sont ceux de CE joueur. Réclamés ici et nulle
     // part ailleurs — ailleurs ce serait une sortie payée que personne ne lit.
+    // LE LECTEUR d'une sortie qui s'ouvre à la carte : un nom de plus, que le
+    // jeu chiffre et qui ouvre le panneau des cartes.
+    if (this.scene.key_item.completes_half && schema.key_item) {
+      schema.key_item = {
+        ...(schema.key_item as Record<string, unknown>),
+        reader: "string (le nom du lecteur de carte qui garde la sortie, 2 à 4 mots en Majuscules de Titre — « le Lecteur Cerclé » —, écrit tel quel dans scene_text, différent de `name`)",
+      }
+    }
     if (this.scene.key_item.puzzle === 'sequence' && schema.key_item) {
       schema.key_item = {
         ...(schema.key_item as Record<string, unknown>),
@@ -1570,6 +1578,28 @@ ${lines}`)
     if (generated.palette?.accent) generated.palette.accent.hex = exact.accent
   }
 
+  /**
+   * Le lecteur de la sortie, en cible de la loupe — ou rien.
+   *
+   * JAMAIS BLOQUANT. Un lecteur sans nom, ou que le texte ne prononce pas, ne
+   * se déchiffre pas : la scène se joue alors par la seule phrase tapée, ce qui
+   * vaut mieux qu'une scène refusée. Le nom se cherche sans son article — le
+   * texte écrit « du Lecteur Cerclé » quand le champ dit « le Lecteur Cerclé ».
+   */
+  private cardReader(
+    item: GeneratedScene['key_item'] | undefined,
+    text: string,
+  ): { id: string; label: string } | undefined {
+    const reader = item?.reader?.trim()
+    const bare = reader ? stripArticle(reader, this.lang) : ''
+    if (!reader || !bare || fold(bare) === fold(stripArticle(item?.name ?? '', this.lang))
+      || !fold(text).includes(fold(bare))) {
+      console.warn(`[scene/${this.scene.id}] lecteur inutilisable (« ${reader ?? ''} ») : la phrase tapée seule ouvrira`)
+      return undefined
+    }
+    return { id: `lecteur_${this.scene.id}`, label: titleCase(reader, this.lang) }
+  }
+
   /** Fusionne la sortie du modèle avec les parties statiques du script. */
   assembleText(
     generated: GeneratedScene,
@@ -1691,6 +1721,7 @@ ${lines}`)
       ...(scene.decor ?? []).map(d => d.name),
       scene.place.name,
       scene.key_item?.name,
+      scene.key_item?.reader,
       scene.sealed_object?.name,
       // Les noms de personnes aussi : le récit les récite en capitales dans sa
       // dernière ligne, et un nom écrit de deux façons est deux choses
@@ -1750,6 +1781,7 @@ ${lines}`)
       // un autre id : celle en poche suffit, `fresh` l'a déjà renommée.
       required_item_id: halved && !second ? CARD_HALF_ID : undefined,
       opens_with_card: second || undefined,
+      card_reader: second ? this.cardReader(scene.key_item, naming.text) : undefined,
       planned: this.plan,
       script_version: this.script.version,
       image_prompt: this.buildImagePrompt({

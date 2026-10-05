@@ -18,6 +18,8 @@ const props = defineProps<{
   puzzle: ScenePuzzle
   name: string
   submit: (answer: string | number | number[]) => boolean
+  /** La consigne sous le nom, quand celle de l'énigme ne convient pas. */
+  hint?: string
 }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -98,7 +100,7 @@ const known = (id: string) => gameStore.decryptedObjectIds.includes(id)
           {{ t(`puzzle.eyebrow_${puzzle.kind}`) }}
         </p>
         <p class="text-ink-100 text-sm">{{ name }}</p>
-        <p class="text-steel-400 text-[11px] leading-relaxed">{{ t(puzzle.kind === 'frequency' ? 'puzzle.hint_frequency' : 'puzzle.hint') }}</p>
+        <p class="text-steel-400 text-[11px] leading-relaxed">{{ hint ?? t(puzzle.kind === 'frequency' ? 'puzzle.hint_frequency' : 'puzzle.hint') }}</p>
       </div>
 
       <!-- Le cadran. Pas de jauge de signal : balayer ne doit rien apprendre. -->

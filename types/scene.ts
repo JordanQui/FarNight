@@ -145,6 +145,11 @@ export interface SceneKeyItem {
    * joueur. L'ordre affiché et les indices, eux, sont tirés à l'assemblage.
    */
   steps?: string[]
+  /**
+   * Le lecteur qui garde la sortie, là où la carte s'utilise (`opens_with_card`).
+   * Son nom est chiffré dans le récit : le lire à la loupe ouvre son panneau.
+   */
+  reader?: string
 }
 
 /** Les énigmes, une par mécanique d'objet trouvé. Voir `utils/puzzles.ts`. */
@@ -395,6 +400,11 @@ export interface SceneTextResponse extends GeneratedScene {
    * SERVIR — « utilise la Carte Ocre pour ouvrir le passage ».
    */
   opens_with_card?: boolean
+  /**
+   * Ce lecteur, en cible de la loupe : déchiffré, il ouvre un panneau où l'on
+   * choisit la carte à lui présenter. L'autre voie est de taper la phrase.
+   */
+  card_reader?: { id: string; label: string }
   /**
    * Ce lieu, tel que le plan de la nuit l'a fixé. Le client le renvoie aux
    * routes d'image et de tour : le serveur ne garde rien entre deux appels.

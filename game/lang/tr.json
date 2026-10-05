@@ -449,6 +449,8 @@
     "puzzle.halves_joined": "İki yarı birbirine oturuyor, kırık kırığa. Kart artık bütün, ve kenarı, geçidin yanındaki okuyucunun yarığını çevreleyen halkayla tıpatıp aynı renkte.",
     "puzzle.use_card_prompt": "Geçidi açmak için {{name}} kullan.",
     "puzzle.reader_waits": "Geçit kıpırdamıyor. Yanında, okuyucunun yarığı boş bekliyor.",
+    "puzzle.reader_open": "{{name}} uyanıyor: yarığı bir kart bekliyor.",
+    "puzzle.reader_hint": "Yalnızca bütün bir kart kabul ediyor.",
     "puzzle.unlocked_frequency": "{{name}} bir frekans bekliyor. Onu daraltan şey buralarda bir yerde.",
     "puzzle.unlocked_code": "{{name}} dört rakam bekliyor. Etrafına bak: bu mekânda yazılı.",
     "puzzle.unlocked_sequence": "{{name}} bir hareket dizisi bekliyor. Etrafına bak: sıraları bu mekânda yazılı.",

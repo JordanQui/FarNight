@@ -446,6 +446,8 @@
     "puzzle.halves_joined": "De twee helften klikken in elkaar, breuk tegen breuk. De kaart is heel, en haar rand heeft precies de tint van de ring om de gleuf van de lezer, naast de doorgang.",
     "puzzle.use_card_prompt": "Gebruik {{name}} om de doorgang te openen.",
     "puzzle.reader_waits": "De doorgang geeft niet mee. Ernaast wacht de gleuf van de lezer, leeg.",
+    "puzzle.reader_open": "{{name}} ontwaakt: de gleuf wacht op een kaart.",
+    "puzzle.reader_hint": "Hij neemt alleen een hele kaart.",
     "puzzle.unlocked_frequency": "{{name}} wacht op een frequentie. Wat haar afbakent, zit ergens in deze plek.",
     "puzzle.unlocked_code": "{{name}} wacht op vier cijfers. Kijk om je heen: ze staan op deze plek geschreven.",
     "puzzle.unlocked_sequence": "{{name}} wacht op een reeks handelingen. Kijk om je heen: hun volgorde staat op deze plek geschreven.",

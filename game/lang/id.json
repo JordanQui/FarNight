@@ -426,6 +426,8 @@
     "puzzle.halves_joined": "Kedua belahan menyatu, patahan bertemu patahan. Kartu itu utuh, dan tepinya tepat sewarna cincin yang melingkari celah pembaca, di samping lorong.",
     "puzzle.use_card_prompt": "Gunakan {{name}} untuk membuka lorong.",
     "puzzle.reader_waits": "Lorong itu tak bergeming. Di sampingnya, celah pembaca menunggu, kosong.",
+    "puzzle.reader_open": "{{name}} terjaga: celahnya menunggu sebuah kartu.",
+    "puzzle.reader_hint": "Ia hanya menerima kartu yang utuh.",
     "puzzle.unlocked_frequency": "{{name}} menunggu sebuah frekuensi. Yang mempersempitnya ada di suatu tempat di sini.",
     "puzzle.unlocked_code": "{{name}} menunggu empat angka. Lihat sekelilingmu: angka itu tertulis di tempat ini.",
     "puzzle.unlocked_sequence": "{{name}} menunggu serangkaian gerakan. Lihat sekelilingmu: urutannya tertulis di tempat ini.",

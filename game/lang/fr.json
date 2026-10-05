@@ -502,6 +502,8 @@
     "puzzle.halves_joined": "Les deux moitiés s'emboîtent, cassure contre cassure. La carte est entière, et sa tranche a exactement la teinte du liseré qui cercle la fente du lecteur, près du passage.",
     "puzzle.use_card_prompt": "Utilise {{name}} pour ouvrir le passage.",
     "puzzle.reader_waits": "Le passage ne cède pas. À côté, la fente du lecteur attend, vide.",
+    "puzzle.reader_open": "{{name}} s'éveille : sa fente attend une carte.",
+    "puzzle.reader_hint": "Il ne prend qu'une carte entière.",
     "puzzle.unlocked_frequency": "{{name}} attend une fréquence. Ce qui la borne est quelque part dans le lieu.",
     "puzzle.unlocked_code": "{{name}} attend quatre chiffres. Regarde autour de toi : ils sont écrits dans le lieu.",
     "puzzle.unlocked_sequence": "{{name}} attend une suite de gestes. Regarde autour de toi : leur ordre est écrit dans le lieu.",

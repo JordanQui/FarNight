@@ -424,6 +424,8 @@
     "puzzle.halves_joined": "二つの半分が、割れ目と割れ目でぴたりと噛み合う。カードはひとつに戻り、その縁は通路のそばにある読み取り機のスロットを囲む縁取りと、まったく同じ色をしている。",
     "puzzle.use_card_prompt": "{{name}}を使って通路を開けること。",
     "puzzle.reader_waits": "通路は動かない。そばで、読み取り機のスロットが空のまま待っている。",
+    "puzzle.reader_open": "{{name}}が目を覚ます。スロットがカードを待っている。",
+    "puzzle.reader_hint": "受け付けるのは、欠けていないカードだけだ。",
     "puzzle.unlocked_frequency": "{{name}}は周波数を待っている。範囲を絞る手がかりは、この場所のどこかにある。",
     "puzzle.unlocked_code": "{{name}}は四桁の数字を待っている。周りを見ること：この場所に書かれている。",
     "puzzle.unlocked_sequence": "{{name}}は一連の動作を待っている。周りを見ること：その順番はこの場所に書かれている。",

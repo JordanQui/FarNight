@@ -477,6 +477,8 @@
     "puzzle.halves_joined": "Die beiden Hälften greifen ineinander, Bruch an Bruch. Die Karte ist ganz, und ihre Kante hat genau den Farbton des Rings um den Schlitz des Lesers, neben dem Durchgang.",
     "puzzle.use_card_prompt": "Benutze {{name}}, um den Durchgang zu öffnen.",
     "puzzle.reader_waits": "Der Durchgang gibt nicht nach. Daneben wartet der Schlitz des Lesers, leer.",
+    "puzzle.reader_open": "{{name}} erwacht: Sein Schlitz wartet auf eine Karte.",
+    "puzzle.reader_hint": "Er nimmt nur eine ganze Karte.",
     "puzzle.unlocked_frequency": "{{name}} wartet auf eine Frequenz. Was sie eingrenzt, ist irgendwo im Ort.",
     "puzzle.unlocked_code": "{{name}} wartet auf vier Ziffern. Sieh dich um: Sie stehen im Ort geschrieben.",
     "puzzle.unlocked_sequence": "{{name}} wartet auf eine Folge von Handgriffen. Sieh dich um: Ihre Reihenfolge steht im Ort geschrieben.",

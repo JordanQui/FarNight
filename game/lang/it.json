@@ -493,6 +493,8 @@
     "puzzle.halves_joined": "Le due metà si incastrano, frattura contro frattura. La carta è intera, e il suo bordo ha esattamente la tinta dell'anello che cerchia la fessura del lettore, accanto al passaggio.",
     "puzzle.use_card_prompt": "Usa {{name}} per aprire il passaggio.",
     "puzzle.reader_waits": "Il passaggio non cede. Accanto, la fessura del lettore aspetta, vuota.",
+    "puzzle.reader_open": "{{name}} si risveglia: la sua fessura aspetta una carta.",
+    "puzzle.reader_hint": "Accetta solo una carta intera.",
     "puzzle.unlocked_frequency": "{{name}} aspetta una frequenza. Ciò che la delimita è da qualche parte nel luogo.",
     "puzzle.unlocked_code": "{{name}} aspetta quattro cifre. Guardati intorno: sono scritte in questo luogo.",
     "puzzle.unlocked_sequence": "{{name}} aspetta una sequenza di gesti. Guardati intorno: il loro ordine è scritto in questo luogo.",

@@ -424,6 +424,8 @@
     "puzzle.halves_joined": "两半严丝合缝地扣在一起，断口对着断口。卡完整了，它的边缘恰好是通道旁读卡器插槽外圈那道边框的颜色。",
     "puzzle.use_card_prompt": "用{{name}}打开通道。",
     "puzzle.reader_waits": "通道纹丝不动。旁边，读卡器的插槽空着，等着。",
+    "puzzle.reader_open": "{{name}}亮了起来：插槽在等一张卡。",
+    "puzzle.reader_hint": "它只认完整的卡。",
     "puzzle.unlocked_frequency": "{{name}}在等一个频率。能缩小范围的线索就在这里某处。",
     "puzzle.unlocked_code": "{{name}}在等待四位数字。看看周围：它们就写在这个地方。",
     "puzzle.unlocked_sequence": "{{name}}在等待一串动作。看看周围：它们的顺序就写在这个地方。",

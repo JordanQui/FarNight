@@ -29,16 +29,19 @@ function startMessages() {
 const firstSceneId = (useRuntimeConfig().public.sceneIndex as Array<{ id: string }>)?.[0]?.id
 const eyeCursor = !!gameStore.pendingSceneId && gameStore.pendingSceneId !== firstSceneId
 
+// `pendingSceneId` est posé par la commande `#scene<n>` ; sinon on prend la
+// scène de départ déclarée par le script. Lu UNE fois, au montage : le bouton
+// « Réessayer » rappelle `build`, et relire le store à ce moment-là — déjà vidé
+// par le premier essai — reconstruisait l'auberge au lieu de la scène visée.
+const target = gameStore.pendingSceneId ?? undefined
+// Consommé : sans ça, une scène demandée une fois resterait épinglée et toute
+// construction ultérieure y reviendrait.
+gameStore.pendingSceneId = null
+
 async function build() {
   startMessages()
 
   // Phase 1 : le texte. Bloquant, c'est lui qui rend la scène jouable.
-  // `pendingSceneId` est posé par la commande `#scene<n>` ; sinon on prend
-  // la scène de départ déclarée par le script.
-  const target = gameStore.pendingSceneId ?? undefined
-  // Consommé : sans ça, une scène demandée une fois resterait épinglée et
-  // toute construction ultérieure y reviendrait.
-  gameStore.pendingSceneId = null
   const scene = await loadSceneText(target, playerStore.profile ?? undefined)
 
   if (interval) clearInterval(interval)

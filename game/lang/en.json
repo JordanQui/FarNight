@@ -435,6 +435,8 @@
     "puzzle.halves_joined": "The two halves lock together, break against break. The card is whole, and its edge is exactly the shade of the ring around the reader's slot, by the passage.",
     "puzzle.use_card_prompt": "Use {{name}} to open the passage.",
     "puzzle.reader_waits": "The passage doesn't give. Beside it, the reader's slot waits, empty.",
+    "puzzle.reader_open": "{{name}} wakes: its slot is waiting for a card.",
+    "puzzle.reader_hint": "It only takes a whole card.",
     "puzzle.unlocked_frequency": "{{name}} is waiting for a frequency. What narrows it down is somewhere in this place.",
     "puzzle.unlocked_code": "{{name}} is waiting for four digits. Look around: they are written in this place.",
     "puzzle.unlocked_sequence": "{{name}} is waiting for a sequence of gestures. Look around: their order is written in this place.",

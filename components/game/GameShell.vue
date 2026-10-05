@@ -8,7 +8,9 @@ import { useStorylets } from '~/composables/useStorylets'
 import { useImageGen } from '~/composables/useImageGen'
 import { observationOf, analyzables } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
+import { usePaywall } from '~/composables/usePaywall'
 import { savePlaying } from '~/composables/useScene'
+import type { ScenePuzzle } from '~/types/scene'
 
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -18,6 +20,44 @@ const { generateSceneImage } = useImageGen()
 // le deck, dont l'ordre de priorité se lit d'un bloc dans `utils/storylets.ts`.
 const { play, take } = useStorylets()
 const puzzle = usePuzzle()
+const { openExit } = usePaywall()
+
+/*
+ * LE LECTEUR D'UNE SORTIE À CARTE. Deux voies l'ouvrent, et elles se valent :
+ * taper la phrase (« utilise la Carte Ocre… », voir le deck), ou déchiffrer
+ * son nom à la loupe et choisir la carte dans son panneau. Le panneau est
+ * celui du lecteur d'énigme, mais rien ici n'est une énigme : la bonne carte
+ * est celle qu'on vient de reconstituer.
+ */
+const reader = computed(() => playerStore.scene?.card_reader ?? null)
+const readerOpen = ref(false)
+const readerUsed = ref(false)
+const readerPuzzle = computed<ScenePuzzle | null>(() => reader.value
+  ? { kind: 'lock', card_id: puzzle.keyId.value, place: '', clues: [] }
+  : null)
+const readerWaiting = computed(() => Boolean(reader.value) && !readerOpen.value && !readerUsed.value
+  && gameStore.decryptedObjectIds.includes(reader.value!.id))
+watch(() => playerStore.scene?.scene_id, () => {
+  readerOpen.value = false
+  readerUsed.value = false
+})
+
+/** La carte présentée au lecteur : la carte entière ouvre, tout le reste est refusé. */
+function presentCard(answer: string | number | number[]): boolean {
+  if (readerUsed.value) return false
+  if (String(answer) !== puzzle.keyId.value || !gameStore.hasKeyItem) {
+    gameStore.addNarrativeEntry('system', t('puzzle.wrong'))
+    return false
+  }
+  readerUsed.value = true
+  readerOpen.value = false
+  gameStore.addNarrativeEntry('system', t('puzzle.solved_lock'))
+  // La même sortie que la phrase tapée : le texte du seuil, puis la suite.
+  const gate = playerStore.scene?.paywall.gate_text
+  if (gate) gameStore.addNarrativeEntry('narration', gate)
+  setTimeout(openExit, 1400)
+  return true
+}
 
 /**
  * Ouvert par défaut : le joueur doit voir tout de suite avec qui parler, c'est
@@ -87,6 +127,12 @@ function onSolved() {
   // une énigme, le lire montre le cadran, le clavier, le lecteur — et il
   // reste à trouver la réponse. Voir `usePuzzle`.
   if (isFoundItem.value && target.id === puzzle.keyId.value && !gameStore.hasKeyItem) puzzle.keyItemRead()
+
+  // Le lecteur déchiffré s'éveille : son panneau s'ouvre sur les cartes en poche.
+  if (reader.value && target.id === reader.value.id && !readerUsed.value) {
+    gameStore.addNarrativeEntry('system', t('puzzle.reader_open', { name: target.label }))
+    readerOpen.value = true
+  }
 }
 
 /**
@@ -294,6 +340,16 @@ function retryImage() {
       @close="gameStore.setPuzzleOpen(false)"
     />
 
+    <!-- Le lecteur de la sortie : on y choisit la carte à présenter -->
+    <PuzzlePanel
+      v-if="readerOpen && readerPuzzle && reader"
+      :puzzle="readerPuzzle"
+      :name="reader.label"
+      :hint="t('puzzle.reader_hint')"
+      :submit="presentCard"
+      @close="readerOpen = false"
+    />
+
     <Transition name="slide">
       <div
         v-if="puzzleWaiting"
@@ -305,6 +361,21 @@ function retryImage() {
         <button
           class="shrink-0 text-[10px] uppercase tracking-[0.2em] font-display text-neon-300 hover:text-neon-100 border border-neon-600/50 px-2 py-1"
           @click="gameStore.setPuzzleOpen(true)"
+        >{{ t('puzzle.reopen') }}</button>
+      </div>
+    </Transition>
+
+    <Transition name="slide">
+      <div
+        v-if="readerWaiting && reader"
+        class="shrink-0 flex items-center gap-3 mx-4 mb-2 px-3 py-2 border border-neon-700/40 bg-ink-900/80"
+      >
+        <p class="flex-1 min-w-0 text-[11px] text-neon-300/90 font-mono truncate">
+          {{ t('puzzle.waiting', { name: reader.label }) }}
+        </p>
+        <button
+          class="shrink-0 text-[10px] uppercase tracking-[0.2em] font-display text-neon-300 hover:text-neon-100 border border-neon-600/50 px-2 py-1"
+          @click="readerOpen = true"
         >{{ t('puzzle.reopen') }}</button>
       </div>
     </Transition>

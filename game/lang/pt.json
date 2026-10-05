@@ -482,6 +482,8 @@
     "puzzle.halves_joined": "As duas metades encaixam, fratura contra fratura. O cartão está inteiro, e a sua aresta tem exatamente o tom do aro que rodeia a ranhura do leitor, junto à passagem.",
     "puzzle.use_card_prompt": "Usa {{name}} para abrir a passagem.",
     "puzzle.reader_waits": "A passagem não cede. Ao lado, a ranhura do leitor espera, vazia.",
+    "puzzle.reader_open": "{{name}} desperta: a sua ranhura espera um cartão.",
+    "puzzle.reader_hint": "Só aceita um cartão inteiro.",
     "puzzle.unlocked_frequency": "{{name}} espera uma frequência. O que a delimita está algures no lugar.",
     "puzzle.unlocked_code": "{{name}} espera quatro algarismos. Olha à tua volta: estão escritos neste lugar.",
     "puzzle.unlocked_sequence": "{{name}} espera uma sequência de gestos. Olha à tua volta: a sua ordem está escrita neste lugar.",

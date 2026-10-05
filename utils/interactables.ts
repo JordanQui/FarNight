@@ -101,6 +101,7 @@ export function analyzables(scene: {
   grants_augmentation?: boolean
   sealed_object?: { id: string; name?: string; observation?: string } | null
   interactables?: Interactable[]
+  card_reader?: { id: string; label: string } | null
 }, lang: LangCode = DEFAULT_LANG, revealed: string[] = []): Analyzable[] {
   const out: Analyzable[] = []
   // Le nom de l'augmentation, soudé, pour la reconnaître où que le modèle
@@ -125,6 +126,9 @@ export function analyzables(scene: {
       observation: scene.key_item.observation,
     })
   }
+  // Le lecteur d'une sortie à carte : chiffré comme ce qui se trouve, il
+  // n'apprend rien — le lire ouvre son panneau (voir GameShell).
+  if (scene.card_reader?.label) out.push({ id: scene.card_reader.id, label: scene.card_reader.label })
   if (scene.sealed_object?.name && !isAugmentation(scene.sealed_object.name)) {
     out.push({
       id: scene.sealed_object.id,

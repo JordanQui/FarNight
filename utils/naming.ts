@@ -82,7 +82,7 @@ function escapeRe(s: string): string {
 }
 
 /** Le nom sans son article : « le Tourniquet » se cherche par « Tourniquet ». */
-function stripArticle(name: string, lang: LangCode): string {
+export function stripArticle(name: string, lang: LangCode): string {
   return name.trim().replace(leadingArticle(lang), '').trim()
 }
 

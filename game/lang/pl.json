@@ -450,6 +450,8 @@
     "puzzle.halves_joined": "Obie połowy zaskakują, pęknięcie do pęknięcia. Karta jest cała, a jej krawędź ma dokładnie barwę obwódki wokół szczeliny czytnika, przy przejściu.",
     "puzzle.use_card_prompt": "Użyj {{name}}, aby otworzyć przejście.",
     "puzzle.reader_waits": "Przejście nie ustępuje. Obok czeka szczelina czytnika, pusta.",
+    "puzzle.reader_open": "{{name}} budzi się: jego szczelina czeka na kartę.",
+    "puzzle.reader_hint": "Przyjmuje tylko całą kartę.",
     "puzzle.unlocked_frequency": "{{name}} czeka na częstotliwość. To, co ją zawęża, jest gdzieś w tym miejscu.",
     "puzzle.unlocked_code": "{{name}} czeka na cztery cyfry. Rozejrzyj się: są tu zapisane.",
     "puzzle.unlocked_sequence": "{{name}} czeka na ciąg gestów. Rozejrzyj się: ich kolejność jest tu zapisana.",

@@ -422,6 +422,8 @@
     "puzzle.halves_joined": "Hai nửa khớp vào nhau, vết gãy áp vết gãy. Tấm thẻ đã liền, và mép của nó đúng màu vòng viền quanh khe đầu đọc, cạnh lối đi.",
     "puzzle.use_card_prompt": "Dùng {{name}} để mở lối đi.",
     "puzzle.reader_waits": "Lối đi không nhúc nhích. Bên cạnh, khe đầu đọc chờ, trống trơn.",
+    "puzzle.reader_open": "{{name}} bừng tỉnh: khe của nó đang chờ một tấm thẻ.",
+    "puzzle.reader_hint": "Nó chỉ nhận một tấm thẻ nguyên vẹn.",
     "puzzle.unlocked_frequency": "{{name}} đang chờ một tần số. Thứ khoanh vùng nó nằm đâu đó ở nơi này.",
     "puzzle.unlocked_code": "{{name}} đang chờ bốn chữ số. Hãy nhìn quanh: chúng được viết ở nơi này.",
     "puzzle.unlocked_sequence": "{{name}} đang chờ một chuỗi thao tác. Hãy nhìn quanh: thứ tự của chúng được viết ở nơi này.",
