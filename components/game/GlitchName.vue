@@ -76,13 +76,11 @@ onUnmounted(() => { stopChime(props.name) })
  *
  * Pour un nom chiffré, ça n'arrive qu'en QUITTANT le nom après l'avoir lu :
  * armer à l'entrée ouvrirait la conversation, l'oeil s'effacerait aussitôt et
- * le nom se rechiffrerait avant d'avoir été vu. Pendant un tour en cours, on
- * ne change pas d'interlocuteur sous les pieds du récit.
+ * le nom se rechiffrerait avant d'avoir été vu. Au gyroscope, c'est
+ * `useGyroEye` qui s'en charge.
  */
 function address() {
-  if (gameStore.isInputDisabled) return
-  const npc = playerStore.npcs.find(n => n.name.toLowerCase() === props.name.toLowerCase())
-  if (npc && gameStore.activeNpcId !== npc.id) gameStore.setActiveNpc(npc.id)
+  gameStore.addressByName(props.name, playerStore.npcs)
 }
 
 /** Sur desktop, la souris EST l'instrument — une fois l'oeil ouvert. */

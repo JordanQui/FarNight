@@ -1,4 +1,5 @@
 import { useGameStore } from '~/stores/game'
+import { usePlayerStore } from '~/stores/player'
 import { primeContext, unlockAudio } from '~/composables/useNameChime'
 import { upVector, aimFrom } from '~/utils/gyro-aim'
 import { useInputMode } from '~/composables/useInputMode'
@@ -129,6 +130,7 @@ type OrientationEventCtor = typeof DeviceOrientationEvent & {
 
 export function useGyroEye() {
   const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
 
   const supported = computed(() =>
     import.meta.client && typeof window.DeviceOrientationEvent !== 'undefined')
@@ -262,6 +264,10 @@ export function useGyroEye() {
    */
   let dwellSpent = false
 
+  /** Temps de lecture d'un nom avant que le quitter l'arme dans la saisie. */
+  const ADDRESS_DWELL_MS = 400
+  let revealedSince = 0
+
   function loop() {
     const pos = gameStore.eyePos
     const next = {
@@ -308,7 +314,18 @@ export function useGyroEye() {
       dwellSpent = false
       // En conversation l'oeil est masqué : il ne lit rien qu'on ne voie viser.
       const name = gameStore.eyeHidden ? null : node?.dataset.glitchName ?? null
-      if (name !== gameStore.revealing) gameStore.setRevealing(name)
+      if (name !== gameStore.revealing) {
+        // Quitter un nom qu'on a vraiment lu arme la saisie vers lui, comme le
+        // survol à la souris. Un nom traversé d'un tremblement ne compte pas :
+        // la conversation masque l'oeil, et un passage involontaire le
+        // fermerait avant qu'on ait visé ce qu'on cherchait.
+        const left = gameStore.revealing
+        gameStore.setRevealing(name)
+        if (left && Date.now() - revealedSince >= ADDRESS_DWELL_MS) {
+          gameStore.addressByName(left, playerStore.npcs)
+        }
+        revealedSince = Date.now()
+      }
     }
 
     raf = requestAnimationFrame(loop)

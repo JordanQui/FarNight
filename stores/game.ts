@@ -393,6 +393,17 @@ export const useGameStore = defineStore('game', {
       if (npcId && this.activeTool === 'eye') this.revealing = null
     },
 
+    /**
+     * Un nom lu à l'oeil arme la saisie : la prochaine phrase part chez lui.
+     * Pendant un tour en cours, on ne change pas d'interlocuteur sous les pieds
+     * du récit.
+     */
+    addressByName(name: string, npcs: Array<{ id: string; name: string }>) {
+      if (this.isInputDisabled) return
+      const npc = npcs.find(n => n.name.toLowerCase() === name.toLowerCase())
+      if (npc && this.activeNpcId !== npc.id) this.setActiveNpc(npc.id)
+    },
+
     /** Le joueur se détourne : ce qu'il tapera ensuite s'adresse au lieu. */
     leaveConversation() {
       this.activeNpcId = null
