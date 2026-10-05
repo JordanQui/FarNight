@@ -203,7 +203,7 @@
         "decor": [
           {
             "slot_id": "string",
-            "name": "string (en Majuscules de Titre s'il compte, minuscules sinon)",
+            "name": "string (en Majuscules de Titre, toujours : tout élément de décor se regarde et se fouille)",
             "description": "string",
             "visual": "string (anglais, court, pour le prompt image, sans couleur)"
           }
@@ -262,7 +262,7 @@
         "interactables": [
           {
             "id": "string",
-            "label": "string (en Majuscules de Titre s'il compte)",
+            "label": "string (en Majuscules de Titre, toujours)",
             "verb": "string",
             "item_kind": "string (UNIQUEMENT pour un objet qu'on peut PRENDRE. \"echange\" si quelqu'un, ici ou plus loin, pourrait vouloir se le procurer — un objet qui a de la valeur pour un autre que le joueur ; \"recit\" si sa valeur est ce qu'il apprend. Dans le doute, \"recit\". \"carte\" UNIQUEMENT pour la carte de plus que réclame UNE CARTE DE PLUS. Vide pour tout le reste)",
             "card_color": "string (UNIQUEMENT si item_kind vaut \"carte\" : sa couleur, un mot en Majuscule. Vide sinon)",
@@ -1497,7 +1497,7 @@
           "decor": [
             {
               "slot_id": "string",
-              "name": "string (en Majuscules de Titre s'il compte, minuscules sinon)",
+              "name": "string (en Majuscules de Titre, toujours : tout élément de décor se regarde et se fouille)",
               "description": "string",
               "visual": "string (anglais, court, pour le prompt image, sans couleur)"
             }

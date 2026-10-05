@@ -109,6 +109,48 @@ function pattern(name: string): RegExp {
   return new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, 'giu')
 }
 
+/**
+ * Les petits mots de liaison qui restent en minuscules dans une Majuscule de
+ * Titre, au-delà des articles et des mots vides du pack : « le Carrefour des
+ * Enseignes », « the Hall of Mirrors ».
+ */
+const LINKING = new Set([
+  'et', 'ou', 'en', 'sur', 'par', 'sans', 'vers', 'chez',
+  'and', 'or', 'of', 'for', 'to', 'in', 'on', 'at', 'by',
+  'und', 'oder', 'von', 'vom', 'zum', 'zur', 'im', 'am',
+  'y', 'e', 'o', 'di', 'da', 'del', 'della', 'per', 'con', 'por', 'para', 'sin',
+  'van', 'het', 'een', 'op', 'ile', 've',
+])
+
+/**
+ * Le nom en Majuscules de Titre : chaque mot significatif prend sa majuscule.
+ *
+ * Le schéma laissait le modèle écrire en minuscules ce qui « ne compte pas » —
+ * or tout élément de décor se regarde et se fouille, et s'affiche en gras : on
+ * voyait passer un « bourdonnement techno » en gras minuscule, signal à moitié
+ * donné. La casse se pose donc ici, une fois, sur les noms déclarés, avant que
+ * `enforceNameCaps` l'impose au texte.
+ *
+ * On ne baisse jamais une lettre : « TX-9 » ou « McAllister » restent tels quels.
+ * Sans casse (zh, ja, ar), le nom ne change pas : le gras suffit.
+ */
+export function titleCase(name: string, lang: LangCode = DEFAULT_LANG): string {
+  if (signalOf(lang) !== 'caps' || !name) return name
+  const { articles, stopwords } = pack(lang).input
+  const small = new Set([...articles, ...stopwords, ...LINKING].map(fold))
+  const elided = articles.filter(a => a.endsWith("'")).map(a => a.slice(0, -1))
+  const upper = (w: string) => w.charAt(0).toLocaleUpperCase(lang) + w.slice(1)
+
+  return name.split(/(\s+)/).map((word) => {
+    if (!word.trim()) return word
+    // « d'accès » → « d'Accès » : l'article élidé reste petit, le mot non.
+    const m = word.match(/^([\p{L}]{1,2})(['’])(.+)$/u)
+    if (m && elided.includes(fold(m[1]!))) return `${m[1]!.toLowerCase()}${m[2]}${upper(m[3]!)}`
+    if (small.has(fold(word))) return word
+    return upper(word)
+  }).join('')
+}
+
 export interface NamingAudit {
   /** Le texte, noms recapitalisés. */
   text: string

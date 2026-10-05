@@ -44,7 +44,7 @@ const segments = computed(() => {
   /><strong
     v-else-if="seg.name && seg.kind === 'mark'"
     class="font-bold text-parchment"
-  >{{ seg.text }}</strong><GlitchName
+  >{{ seg.name }}</strong><GlitchName
     v-else-if="seg.name"
     :name="seg.name"
   /><template v-else>{{ seg.text }}</template></template></span>

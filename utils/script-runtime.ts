@@ -19,7 +19,7 @@ import type { UserProfile } from '~/types/user'
 import { interpolate } from '~/utils/prompt-builder'
 import { matchesKeyword } from '~/utils/text-match'
 import { deterministicPaletteHexes, enforceAccentVisibility } from '~/utils/palette'
-import { enforceNameCaps, fold } from '~/utils/naming'
+import { enforceNameCaps, fold, titleCase } from '~/utils/naming'
 import { isTakeable } from '~/utils/interactables'
 import { sanitizeHtml } from '~/utils/sanitize-html'
 import { sanitizeItemIcon } from '~/utils/item-icon'
@@ -1555,10 +1555,17 @@ ${lines}`)
       secondary: { ...audit.palette.secondary, coverage_pct: ratio.secondary_pct },
       accent: { ...audit.palette.accent, coverage_pct: ratio.accent_pct },
     }
-    const scene = { ...generated, palette }
+    // TOUT CE QUI SE REGARDE OU SE FOUILLE S'ÉCRIT EN MAJUSCULES DE TITRE. Le
+    // modèle laisse en minuscules le décor qu'il juge secondaire ; le récit le
+    // met pourtant en gras, et le joueur doit pouvoir le taper tel qu'il le lit.
+    const scene = {
+      ...generated,
+      palette,
+      decor: (generated.decor ?? []).map(d => ({ ...d, name: titleCase(d.name, this.lang) })),
+    }
 
     // Les interactables obligatoires sont réinjectés même si le modèle les a oubliés.
-    const interactables = [...(scene.interactables ?? [])]
+    const interactables = (scene.interactables ?? []).map(i => ({ ...i, label: titleCase(i.label, this.lang) }))
     for (const forced of this.scene.interactables.always_include) {
       const existing = interactables.find(i => i.id === forced.id)
       if (existing) existing.triggers_paywall = forced.triggers_paywall
