@@ -253,8 +253,6 @@ export interface Interactable {
    * chose que le joueur n'a aucun moyen de voir.
    */
   hidden?: boolean
-  /** Id de l'objet caché dans ce contenant, révélé quand le contenant est analysé. */
-  contains_id?: string
   /**
    * Ce que l'analyse révèle, pour un objet qu'on peut PRENDRE.
    *

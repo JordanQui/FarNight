@@ -137,7 +137,7 @@ export function analyzables(scene: {
     })
   }
   for (const obj of visible(scene.interactables, revealed)) {
-    if (!obj.label || (!isTakeable(obj, lang) && !obj.contains_id) || isAugmentation(obj.label)) continue
+    if (!obj.label || !isTakeable(obj, lang) || isAugmentation(obj.label)) continue
     out.push({ id: obj.id, label: obj.label, observation: obj.observation })
   }
   return out

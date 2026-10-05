@@ -116,11 +116,6 @@ function onSolved() {
     playerStore.scene, gameStore.inventory, target.id,
     playerStore.language, gameStore.revealedInteractableIds)
   if (observation) gameStore.addNarrativeEntry('narration', observation)
-  // A3S1 : ouvrir/analyser le contenant rend enfin visible l'offrande qu'il
-  // renferme. Elle suit ensuite exactement la boucle habituelle : loupe,
-  // ramassage, inventaire, puis don au détenteur de la carte.
-  const container = playerStore.scene?.interactables?.find(o => o.id === target.id)
-  if (container?.contains_id) gameStore.revealInteractable(container.contains_id)
   // Un objet porté qui tient un morceau de l'énigme d'ici le livre à la même
   // lecture : le déchiffrer, c'est enfin pouvoir le regarder.
   const carriedClue = playerStore.scene?.puzzle?.clues.find(c => c.item_id === target.id)?.text
