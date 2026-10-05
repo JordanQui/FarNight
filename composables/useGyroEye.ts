@@ -317,13 +317,13 @@ export function useGyroEye() {
       if (name !== gameStore.revealing) {
         // Quitter un nom qu'on a vraiment lu arme la saisie vers lui, comme le
         // survol à la souris. Un nom traversé d'un tremblement ne compte pas :
-        // la conversation masque l'oeil, et un passage involontaire le
-        // fermerait avant qu'on ait visé ce qu'on cherchait.
+        // sans ce seuil, chaque passage involontaire changerait
+        // d'interlocuteur.
         const left = gameStore.revealing
-        gameStore.setRevealing(name)
         if (left && Date.now() - revealedSince >= ADDRESS_DWELL_MS) {
           gameStore.addressByName(left, playerStore.npcs)
         }
+        gameStore.setRevealing(name)
         revealedSince = Date.now()
       }
     }

@@ -75,8 +75,7 @@ onUnmounted(() => { stopChime(props.name) })
  * Survoler un nom l'arme dans la saisie : la prochaine phrase part chez lui.
  *
  * Pour un nom chiffré, ça n'arrive qu'en QUITTANT le nom après l'avoir lu :
- * armer à l'entrée ouvrirait la conversation, l'oeil s'effacerait aussitôt et
- * le nom se rechiffrerait avant d'avoir été vu. Au gyroscope, c'est
+ * on arme ce qu'on a vu, pas ce qu'on traverse. Au gyroscope, c'est
  * `useGyroEye` qui s'en charge.
  */
 function address() {
@@ -87,8 +86,7 @@ function address() {
 function onEnter() {
   const canRead = canChimeName(gameStore.eyeActive, gameStore.eyeHidden, gameStore.activeTool)
   // Déjà rencontré : il reste lisible sans masquer le récit, mais sa voix
-  // doit toujours répondre au survol — avant d'armer la saisie, qui efface
-  // l'oeil. Écrit en clair, il s'aborde sans l'oeil.
+  // doit toujours répondre au survol. Écrit en clair, il s'aborde sans l'oeil.
   if (known.value) {
     if (canRead) void startChime(props.name, assigned.value.mode, assigned.value.voice)
     address()

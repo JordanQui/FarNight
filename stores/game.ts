@@ -39,6 +39,11 @@ export const useGameStore = defineStore('game', {
      * tapé lui est adressé.
      */
     activeNpcId: null as string | null,
+    /**
+     * La conversation a vraiment commencé : le joueur a parlé à `activeNpcId`.
+     * Un nom seulement visé l'arme sans l'ouvrir, et l'oeil reste en main.
+     */
+    conversing: false,
     paywallTriggered: false,
     /** Tours réellement facturés au modèle. Les réponses locales n'y entrent pas. */
     modelTurnsUsed: 0,
@@ -295,10 +300,11 @@ export const useGameStore = defineStore('game', {
       state.playingSubState === 'npc_dialogue',
     /**
      * L'oeil s'efface pendant une conversation : bouton, réticule, icône et
-     * curseur. On parle à quelqu'un, on ne lit pas la salle ; pour déchiffrer
-     * un autre nom, on se détourne d'abord.
+     * curseur. On parle à quelqu'un, on ne lit pas la salle. Un nom seulement
+     * visé ne compte pas encore : l'oeil s'efface quand on commence à lui
+     * écrire, et revient quand on se détourne.
      */
-    eyeHidden: (state) => state.activeNpcId !== null,
+    eyeHidden: (state) => state.activeNpcId !== null && (state.conversing || state.typing),
   },
 
   actions: {
@@ -390,23 +396,27 @@ export const useGameStore = defineStore('game', {
 
     setActiveNpc(npcId: string | null) {
       this.activeNpcId = npcId
+      this.conversing = npcId !== null
       if (npcId && this.activeTool === 'eye') this.revealing = null
     },
 
     /**
      * Un nom lu à l'oeil arme la saisie : la prochaine phrase part chez lui.
      * Pendant un tour en cours, on ne change pas d'interlocuteur sous les pieds
-     * du récit.
+     * du récit ; une conversation commencée ne se quitte pas par un survol.
      */
     addressByName(name: string, npcs: Array<{ id: string; name: string }>) {
-      if (this.isInputDisabled) return
+      if (this.isInputDisabled || this.conversing) return
       const npc = npcs.find(n => n.name.toLowerCase() === name.toLowerCase())
-      if (npc && this.activeNpcId !== npc.id) this.setActiveNpc(npc.id)
+      if (!npc || this.activeNpcId === npc.id) return
+      this.activeNpcId = npc.id
+      this.conversing = false
     },
 
     /** Le joueur se détourne : ce qu'il tapera ensuite s'adresse au lieu. */
     leaveConversation() {
       this.activeNpcId = null
+      this.conversing = false
     },
 
     /**
@@ -761,6 +771,7 @@ export const useGameStore = defineStore('game', {
       this.sceneImageLoading = false
       this.sceneImageError = null
       this.activeNpcId = null
+      this.conversing = false
       this.hasKeyItem = false
       this.keyItemExchanges = 0
       this.informedAboutItem = false
@@ -810,6 +821,7 @@ export const useGameStore = defineStore('game', {
       this.sceneImageLoading = false
       this.sceneImageError = null
       this.activeNpcId = null
+      this.conversing = false
       this.paywallTriggered = false
       this.modelTurnsUsed = 0
       this.spentUsd = 0
