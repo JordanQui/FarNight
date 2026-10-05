@@ -496,6 +496,34 @@ export class SceneRuntime {
       }
     }
 
+    // L'OFFRANDE EST UN OBJET D'ICI. Le schéma commun dit que `wants` vise ce
+    // que le joueur PORTE : le modèle obéissait au schéma plutôt qu'à la
+    // consigne, et la scène partait en 502 faute d'offrande.
+    if (this.scene.key_item.offering) {
+      const npcs = schema.npcs as Array<Record<string, unknown>> | undefined
+      const npc = npcs?.[0]
+      const wants = npc?.wants as Record<string, unknown> | undefined
+      if (npc && wants) {
+        const { reward_item: _ri, reveals_id: _rv, ...rest } = wants
+        schema.npcs = [{
+          ...npc,
+          wants: {
+            ...rest,
+            item_id: `string ("${OFFERING_ID}" chez le détenteur de la carte — l'objet posé dans CE lieu, voir L'OFFRANDE — et vide chez tous les autres)`,
+            hint: "string (une phrase, dans sa voix : ce qui lui manque, par la forme et l'usage, sans le nommer ni dire où c'est)",
+            reward: "string (2 à 3 phrases : ce que l'objet lui rend, dans sa voix, au moment où il tend la carte)",
+          },
+        }]
+      }
+      const objects = schema.interactables as Array<Record<string, unknown>> | undefined
+      if (objects?.length) {
+        schema.interactables = [{
+          ...objects[0],
+          id: `string (exactement "${OFFERING_ID}" pour l'offrande, un id court sans espace pour le reste)`,
+        }]
+      }
+    }
+
     // La couleur d'une carte de plus ne se demande que là où il y en a une.
     if (!this.scene.interactables.spare_card) {
       const objects = schema.interactables as Array<Record<string, unknown>> | undefined
@@ -725,7 +753,7 @@ ${this.describeNight(theme, journal)}
 ${this.describeReading(journal)}
 
 ${this.describeCarried(carried)}
-${canTrade ? `\nCE QU'UN PERSONNAGE PEUT EN VOULOIR\n${this.script.defaults.exchange.instruction}\n` : ''}
+${canTrade && !s.key_item.offering ? `\nCE QU'UN PERSONNAGE PEUT EN VOULOIR\n${this.script.defaults.exchange.instruction}\n` : ''}
 
 NOM DU LIEU
 ${interpolate(s.naming.instruction, this.langVars)}
@@ -1159,16 +1187,62 @@ ${lines}`)
     if (!this.scene.key_item.offering) return
     const holder = (generated.npcs ?? []).find(n => n.id === generated.key_item?.npc_id)
     const objects = generated.interactables ?? []
-    // Le détenteur réclame une chose de la scène sous un autre id : c'est elle.
-    if (!objects.some(o => o.id === OFFERING_ID)) {
+    // JAMAIS BLOQUANT. Le modèle écrit la bonne chose sous un autre id, fait
+    // réclamer au détenteur un objet qu'il PORTE, ou pose une « offrande »
+    // qu'on ne peut pas prendre — verbe d'examen, nom absent du texte. Tant
+    // qu'il y a une chose nommée dans ce lieu, l'une d'elles devient
+    // l'offrande, par ordre de vraisemblance.
+    const written = fold(generated.scene_text ?? '')
+    const takeVerb = this.pack.input.take[0] ?? ''
+    const named = (o: Interactable) => Boolean(o.label?.trim()) && this.namedIn(o.label, written)
+    const claimed = objects.find(o => o.id === OFFERING_ID)
+    if (claimed && !claimed.triggers_paywall && named(claimed)) {
+      // Nommée dans le texte : il ne lui manquait que la prise.
+      if (!isTakeable(claimed, this.lang) && takeVerb) claimed.verb = takeVerb
+    } else {
+      if (claimed) claimed.id = `${OFFERING_ID}_brouillon`
+      const usable = objects.filter(o => isTakeable(o, this.lang) && !o.hidden
+        && o.item_kind !== 'carte' && named(o))
       const aimed = holder?.wants?.item_id
-      const found = aimed ? objects.find(o => o.id === aimed && isTakeable(o, this.lang)) : undefined
-      if (found) found.id = OFFERING_ID
+      let found = objects.find(o => /offrande|offering/i.test(o.id) && o !== claimed
+        && isTakeable(o, this.lang) && named(o))
+        ?? (aimed ? usable.find(o => o.id === aimed) : undefined)
+        ?? usable.find(o => o.item_kind === 'echange' && o.observation?.trim())
+        ?? usable.find(o => o.observation?.trim())
+        ?? usable[0]
+      // Rien à prendre de nommé : une chose du décor que le texte nomme.
+      if (!found && takeVerb) {
+        const keyName = fold(generated.key_item?.name ?? '').trim()
+        const rank = (slot: string) => slot === 'trace' ? 0 : slot === 'focal' ? 3 : slot === 'lointain' ? 2 : 1
+        const source = [...(generated.decor ?? [])]
+          .filter(d => d.name?.trim() && this.namedIn(d.name, written) && fold(d.name).trim() !== keyName)
+          .sort((a, b) => rank(a.slot_id) - rank(b.slot_id))[0]
+        if (source) {
+          let picked = objects.find(o => !o.triggers_paywall && fold(o.label ?? '').trim() === fold(source.name).trim())
+          if (!picked) {
+            picked = { id: OFFERING_ID, label: source.name, verb: takeVerb, observation: source.description }
+            objects.push(picked)
+            generated.interactables = objects
+          }
+          picked.verb = takeVerb
+          picked.observation = picked.observation?.trim() || source.description
+          found = picked
+        }
+      }
+      if (found) {
+        console.warn(`[scene/${this.scene.id}] offrande désignée : « ${found.label} » (id "${found.id}")`)
+        found.id = OFFERING_ID
+      }
     }
     const offering = objects.find(o => o.id === OFFERING_ID)
     if (offering) {
       offering.item_kind = 'echange'
       delete offering.hidden
+      // Une offrande sans observation reste lisible : la loupe dit au moins
+      // qu'elle manque à quelqu'un ici.
+      if (!offering.observation?.trim()) {
+        offering.observation = generated.key_item?.handover_hint?.trim() || offering.label
+      }
     }
     // Lui seul la réclame.
     for (const npc of generated.npcs ?? []) {
@@ -1180,8 +1254,16 @@ ${lines}`)
     holder.wants = {
       ...wants,
       item_id: OFFERING_ID,
-      hint: wants.hint?.trim() || generated.key_item?.handover_hint || '',
+      hint: wants.hint?.trim() || generated.key_item?.handover_hint?.trim()
+        || generated.key_item?.hook_story?.trim() || '',
+      reward: wants.reward ?? '',
     }
+  }
+
+  /** Le nom est-il dans le texte, quel que soit l'article — « du Cadran » pour « le Cadran ». */
+  private namedIn(label: string, written: string): boolean {
+    const bare = stripArticle(label, this.lang)
+    return Boolean(bare) && written.includes(fold(bare))
   }
 
   /**
@@ -1454,12 +1536,19 @@ ${lines}`)
     // dans sa poche pour toujours.
     if (this.scene.key_item.offering) {
       const written = fold(generated.scene_text ?? '')
+      const named = (o: Interactable) => Boolean(o.label?.trim()) && this.namedIn(o.label, written)
       const offering = takeable.find(o => o.id === OFFERING_ID)
       if (!offering || offering.hidden || !offering.label?.trim()
-        || !written.includes(fold(offering.label)) || !offering.observation?.trim()) {
+        || !this.namedIn(offering.label, written) || !offering.observation?.trim()) {
+        // Ce qui est arrivé, dans le message même : sans lui, un refus après
+        // reprise ne laisse aucune trace de ce que le modèle avait écrit.
+        const seen = (generated.interactables ?? [])
+          .map(o => `${o.id}/${o.verb || '—'}/« ${o.label} »${named(o) ? '' : ' (absent du texte)'}${o.hidden ? ' (caché)' : ''}`)
+          .join(' ; ')
         throw new Error(
           `Scène invalide : aucune offrande — un objet de \`interactables\` doit avoir l'id "${OFFERING_ID}", `
-          + `item_kind "echange", une observation, un verbe ${this.takeVerbs}, et son label exact en Majuscules dans scene_text`)
+          + `item_kind "echange", une observation, un verbe ${this.takeVerbs}, et son label exact en Majuscules dans scene_text. `
+          + `Reçu : ${seen || 'aucun objet'}`)
       }
       const holder = generated.npcs.find(n => n.id === generated.key_item?.npc_id)
       if (!holder?.wants?.hint?.trim()) {
