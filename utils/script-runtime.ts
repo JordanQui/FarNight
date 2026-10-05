@@ -217,6 +217,15 @@ const AUGMENTATION_NAME_RE = /^[A-Z][a-z]+(?:[A-Z][a-z]+){1,2}$/
 const DENSE_AUGMENTATION_NAME_RE = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]{2,8}$/u
 const ARABIC_AUGMENTATION_NAME_RE = /^\p{Script=Arabic}{2,}(?: \p{Script=Arabic}{2,})?$/u
 
+// Ce qui, dans un archétype affiché, dit la fonction du personnage dans le jeu
+// plutôt que ce qu'il est dans la ville. `dropUnreachable` efface ces archétypes.
+const ARCHETYPE_LEAKS = /informat|d[ée]tent|porteur de|gardien de l|personnage.cl|t[ée]moin.cl|\bindice\b|\bcontact\b|\bpnj\b/i
+
+/** L'archétype tel que les prompts le citent, même effacé de la fiche. */
+function archetypeOf(npc: { archetype?: string }): string {
+  return npc.archetype || 'un habitué du lieu'
+}
+
 /**
  * Une scène du script, defaults résolus, augmentée de son comportement.
  * Le contenu reste dans le JSON ; cette classe ne fait que l'exploiter.
@@ -1085,6 +1094,20 @@ ${lines}`)
    * l'enlève : ce qui reste est exactement la scène qui allait s'afficher.
    */
   dropUnreachable(generated: GeneratedScene): void {
+    // UN ARCHÉTYPE QUI TRAHIT LA MÉCANIQUE S'EFFACE. Le modèle y recopie
+    // parfois sa fonction — « Porteur de Mémoires », « Informatrice du Quai » —
+    // ce qui dirait au joueur qui détient quoi avant qu'il ait parlé à
+    // personne. Le refuser coûtait la scène entière, reprise comprise, puis un
+    // 502 au lancement de l'aventure, pour une étiquette de quatre mots. On la
+    // retire : la fiche n'affiche plus que le nom, et les prompts retombent sur
+    // `archetypeOf`.
+    for (const npc of generated.npcs ?? []) {
+      if (npc.archetype && ARCHETYPE_LEAKS.test(npc.archetype)) {
+        console.warn(`[scene/${this.scene.id}] l'archétype de ${npc.name} révélait sa fonction ("${npc.archetype}") : retiré`)
+        npc.archetype = ''
+      }
+    }
+
     // Le cas symétrique : un `reveals_id` qui ne désigne aucun élément caché.
     // Le modèle y met l'id de l'objet-clé — « a1s1_card » — pour faire remettre
     // la carte par l'échange, ce que la règle interdit déjà à `reward_item`.
@@ -1325,15 +1348,6 @@ ${lines}`)
         `Scène invalide : quest.artifact est une carte ("${generated.quest.artifact}") — `
         + "l'horizon de la nuit ne peut pas être un laissez-passer, "
         + 'écris ce qui se tient au bout de la montée')
-    }
-
-    // Le modèle recopie parfois la mécanique dans l'archétype affiché, ce qui
-    // révèle au joueur qui détient quoi avant même qu'il ait parlé à personne.
-    const LEAKS = /informat|d[ée]tent|porteur de|gardien de l|personnage.cl|t[ée]moin.cl|\bindice\b|\bcontact\b|\bpnj\b/i
-    for (const npc of generated.npcs ?? []) {
-      if (npc.archetype && LEAKS.test(npc.archetype)) {
-        throw new Error(`Scène invalide : l'archétype de ${npc.name} révèle sa fonction ("${npc.archetype}")`)
-      }
     }
 
     if (!Array.isArray(generated.npcs) || generated.npcs.length === 0) {
@@ -1784,7 +1798,7 @@ ${lines}`)
   buildTurnSystemPrompt(ctx: TurnContext, turnCount = 0): string {
     const t = this.scene.turn
     const npcList = ctx.npcs.length
-      ? ctx.npcs.map(n => `${n.name} (${n.archetype}${n.role ? ' — ' + n.role : ''})`).join(', ')
+      ? ctx.npcs.map(n => `${n.name} (${archetypeOf(n)}${n.role ? ' — ' + n.role : ''})`).join(', ')
       : 'personne'
 
     const base = interpolate(t.system_prompt_template, {
@@ -1938,7 +1952,7 @@ ${lines}`)
       return interpolate(template ?? t.npc_dialogue_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         npc_knows: npc.knows,
         player_input: input,
@@ -1960,7 +1974,7 @@ ${lines}`)
       return interpolate(t.handover_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         player_input: input,
         item_name: ctx.key_item.name,
@@ -2006,7 +2020,7 @@ ${lines}`)
       return interpolate(t.informant_warmup_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         npc_knows: npc.knows,
         player_input: input,
@@ -2019,7 +2033,7 @@ ${lines}`)
       return interpolate(t.informant_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         npc_knows: npc.knows,
         player_input: input,
@@ -2034,7 +2048,7 @@ ${lines}`)
       return interpolate(t.holder_locked_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         npc_knows: npc.knows,
         player_input: input,
@@ -2047,7 +2061,7 @@ ${lines}`)
       return interpolate(t.holder_prompt, {
         ...rules,
         npc_name: npc.name,
-        npc_archetype: npc.archetype,
+        npc_archetype: archetypeOf(npc),
         npc_personality: npc.personality,
         npc_knows: npc.knows,
         player_input: input,
@@ -2067,7 +2081,7 @@ ${lines}`)
       beyond_rule: asks ? '' : rules.beyond_rule,
       rhythm_rule: (asks ? t.npc_ask_rule : t.npc_give_rule) ?? '',
       npc_name: npc.name,
-      npc_archetype: npc.archetype,
+      npc_archetype: archetypeOf(npc),
       npc_personality: npc.personality,
       npc_knows: npc.knows,
       player_input: input,

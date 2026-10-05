@@ -50,7 +50,7 @@ defineProps<{ npc: SceneNPC; talked?: boolean }>()
           :title="talked ? t('game.already_asked') : t('game.not_asked_yet')"
         />
       </p>
-      <p class="text-ink-300 text-xs">{{ npc.archetype }}</p>
+      <p v-if="npc.archetype" class="text-ink-300 text-xs">{{ npc.archetype }}</p>
     </div>
   </div>
 </template>
