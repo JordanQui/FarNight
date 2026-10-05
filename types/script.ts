@@ -125,6 +125,12 @@ export interface TurnRules {
    * Interpole `{{npc_beyond}}` ; ignorée pour un PNJ sans `beyond`.
    */
   beyond_rule?: string
+  /** Ce que le personnage est dans la quête du joueur. Interpole `{{npc_role}}`. */
+  role_rule?: string
+  /** Premier échange d'un personnage ordinaire : il répond et renvoie UNE question. */
+  npc_ask_rule?: string
+  /** Échanges suivants : il commente la réponse et donne ce qu'il a d'utile. */
+  npc_give_rule?: string
   /** Un personnage ne répond qu'à une question — voir `questions_only_note`. */
   questions_only?: boolean
   /** Échanges avec un personnage avant qu'il livre ce qu'il sait. */

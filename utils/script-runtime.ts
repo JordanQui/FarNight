@@ -416,6 +416,9 @@ export class SceneRuntime {
       steer_after_turns: this.scene.turn.steer_after_turns,
       // Échanges avec un personnage avant qu'il livre ce qu'il sait.
       exchanges_before_steer: this.scene.turn.exchanges_before_steer ?? 2,
+      // Une phrase qui n'est pas une question ne part pas au modèle : le
+      // client tranche, puisque c'est lui qui choisit le moment joué.
+      questions_only: this.scene.turn.questions_only ?? false,
       // Le tour où la nuit se referme. Une seule source : le bloc `limits.lock`,
       // celui-là même que le serveur applique. Deux chiffres se seraient
       // désynchronisés, et le client aurait annoncé une fermeture que le
@@ -1781,7 +1784,7 @@ ${lines}`)
   buildTurnSystemPrompt(ctx: TurnContext, turnCount = 0): string {
     const t = this.scene.turn
     const npcList = ctx.npcs.length
-      ? ctx.npcs.map(n => `${n.name} (${n.archetype})`).join(', ')
+      ? ctx.npcs.map(n => `${n.name} (${n.archetype}${n.role ? ' — ' + n.role : ''})`).join(', ')
       : 'personne'
 
     const base = interpolate(t.system_prompt_template, {
@@ -1926,6 +1929,8 @@ ${lines}`)
       wants_rule: npc?.wants?.item_id && this.stillCarried(ctx, npc.wants.item_id)
         ? interpolate(t.wants_rule ?? '', { npc_wants_hint: npc.wants.hint })
         : '',
+      // Ce qu'il est dans la quête du joueur : il le tient sans le dire.
+      role_rule: npc?.role ? interpolate(t.role_rule ?? '', { npc_role: npc.role }) : '',
     }
 
     if ((mode === 'give' || mode === 'give_refused') && npc && ctx.offered_item) {
@@ -2053,8 +2058,14 @@ ${lines}`)
       })
     }
 
+    // Le rythme de tout personnage : on l'aborde par une question, il en
+    // renvoie une sur la quête, le joueur répond, et il donne. Au premier
+    // échange il demande — son morceau du dehors attend la réponse.
+    const asks = (ctx.npc_exchanges ?? 0) <= 1
     return interpolate(t.npc_dialogue_prompt, {
       ...rules,
+      beyond_rule: asks ? '' : rules.beyond_rule,
+      rhythm_rule: (asks ? t.npc_ask_rule : t.npc_give_rule) ?? '',
       npc_name: npc.name,
       npc_archetype: npc.archetype,
       npc_personality: npc.personality,

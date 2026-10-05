@@ -44,7 +44,7 @@ export default defineEventHandler(async () => {
   const line = 'Une phrase de longueur moyenne, comme le modèle en écrit pour chaque champ.'
   const npcs = [0, 1, 2, 3].map(i => ({
     id: `n${i}`, name: `Karu${i}`, archetype: 'habitué',
-    appearance: line, personality: line, knows: line, beyond: line,
+    appearance: line, personality: line, role: line, knows: line, beyond: line,
   }))
   const context = {
     player_name: user.identity.name,

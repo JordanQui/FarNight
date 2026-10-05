@@ -30,6 +30,11 @@ export interface SceneNPC {
   archetype: string
   appearance: string
   personality: string
+  /**
+   * Ce qu'il est pour le joueur dans SA quête, tiré du dossier lu. Le récit le
+   * montre en le présentant, et chaque réplique le lui rappelle (`role_rule`).
+   */
+  role?: string
   knows: string
   /**
    * Le morceau de ce qui attend DEHORS que ce personnage est seul à connaître.
