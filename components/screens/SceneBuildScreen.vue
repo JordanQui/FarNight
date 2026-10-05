@@ -21,6 +21,14 @@ function startMessages() {
   }, 2500)
 }
 
+/**
+ * Hors de l'auberge, l'oeil est déjà ouvert : le curseur le dit dès le
+ * chargement, au lieu de passer par la flèche le temps que la scène arrive.
+ * À l'auberge, c'est le bouton « Ouvrir l'œil » qui l'allume.
+ */
+const firstSceneId = (useRuntimeConfig().public.sceneIndex as Array<{ id: string }>)?.[0]?.id
+const eyeCursor = !!gameStore.pendingSceneId && gameStore.pendingSceneId !== firstSceneId
+
 async function build() {
   startMessages()
 
@@ -55,7 +63,10 @@ onUnmounted(() => { if (interval) clearInterval(interval) })
 </script>
 
 <template>
-  <div class="min-h-[100dvh] flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
+  <div
+    class="min-h-[100dvh] flex flex-col items-center justify-center px-6 text-center relative overflow-hidden"
+    :class="eyeCursor && 'cursor-eye'"
+  >
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
       <div class="deco-rays animate-deco-turn w-[120vmax] h-[120vmax] shrink-0" />
     </div>

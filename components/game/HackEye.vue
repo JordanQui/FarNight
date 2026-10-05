@@ -77,20 +77,32 @@ const style = computed(() => ({
     />
 
     <!-- Avant activation : le bouton, partout. Au tactile, c'est aussi le geste
-         que la permission d'iOS exige. -->
-    <button
+         que la permission d'iOS exige. La flèche le désigne tant que l'oeil
+         reste fermé, et part avec lui. -->
+    <div
       v-if="!enabled && !reopening && !gameStore.eyeHidden"
-      class="fixed top-3 left-3 z-40 flex items-center gap-2 px-3 py-2
-             font-display text-[10px] uppercase tracking-[0.18em]
-             text-neon-300 bg-ink-900/90 border border-neon-600/50"
-      @click="onButton"
+      class="fixed top-3 left-3 z-40 flex items-center gap-2"
     >
-      <svg viewBox="0 0 24 16" class="w-5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.4">
-        <path d="M1 8s4-6.5 11-6.5S23 8 23 8s-4 6.5-11 6.5S1 8 1 8Z" />
-        <circle cx="12" cy="8" r="3.4" />
+      <button
+        class="flex items-center gap-2 px-3 py-2
+               font-display text-[10px] uppercase tracking-[0.18em]
+               text-neon-300 bg-ink-900/90 border border-neon-600/50"
+        @click="onButton"
+      >
+        <svg viewBox="0 0 24 16" class="w-5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M1 8s4-6.5 11-6.5S23 8 23 8s-4 6.5-11 6.5S1 8 1 8Z" />
+          <circle cx="12" cy="8" r="3.4" />
+        </svg>
+        {{ denied ? t('game.eye_denied') : unavailable ? t('game.eye_unavailable') : playerStore.scene?.eye_primer?.cta ?? t('game.eye_open') }}
+      </button>
+      <svg
+        viewBox="0 0 24 12" class="eye-arrow w-6 h-3 pointer-events-none" fill="none"
+        stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M23 6H2M7 1L2 6l5 5" />
       </svg>
-      {{ denied ? t('game.eye_denied') : unavailable ? t('game.eye_unavailable') : playerStore.scene?.eye_primer?.cta ?? t('game.eye_open') }}
-    </button>
+    </div>
 
     <!-- Actif, au tactile : l'oeil suit l'inclinaison de l'appareil. -->
     <div
@@ -131,6 +143,20 @@ const style = computed(() => ({
   color: rgb(var(--neon-400));
   filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.6));
   transition: color 0.12s ease, filter 0.12s ease;
+}
+
+/* La flèche pointe le bouton et bat vers lui : on ne la rate pas. */
+.eye-arrow {
+  color: rgb(var(--neon-400));
+  filter: drop-shadow(0 0 4px rgb(var(--neon-500) / 0.7));
+  animation: eye-arrow-nudge 1.1s ease-in-out infinite;
+}
+@keyframes eye-arrow-nudge {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  50% { transform: translateX(6px); opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eye-arrow { animation: none; }
 }
 
 /* Verrouillé sur un nom : l'oeil le dit avant même qu'on lise. */
