@@ -122,6 +122,12 @@ onUnmounted(() => { if (interval) clearInterval(interval) })
         <GlowButton class="w-full" @click="build">{{ t('common.retry') }}</GlowButton>
       </div>
     </div>
+
+    <p
+      class="absolute inset-x-0 bottom-0 z-10 mx-auto max-w-md px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[11px] leading-relaxed text-ink-200/50 text-center"
+    >
+      {{ t('game.loading_disclaimer') }}
+    </p>
   </div>
 </template>
 
