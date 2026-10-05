@@ -173,6 +173,13 @@ export interface LangInput {
    */
   search: string[]
   /**
+   * Se servir d'une chose qu'on porte — insérer, présenter, badger. Avec `card`
+   * ou le nom de la carte, c'est ainsi qu'on ouvre un passage à lecteur.
+   */
+  use: string[]
+  /** Le mot « carte » et ses formes, pour reconnaître qu'on s'en sert sans la nommer. */
+  card: string[]
+  /**
    * Verbes qui portent sur le monde et non sur quelqu'un.
    *
    * Combinés au nom d'un élément de décor, ils disent que le joueur s'est

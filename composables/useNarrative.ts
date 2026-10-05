@@ -277,6 +277,17 @@ export function useNarrative() {
         return ''
       }
 
+      // 503 : le modèle a refusé le tour (crédit épuisé, débit dépassé). La
+      // cause technique reste dans les journaux du serveur ; le joueur, lui,
+      // voit un narrateur indisponible, pas un code HTTP.
+      if (response.status === 503) {
+        const failed = await response.json().catch(() => null) as
+          { data?: { reason?: string } } | null
+        if (failed?.data?.reason === 'narrator_unavailable') {
+          throw new Error(t('errors.narrator_unavailable'))
+        }
+      }
+
       if (!response.ok || !response.body) {
         throw new Error(t('errors.server_status', { status: response.status }))
       }
@@ -384,6 +395,8 @@ export function useNarrative() {
         observation: gift.observation,
         icon: gift.icon,
       })
+      // Il le nomme en le tendant : ce qu'on reçoit en parlant arrive en clair.
+      gameStore.markDecrypted(gift.id)
       gameStore.addNarrativeEntry(
         'system',
         translate(playerStore.language, 'game.received', { label: gift.label }))

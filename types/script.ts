@@ -238,6 +238,11 @@ export interface ScriptDefaults {
   locks: { note?: string; instruction: string }
   /** La carte de plus à ramasser, dans les lieux qui précèdent le lecteur. */
   spare_card: { note?: string; instruction: string }
+  /**
+   * La carte de plus devenue première moitié, là où `card_half` le demande ;
+   * `instruction_second` pose l'autre là où l'objet-clé la complète.
+   */
+  card_half: { note?: string; instruction: string; instruction_second: string }
   /** Le pictogramme que chaque objet porté reçoit à sa génération. */
   item_icons: { note?: string; instruction: string }
   /** La fenêtre du bouton de l'oeil. Texte fixe : ce n'est pas de la fiction. */
@@ -389,6 +394,11 @@ export interface SceneScript {
     always_include: AlwaysIncludeInteractable[]
     /** Ce lieu pose une carte de plus parmi les objets à prendre. */
     spare_card?: boolean
+    /**
+     * Cette carte de plus est la première moitié de la carte d'un lieu suivant.
+     * On ne quitte pas le lieu sans l'avoir prise. Voir `defaults.card_half`.
+     */
+    card_half?: boolean
   }
   exits: SceneExit[]
   /** Règle de conception de l'augmentation sans laquelle on ne peut pas sortir. */
@@ -406,6 +416,12 @@ export interface SceneScript {
      * Sans elle, le déchiffrer à la loupe suffit.
      */
     puzzle?: import('~/types/scene').PuzzleKind
+    /**
+     * Le joueur en porte déjà la moitié, ramassée plus tôt : la seconde est
+     * posée ici, et les ramasser l'une après l'autre fait cette carte, qui en
+     * reprend le nom et la couleur et les remplace en poche.
+     */
+    completes_half?: boolean
   }
   /** L'acte auquel la scène appartient. Voir `acts` à la racine du script. */
   act?: string

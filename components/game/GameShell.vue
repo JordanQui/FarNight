@@ -8,6 +8,7 @@ import { useStorylets } from '~/composables/useStorylets'
 import { useImageGen } from '~/composables/useImageGen'
 import { observationOf, analyzables } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
+import { savePlaying } from '~/composables/useScene'
 
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -23,6 +24,19 @@ const puzzle = usePuzzle()
  * par là que passe la progression. Il peut toujours replier pour lire.
  */
 const showNpcs = ref(true)
+
+/**
+ * À l'arrivée dans la première scène, une fois par partie : ce qu'on cherche
+ * dans le décor, et comment on parle aux gens.
+ */
+const firstSceneId = (useRuntimeConfig().public.sceneIndex as Array<{ id: string }>)?.[0]?.id
+const showHowto = computed(() =>
+  !gameStore.howtoSeen && Boolean(playerStore.scene) && playerStore.scene?.scene_id === firstSceneId)
+
+function closeHowto() {
+  gameStore.howtoSeen = true
+  savePlaying(gameStore, playerStore)
+}
 
 /** Refermer l'épreuve, c'est retirer la demande : elle n'a pas d'autre état. */
 function closeTest() {
@@ -255,6 +269,9 @@ function retryImage() {
     <!-- Narration. L'historique tient lieu d'inventaire : l'objet scellé y
          reste visible, et l'on y revient avec la loupe. -->
     <NarrativeText :entries="gameStore.narrativeHistory" @typing="narrationTyping = $event" />
+
+    <!-- À l'auberge, avant tout : les deux gestes du jeu -->
+    <HowToPlay v-if="showHowto" @close="closeHowto" />
 
     <!-- Au premier passage à la loupe : ce qu'elle est, et comment s'en servir -->
     <AugmentationPrimer v-if="gameStore.primerOpen" />

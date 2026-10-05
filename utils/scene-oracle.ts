@@ -143,6 +143,15 @@ export function buildGuidance(
     } else if (holder) {
       lines.push(t('oracle.holder_knows', { name: holder.name }))
     }
+  } else if (item && scene.required_item_id && !state.carriedIds.includes(scene.required_item_id)) {
+    // L'objet en main ne suffit pas ici : la moitié de carte manque, et la
+    // renvoyer vers la sortie le ferait buter sur une porte fermée.
+    lines.push(t('oracle.holding', { item: item.name, why: item.why }))
+    lines.push(t('oracle.missing_piece'))
+  } else if (item && scene.opens_with_card) {
+    // Un lecteur garde la sortie : la franchir ne suffit pas, on s'en sert.
+    lines.push(t('oracle.holding', { item: item.name, why: item.why }))
+    lines.push(t('puzzle.use_card_prompt', { name: item.name }))
   } else if (item) {
     lines.push(t('oracle.holding', { item: item.name, why: item.why }))
     // Le tenir suffit : la porte ne réclame plus qu'on s'en soit servi.

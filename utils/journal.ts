@@ -128,4 +128,6 @@ export interface CarriedItem {
   kind: 'key' | 'lore' | 'trade'
   /** Sa couleur, pour une carte : c'est ce que le joueur retient et compare. */
   color?: string
+  /** Cette couleur en #RRGGBB : la seconde moitié d'une carte reprend celle de la première. */
+  hex?: string
 }

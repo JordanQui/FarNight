@@ -2,7 +2,8 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { translate } from '~/utils/languages'
 import { isSolved, searchedSpot } from '~/utils/puzzles'
-import { sceneKeyInventoryKind } from '~/utils/scene-item-policy'
+import { CARD_HALF_ID, isPieceId } from '~/utils/interactables'
+import { keyItemNameInClear, sceneKeyInventoryKind } from '~/utils/scene-item-policy'
 
 /**
  * L'énigme de la scène, côté partie.
@@ -30,10 +31,14 @@ export function usePuzzle() {
    * lu dans le décor, gagné à une énigme : l'inventaire doit en garder la même
    * trace quelle que soit la voie.
    */
-  function collect() {
+  function collect(consumed: string[] = []) {
     const scene = playerStore.scene
     const item = scene?.key_item
     if (!scene || !item) return
+    // LES DEUX MOITIÉS FONT LA CARTE. La première lui laisse sa pastille, et
+    // cède sa place en poche à la carte entière.
+    const half = gameStore.inventory.find(o => o.id === consumed[0])
+    if (consumed.length) gameStore.inventory = gameStore.inventory.filter(o => !consumed.includes(o.id))
     gameStore.collectKeyItem(scene.grants_augmentation ?? false, {
       // Toujours le même id que celui sous lequel le récit l'a chiffré : déchiffré
       // dans le texte, il doit rester déchiffré dans l'inventaire.
@@ -43,11 +48,13 @@ export function usePuzzle() {
       color: item.color,
       // La couleur de la carte EST l'accent de la scène où on la prend : on la
       // fige ici, sinon la pastille se repeindrait au lieu suivant.
-      hex: scene.palette?.accent?.hex,
+      hex: half?.hex ?? scene.palette?.accent?.hex,
       observation: item.observation,
       icon: item.icon,
       kind: sceneKeyInventoryKind(scene.scene_id),
     })
+    // Tendu et nommé par son détenteur : il entre lisible dans l'inventaire.
+    if (keyItemNameInClear(item.acquisition)) gameStore.markDecrypted(keyId.value)
     // Le récit brouille ce nom tant que la loupe ne l'a pas ouvert : l'écrire
     // ici ne le livre pas.
     gameStore.addNarrativeEntry('system', t('puzzle.holding', { name: item.name }))
@@ -70,6 +77,24 @@ export function usePuzzle() {
     }
     gameStore.unlockPuzzle()
     gameStore.addNarrativeEntry('system', t(`puzzle.unlocked_${p.kind}`, { name }))
+  }
+
+  /**
+   * La seconde moitié d'une carte, ramassée : elle s'emboîte dans la première.
+   *
+   * Pas d'épreuve de plus — on l'a lue à la loupe pour pouvoir la prendre. Les
+   * deux bouts quittent la poche et la carte entière y entre, lisible : c'est
+   * l'objet-clé du lieu, et la sortie s'ouvre.
+   */
+  function joinHalves() {
+    if (gameStore.hasKeyItem) return
+    const first = gameStore.inventory.find(o => isPieceId(o.id, CARD_HALF_ID))
+    gameStore.addNarrativeEntry('narration', t('puzzle.halves_joined'))
+    gameStore.markDecrypted(keyId.value)
+    collect(first ? [first.id] : [])
+    // La dernière ligne est ce qu'il tape : la carte en main ne s'utilise pas
+    // toute seule, et la fente se sert au clavier.
+    gameStore.addNarrativeEntry('system', t('puzzle.use_card_prompt', { name: playerStore.scene?.key_item?.name ?? '' }))
   }
 
   /**
@@ -122,5 +147,5 @@ export function usePuzzle() {
     gameStore.addNarrativeEntry('narration', t('puzzle.search_empty', { spot: spot.label }))
   }
 
-  return { puzzle, keyId, collect, keyItemRead, submit, spotOf, search }
+  return { puzzle, keyId, collect, keyItemRead, joinHalves, submit, spotOf, search }
 }

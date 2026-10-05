@@ -233,6 +233,8 @@ export interface Interactable {
   card_color?: string
   /** Cette couleur en #RRGGBB, pour la pastille de l'inventaire. */
   card_hex?: string
+  /** Cette `carte` n'est qu'une moitié : l'autre se trouve dans un lieu suivant. */
+  card_half?: boolean
   /**
    * Il n'existe qu'après un échange : personne ne l'a nommé avant.
    *
@@ -383,6 +385,16 @@ export interface SceneTextResponse extends GeneratedScene {
    * il fallait donc que le libellé voyage pour lui-même.
    */
   exit_label: string
+  /**
+   * Ce qu'il faut avoir ramassé ici, en plus de l'objet-clé, pour sortir : la
+   * moitié de carte que le lieu suivant complétera.
+   */
+  required_item_id?: string
+  /**
+   * La sortie a un lecteur : la carte en main ne suffit pas, il faut s'en
+   * SERVIR — « utilise la Carte Ocre pour ouvrir le passage ».
+   */
+  opens_with_card?: boolean
   /**
    * Ce lieu, tel que le plan de la nuit l'a fixé. Le client le renvoie aux
    * routes d'image et de tour : le serveur ne garde rien entre deux appels.

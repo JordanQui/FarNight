@@ -7,8 +7,8 @@ import { usePaywall } from '~/composables/usePaywall'
 import { useSceneCommands } from '~/composables/useSceneCommands'
 import { resolveLocally, buildGuidance, lookedThing } from '~/utils/scene-oracle'
 import { translate, pack } from '~/utils/languages'
-import { isQuestion, normalize } from '~/utils/text-match'
-import { takeTarget, observationOf } from '~/utils/interactables'
+import { isQuestion, matchesKeyword, normalize } from '~/utils/text-match'
+import { CARD_HALF_2_ID, isPieceId, takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
 import type { Interactable } from '~/types/scene'
 
@@ -95,6 +95,21 @@ export function useStorylets() {
     return !rest.replace(/[^\p{L}\p{N}]+/gu, '')
   }
 
+  /**
+   * La saisie se sert-elle d'une carte ?
+   *
+   * Un verbe d'usage — utiliser, insérer, badger —, et la carte : par son nom,
+   * soudé ou non, ou par le simple mot « carte ». « Utilise la Carte Ocre pour
+   * ouvrir le passage » et « je passe la carte » valent autant.
+   */
+  function usesCard(input: string): boolean {
+    const words = pack(playerStore.language).input
+    if (!matchesKeyword(input, words.use ?? [])) return false
+    const name = normalize(playerStore.scene?.key_item?.name ?? '').replace(/[\s-]+/g, '')
+    const flat = normalize(input).replace(/[\s-]+/g, '')
+    return (name.length >= 3 && flat.includes(name)) || matchesKeyword(input, words.card ?? [])
+  }
+
   /** Ce que l'oracle et le récapitulatif ont besoin de savoir du joueur. */
   function oracleState() {
     return {
@@ -166,6 +181,10 @@ export function useStorylets() {
       sceneHasKeyItem: Boolean(item),
       hasKeyItem: gameStore.hasKeyItem,
       pendingKeyItem: gameStore.pendingKeyItem,
+      missingPiece: Boolean(scene?.required_item_id)
+        && !gameStore.inventory.some(o => o.id === scene!.required_item_id),
+      cardDoor: Boolean(scene?.opens_with_card),
+      usesCard: Boolean(scene?.opens_with_card) && usesCard(input),
       informed: gameStore.informedAboutItem,
       holderExchanges: gameStore.keyItemExchanges + 1,
       exchangesBeforeHandover: item?.exchanges_before_handover ?? 0,
@@ -187,7 +206,7 @@ export function useStorylets() {
 
   /** Le texte d'une réponse qui ne passe pas par le modèle. */
   function localText(
-    say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'blocked_exit' | 'not_asked',
+    say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'blocked_exit' | 'card_reader' | 'not_asked',
     q: Qualities,
     input = '',
   ): string {
@@ -204,6 +223,7 @@ export function useStorylets() {
     }
     // Deux tournures, en alternance : la même phrase deux fois de suite se lit
     // comme un message d'erreur.
+    if (say === 'card_reader') return t('puzzle.reader_waits')
     if (say === 'blocked_exit') {
       return t(q.turn % 2 ? 'oracle.exit_blocked_2' : 'oracle.exit_blocked', {
         exit: scene?.exit_label ?? '',
@@ -263,6 +283,12 @@ export function useStorylets() {
    */
   function take(obj: Interactable) {
     if (gameStore.inventory.some(o => o.id === obj.id)) return
+    // La seconde moitié d'une carte ne se range pas à côté de la première :
+    // elle s'y emboîte, et c'est la carte entière qui entre en poche.
+    if (obj.card_half && isPieceId(obj.id, CARD_HALF_2_ID)) {
+      puzzle.joinHalves()
+      return
+    }
     gameStore.pickUp({
       id: obj.id,
       label: obj.label,
@@ -352,7 +378,8 @@ export function useStorylets() {
       if (moment.play.say === 'nobody'
         || moment.play.say === 'unused_lens'
         || moment.play.say === 'unread_object'
-        || moment.play.say === 'blocked_exit') {
+        || moment.play.say === 'blocked_exit'
+        || moment.play.say === 'card_reader') {
         gameStore.addNarrativeEntry('system', localText(moment.play.say, q))
         gameStore.setPlayingSubState('awaiting_input')
         return

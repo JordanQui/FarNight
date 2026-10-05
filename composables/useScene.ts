@@ -66,6 +66,8 @@ interface Carry {
   primerSeen: boolean
   /** La fenêtre de l'oeil a été lue : le bouton l'ouvre sans elle. */
   eyePrimerSeen?: boolean
+  /** La fenêtre « comment jouer » de l'auberge a été lue. */
+  howtoSeen?: boolean
   /**
    * Le profil du joueur, tel que Meta l'a donné et que le classifieur l'a rangé.
    *
@@ -95,6 +97,7 @@ function carryOf(game: GameStore, player: PlayerStore): Carry {
     augmentationItem: game.augmentation,
     primerSeen: game.primerSeen,
     eyePrimerSeen: game.eyePrimerSeen,
+    howtoSeen: game.howtoSeen,
     profile: player.profile,
     given: game.givenItemIds,
     spend: { turns: game.modelTurnsUsed, usd: game.spentUsd },
@@ -268,6 +271,7 @@ export function useScene() {
       from: o.from,
       kind: o.kind,
       color: o.color,
+      hex: o.hex,
     }))
   }
 
@@ -291,6 +295,7 @@ export function useScene() {
     gameStore.liftLegacyAugmentation()
     if (carry.primerSeen) gameStore.primerSeen = true
     if (carry.eyePrimerSeen) gameStore.eyePrimerSeen = true
+    if (carry.howtoSeen) gameStore.howtoSeen = true
     if (!playerStore.profile && carry.profile) playerStore.setProfile(carry.profile)
     if (!gameStore.givenItemIds.length) gameStore.givenItemIds = carry.given ?? []
     if (carry.spend && !gameStore.modelTurnsUsed) {

@@ -5,7 +5,7 @@ import type {
   ResolvedScene,
   SceneExit,
 } from '~/types/script'
-import type { NightPlan, PlannedScene, PlayerTheme, SceneKeyItem } from '~/types/scene'
+import type { Interactable, NightPlan, PlannedScene, PlayerTheme, SceneKeyItem } from '~/types/scene'
 import type {
   GeneratedScene,
   SceneTextResponse,
@@ -20,7 +20,7 @@ import { interpolate } from '~/utils/prompt-builder'
 import { matchesKeyword } from '~/utils/text-match'
 import { deterministicPaletteHexes, enforceAccentVisibility } from '~/utils/palette'
 import { enforceNameCaps, fold, titleCase } from '~/utils/naming'
-import { isTakeable } from '~/utils/interactables'
+import { CARD_HALF_2_ID, CARD_HALF_ID, isPieceId, isTakeable } from '~/utils/interactables'
 import { sanitizeHtml } from '~/utils/sanitize-html'
 import { sanitizeItemIcon } from '~/utils/item-icon'
 import { nightOf, renderJournal, type JournalEntry, type CarriedItem } from '~/utils/journal'
@@ -755,7 +755,7 @@ ${s.sealed_object
   ? `OBJET SCELLÉ\n${interpolate(s.sealed_object.instruction, { quest_title: 'la quête' })}\n`
   : ''}
 OBJETS MANIPULABLES
-${s.interactables.instruction}${s.interactables.spare_card ? `\n${this.script.defaults.spare_card.instruction}` : ''}
+${s.interactables.instruction}${s.interactables.spare_card ? `\n${this.script.defaults.spare_card.instruction}` : ''}${s.interactables.card_half ? `\n${s.key_item.completes_half ? this.script.defaults.card_half.instruction_second : this.script.defaults.card_half.instruction}` : ''}
 Le verbe de l'objet à prendre s'écrit exactement ainsi : ${this.takeVerbs}.
 
 ${this.script.defaults.item_icons.instruction}
@@ -1368,6 +1368,22 @@ ${lines}`)
         'Scène invalide : aucun objet à ramasser — un objet au moins doit être posé dans le '
         + `décor avec pour verbe ${this.takeVerbs}, en plus de ce que les personnages donnent`)
     }
+    // LA MOITIÉ DE CARTE FERME LA SORTIE : sans elle dans le texte, le joueur
+    // resterait devant une porte qui réclame une chose que la scène n'a pas.
+    if (this.scene.interactables.card_half) {
+      const written = fold(generated.scene_text ?? '')
+      // La seconde moitié reçoit la couleur de la première à l'assemblage.
+      const colored = (o: Interactable) => Boolean(this.scene.key_item.completes_half || o.card_color?.trim())
+      const half = takeable.find(o => o.item_kind === 'carte' && !o.hidden
+        && colored(o) && Boolean(o.observation?.trim())
+        && Boolean(o.label?.trim()) && written.includes(fold(o.label)))
+      if (!half) {
+        throw new Error(
+          'Scène invalide : aucune moitié de carte — un objet de `interactables` doit être la carte cassée '
+          + `posée dans le décor : item_kind "carte", un card_color, une observation, un verbe ${this.takeVerbs}, `
+          + 'et son label exact en Majuscules dans scene_text')
+      }
+    }
     // CE QU'UN ÉCHANGE DÉCOUVRE DOIT EXISTER. Un `reveals_id` qui ne désigne
     // rien fait promettre au personnage, dans sa réplique même, une chose qui
     // n'apparaîtra jamais : l'échange ne fait plus avancer, et c'est toute sa
@@ -1563,6 +1579,19 @@ ${lines}`)
   ): SceneTextResponse {
     const exit = this.scene.exits[0]
 
+    // C'EST LA MÊME CARTE. La moitié ramassée plus tôt lui donne son nom et sa
+    // couleur : le modèle les recopie d'ordinaire, mais une lettre de travers
+    // ferait deux cartes de ce qui doit n'en faire qu'une.
+    const half = this.scene.key_item.completes_half
+      ? carried.find(c => isPieceId(c.id, CARD_HALF_ID))
+      : undefined
+    if (half && generated.key_item) {
+      generated = {
+        ...generated,
+        key_item: { ...generated.key_item, name: half.label, color: half.color || generated.key_item.color },
+      }
+    }
+
     // Le modèle produit des couleurs qui ne tiennent pas la hiérarchie Dark Deco.
     // On les recale avant d'en dériver quoi que ce soit.
     const audit = enforceAccentVisibility(generated.palette)
@@ -1615,9 +1644,24 @@ ${lines}`)
       palette.accent.name, generated.key_item?.color,
       ...carried.filter(c => c.kind === 'key').map(c => c.color),
     ].filter((c): c is string => Boolean(c?.trim())).map(fold))
+    // La moitié est la première carte valable : elle prend l'id que la sortie
+    // ou le lecteur réclame. Sa couleur est celle de la carte entière — un
+    // doublon ne la rétrograde pas. La seconde prend celle de la première :
+    // ce sont les deux bouts d'une même carte.
+    let halved = false
+    const second = Boolean(this.scene.key_item.completes_half)
     const carded = interactables.map((i) => {
       if (i.item_kind !== 'carte') return i
-      const color = i.card_color?.trim()
+      const color = second ? half?.color?.trim() || i.card_color?.trim() : i.card_color?.trim()
+      if (this.scene.interactables.card_half && !halved && color && !i.hidden) {
+        halved = true
+        taken.add(fold(color))
+        const hex = second ? half?.hex ?? i.card_hex : i.card_hex
+        return {
+          ...i, id: second ? CARD_HALF_2_ID : CARD_HALF_ID, card_half: true, card_color: color,
+          card_hex: hex && HEX_RE.test(hex) ? hex : undefined,
+        }
+      }
       if (!this.scene.interactables.spare_card || !color || taken.has(fold(color))) {
         const { card_color: _c, card_hex: _h, ...rest } = i
         return { ...rest, item_kind: 'recit' as const }
@@ -1702,6 +1746,10 @@ ${lines}`)
       scene_id: this.scene.id,
       scene_title: this.title,
       exit_label: this.exitLabel,
+      // Rechargée après l'avoir prise, la scène pose une nouvelle moitié sous
+      // un autre id : celle en poche suffit, `fresh` l'a déjà renommée.
+      required_item_id: halved && !second ? CARD_HALF_ID : undefined,
+      opens_with_card: second || undefined,
       planned: this.plan,
       script_version: this.script.version,
       image_prompt: this.buildImagePrompt({

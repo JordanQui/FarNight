@@ -153,6 +153,13 @@ export const useGameStore = defineStore('game', {
      */
     eyePrimerSeen: false,
     /**
+     * La fenêtre « comment jouer » de l'auberge a été lue.
+     *
+     * Elle appartient à la PARTIE : elle s'ouvre à l'arrivée dans la première
+     * scène, une fois, et ne revient ni au rechargement ni au lieu suivant.
+     */
+    howtoSeen: false,
+    /**
      * L'oeil était ouvert quand la scène précédente s'est démontée.
      *
      * GameShell disparaît le temps du chargement de la scène suivante, et
@@ -798,6 +805,7 @@ export const useGameStore = defineStore('game', {
       this.primerSeen = false
       this.primerOpen = false
       this.eyePrimerSeen = false
+      this.howtoSeen = false
       this.eyeWasOpen = false
       this.inventory = []
       this.givenItemIds = []

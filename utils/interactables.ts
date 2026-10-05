@@ -3,6 +3,7 @@ import type { Interactable } from '~/types/scene'
 import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { pack } from '~/utils/languages'
+import { keyItemNameInClear } from '~/utils/scene-item-policy'
 
 /**
  * Ce qui, dans une scène, s'ACQUIERT.
@@ -59,6 +60,19 @@ export interface Analyzable {
 }
 
 /**
+ * Les deux moitiés de la carte d'A2S2, sous des ids fixes : la sortie d'A2S1
+ * réclame la première, et ramasser la seconde en A2S2 les réunit, sans
+ * qu'aucune des deux scènes connaisse l'autre.
+ */
+export const CARD_HALF_ID = 'demi_carte'
+export const CARD_HALF_2_ID = 'seconde_moitie'
+
+/** Cet id est-il celui-là, ou celui-là renommé par une scène rechargée ? */
+export function isPieceId(id: string, piece: string): boolean {
+  return id === piece || id.startsWith(`${piece}_`)
+}
+
+/**
  * Tout ce qui, dans une scène, se chiffre dans le texte et s'ouvre à la loupe.
  *
  * UNE SEULE LISTE, parce qu'elle sert deux endroits qui ne doivent jamais
@@ -66,9 +80,10 @@ export interface Analyzable {
  * qu'on ait lu. Deux listes séparées, et le joueur se retrouverait devant une
  * porte qui réclame l'analyse d'un objet qu'aucun texte n'a chiffré.
  *
- * L'objet-clé en fait partie — il est brouillé dans le récit avant d'être
- * remis. Ailleurs, où l'objet-clé est une carte, le déchiffrer donne son nom
- * et rien d'autre.
+ * L'objet-clé n'en fait partie que là où il est inscrit dans le lieu : le lire
+ * l'ouvre, ou montre l'énigme. Celui qu'un personnage tend n'est jamais
+ * brouillé — il le nomme en le tendant, et c'est ce qui le distingue de ce que
+ * le décor cache.
  *
  * L'AUGMENTATION EST LA SEULE EXCEPTION, et elle est absolue : son nom est en
  * clair d'un bout à l'autre. C'est avec elle qu'on déchiffre — la brouiller
@@ -81,7 +96,7 @@ export interface Analyzable {
  */
 export function analyzables(scene: {
   scene_id?: string
-  key_item?: { name?: string; observation?: string } | null
+  key_item?: { name?: string; observation?: string; acquisition?: string } | null
   /** Cette scène remet l'augmentation : son objet-clé ne se brouille pas. */
   grants_augmentation?: boolean
   sealed_object?: { id: string; name?: string; observation?: string } | null
@@ -96,7 +111,14 @@ export function analyzables(scene: {
   const isAugmentation = (label: string) => Boolean(augmentation) && bare(label).includes(augmentation)
   // Le même id que celui que `collectKeyItem` lui donnera : déchiffré dans le
   // récit, il reste déchiffré une fois dans l'inventaire.
-  if (scene.key_item?.name && !scene.grants_augmentation) {
+  // Seulement quand il est inscrit dans le lieu : celui qu'un personnage tend,
+  // il le nomme en le tendant.
+  // UNE CARTE EN DEUX MOITIÉS N'EST PAS DANS LE DÉCOR : seule la seconde y
+  // est, sous le même nom. Brouiller aussi la carte entière ferait deux cibles
+  // d'un seul mot, et la loupe ouvrirait la mauvaise.
+  const halves = (scene.interactables ?? []).some(i => i.card_half && isPieceId(i.id, CARD_HALF_2_ID))
+  if (scene.key_item?.name && !scene.grants_augmentation && !keyItemNameInClear(scene.key_item.acquisition)
+    && !halves) {
     out.push({
       id: `cle_${scene.scene_id}`,
       label: scene.key_item.name,

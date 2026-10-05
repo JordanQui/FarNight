@@ -41,19 +41,47 @@ export default defineEventHandler(async (event) => {
 
   const openai = new OpenAI({ apiKey: requireSecret(config.openaiApiKey, 'OPENAI_API_KEY') })
 
-  const stream = await openai.chat.completions.create({
-    model: scene.generation.model,
-    temperature: scene.generation.temperature,
-    max_tokens: scene.turn.max_tokens,
-    stream: true,
-    // Sans ça le décompte serait une estimation : on veut les vrais chiffres.
-    stream_options: { include_usage: true },
-    messages: [
-      { role: 'system', content: scene.buildTurnSystemPrompt(body.context, body.turnCount ?? 0) },
-      ...buildConversationHistory(body.history ?? []),
-      { role: 'user', content: scene.buildTurnUserPrompt(body.context, body.input, npc, body.mode) },
-    ],
-  })
+  /**
+   * Un refus d'OpenAI ne doit pas ressortir avec SON statut.
+   *
+   * h3 recopie le `status` de l'erreur : un 429 d'OpenAI devenait un 429 du
+   * jeu, que le joueur lisait « Le serveur a répondu 429 » — et qui se
+   * confond avec le quota de session, lui aussi en 429. Le SDK a déjà
+   * réessayé deux fois avant d'abandonner : arrivé ici, ce n'est plus un
+   * à-coup. `insufficient_quota` veut dire que le crédit du compte est épuisé,
+   * le reste est une limite de débit ; on le dit dans les journaux, et le
+   * client n'affiche qu'un narrateur indisponible.
+   */
+  let stream
+  try {
+    stream = await openai.chat.completions.create({
+      model: scene.generation.model,
+      temperature: scene.generation.temperature,
+      max_tokens: scene.turn.max_tokens,
+      stream: true,
+      // Sans ça le décompte serait une estimation : on veut les vrais chiffres.
+      stream_options: { include_usage: true },
+      messages: [
+        { role: 'system', content: scene.buildTurnSystemPrompt(body.context, body.turnCount ?? 0) },
+        ...buildConversationHistory(body.history ?? []),
+        { role: 'user', content: scene.buildTurnUserPrompt(body.context, body.input, npc, body.mode) },
+      ],
+    })
+  } catch (err) {
+    const status = err instanceof OpenAI.APIError ? err.status : undefined
+    const code = err instanceof OpenAI.APIError ? err.code : undefined
+    console.error(
+      `[narrative/turn] ${scene.generation.model} a refusé le tour`,
+      `(${status ?? '?'}${code ? ` ${code}` : ''}) :`,
+      err instanceof Error ? err.message : err)
+    throw createError({
+      statusCode: 503,
+      statusMessage: code === 'insufficient_quota'
+        ? 'Crédit OpenAI épuisé'
+        : `Appel à ${scene.generation.model} refusé (${status ?? 'réseau'})`,
+      data: { reason: 'narrator_unavailable' },
+    })
+  }
 
   setResponseHeader(event, 'Content-Type', 'text/event-stream')
   setResponseHeader(event, 'Cache-Control', 'no-cache')

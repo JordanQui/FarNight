@@ -73,6 +73,16 @@ export interface Qualities {
   hasKeyItem: boolean
   /** Il lui est déjà tendu : il n'a plus qu'à le prendre. */
   pendingKeyItem: boolean
+  /**
+   * La scène réclame aussi une chose posée dans le décor — la moitié de carte
+   * d'A2S1 —, et elle n'est pas dans sa poche. La porte reste fermée, objet-clé
+   * en main ou non.
+   */
+  missingPiece: boolean
+  /** La sortie a un lecteur : on ne l'ouvre qu'en se servant de la carte. */
+  cardDoor: boolean
+  /** La saisie se sert d'une carte : un verbe d'usage, et la carte nommée. */
+  usesCard: boolean
   /** Un habitué l'a mis sur la piste du détenteur. */
   informed: boolean
   /** Échanges avec le détenteur, celui de ce tour-ci compté d'avance. */
@@ -127,7 +137,7 @@ export type StoryletPlay =
   /** La porte s'ouvre : le texte de sortie, puis l'écran. */
   | { kind: 'exit' }
   /** Une réponse déjà écrite quelque part. Aucun appel, aucun token. */
-  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'blocked_exit' | 'not_asked' }
+  | { kind: 'local'; say: 'oracle' | 'nobody' | 'unused_lens' | 'unread_object' | 'exhausted' | 'game_over' | 'blocked_exit' | 'card_reader' | 'not_asked' }
   /** Il plonge la main quelque part. Aucun appel : ça ne coûte que la nuit. */
   | { kind: 'search' }
   /** Il prend ce qu'il a nommé. Un geste, pas un tour : rien ne part au modèle. */
@@ -160,6 +170,20 @@ export interface Storylet {
  * refactor ne devait rien changer à ce que joue une partie. Les endroits où il
  * se discute sont signalés — c'est tout l'intérêt de l'avoir mis à plat.
  */
+/**
+ * La porte cède-t-elle ? L'objet-clé en main là où il y en a un, le nombre de
+ * tours ailleurs — et, là où la scène en réclame une, la moitié de carte.
+ */
+function doorOpen(q: Qualities): boolean {
+  return (q.sceneHasKeyItem ? q.hasKeyItem : q.turn >= q.exitOpensAtTurn) && !q.missingPiece
+    && (!q.cardDoor || q.usesCard)
+}
+
+/** Il part à ce tour-ci : il le dit, ou il passe la carte, et la porte cède. */
+function leaves(q: Qualities): boolean {
+  return (q.mentionsExit || (q.cardDoor && q.usesCard)) && doorOpen(q)
+}
+
 /**
  * Le détenteur cède-t-il MAINTENANT ?
  *
@@ -196,7 +220,7 @@ export const DECK: Storylet[] = [
       // +1 : le tour qu'on s'apprête à jouer est celui de trop.
       && q.turn + 1 >= q.failureAtTurn
       && !q.pendingKeyItem
-      && !(q.mentionsExit && (q.sceneHasKeyItem ? q.hasKeyItem : q.turn >= q.exitOpensAtTurn))
+      && !leaves(q)
       && !remiseImminente(q),
     play: { kind: 'local', say: 'game_over' },
   },
@@ -208,8 +232,16 @@ export const DECK: Storylet[] = [
     // faire désigner ce qu'il restait à faire. Une porte fermée est déjà une
     // information ; ce qui manque, le joueur le cherche lui-même — ou le
     // demande (« je fais quoi ? »), et l'oracle répond.
-    when: q => q.mentionsExit && q.sceneHasKeyItem && !q.hasKeyItem,
+    when: q => q.mentionsExit && ((q.sceneHasKeyItem && !q.hasKeyItem) || q.missingPiece),
     play: { kind: 'local', say: 'blocked_exit' },
+  },
+  {
+    id: 'lecteur_attend',
+    note: 'la carte est en main, mais il pousse la porte au lieu de la passer au lecteur',
+    // La fente vide, rien de plus : la ligne qui suit la jonction a déjà dit
+    // quoi taper, inutile de le répéter mot pour mot.
+    when: q => q.mentionsExit && q.cardDoor && q.hasKeyItem && !q.usesCard,
+    play: { kind: 'local', say: 'card_reader' },
   },
   {
     id: 'sortie',
@@ -218,8 +250,7 @@ export const DECK: Storylet[] = [
     // La porte attendait autrefois qu'il se soit servi de l'augmentation : un
     // joueur qui la tenait restait bloqué devant le sas sans comprendre
     // pourquoi. Le nombre de tours ne retient plus que les scènes sans objet.
-    when: q => q.mentionsExit
-      && (q.sceneHasKeyItem ? q.hasKeyItem : q.turn >= q.exitOpensAtTurn),
+    when: leaves,
     play: { kind: 'exit' },
   },
   {
