@@ -1237,7 +1237,21 @@ ${lines}`)
     const offering = objects.find(o => o.id === OFFERING_ID)
     if (offering) {
       offering.item_kind = 'echange'
-      delete offering.hidden
+      if (this.scene.id === 'a3s1') {
+        const written = fold(generated.scene_text ?? '')
+        const container = objects.find(o => o !== offering && !o.hidden
+          && !isTakeable(o, this.lang) && o.label?.trim() && this.namedIn(o.label, written))
+        if (container) {
+          container.contains_id = OFFERING_ID
+          container.observation = container.observation?.trim()
+            || `${offering.label} se trouve à l'intérieur.`
+          offering.hidden = true
+        } else {
+          delete offering.hidden
+        }
+      } else {
+        delete offering.hidden
+      }
       // Une offrande sans observation reste lisible : la loupe dit au moins
       // qu'elle manque à quelqu'un ici.
       if (!offering.observation?.trim()) {
@@ -1538,8 +1552,11 @@ ${lines}`)
       const written = fold(generated.scene_text ?? '')
       const named = (o: Interactable) => Boolean(o.label?.trim()) && this.namedIn(o.label, written)
       const offering = takeable.find(o => o.id === OFFERING_ID)
-      if (!offering || offering.hidden || !offering.label?.trim()
-        || !this.namedIn(offering.label, written) || !offering.observation?.trim()) {
+      const container = (generated.interactables ?? []).find(o => o.contains_id === OFFERING_ID)
+      const contained = this.scene.id === 'a3s1' && offering?.hidden && container
+        && !container.hidden && Boolean(container.label?.trim()) && this.namedIn(container.label, written)
+      if (!offering || (!contained && offering.hidden) || !offering.label?.trim()
+        || (!contained && !this.namedIn(offering.label, written)) || !offering.observation?.trim()) {
         // Ce qui est arrivé, dans le message même : sans lui, un refus après
         // reprise ne laisse aucune trace de ce que le modèle avait écrit.
         const seen = (generated.interactables ?? [])
