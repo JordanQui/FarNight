@@ -11,7 +11,9 @@
  * bundle client et doivent rester bakées au build.
  */
 export function requireSecret(configValue: string | undefined, envName: string): string {
-  const value = configValue || process.env[envName] || ''
+  // Un retour à la ligne collé avec la clé rend l'en-tête HTTP invalide : le
+  // SDK OpenAI n'envoie rien et ne dit que « Connection error. ».
+  const value = (configValue || process.env[envName] || '').trim()
   if (!value) {
     throw createError({
       statusCode: 500,

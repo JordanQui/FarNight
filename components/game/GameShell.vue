@@ -61,6 +61,33 @@ function presentCard(answer: string | number | number[]): boolean {
 }
 
 /**
+ * L'ISSUE DE SECOURS. Elle s'allume quand la porte céderait à la phrase — les
+ * mêmes conditions que `doorOpen` du deck : l'objet-clé là où il y en a un,
+ * le nombre de tours ailleurs, et la moitié de carte si la scène la réclame.
+ * Une porte à carte ouvre son lecteur : la carte se présente toujours.
+ */
+const exitReady = computed(() => {
+  const scene = playerStore.scene
+  if (!scene || readerUsed.value) return false
+  const objective = scene.key_item
+    ? gameStore.hasKeyItem
+    : gameStore.turnCount >= (scene.paywall.min_turns_before_trigger ?? 0)
+  const piece = !scene.required_item_id || gameStore.inventory.some(o => o.id === scene.required_item_id)
+  return objective && piece
+})
+
+function takeExit() {
+  if (!exitReady.value) return
+  if (playerStore.scene?.opens_with_card && reader.value) {
+    readerOpen.value = true
+    return
+  }
+  const gate = playerStore.scene?.paywall.gate_text
+  if (gate) gameStore.addNarrativeEntry('narration', gate)
+  setTimeout(openExit, 1400)
+}
+
+/**
  * Ouvert par défaut : le joueur doit voir tout de suite avec qui parler, c'est
  * par là que passe la progression. Il peut toujours replier pour lire.
  */
@@ -333,7 +360,7 @@ function retryImage() {
     <!-- À l'auberge, avant tout : les deux gestes du jeu -->
     <HowToPlay v-if="showHowto" @close="closeHowto" />
 
-    <!-- Au premier passage à la loupe : ce qu'elle est, et comment s'en servir -->
+    <!-- À la remise de l'augmentation : ce qu'elle est, et comment s'en servir -->
     <AugmentationPrimer v-if="gameStore.primerOpen" />
 
 
@@ -453,7 +480,9 @@ function retryImage() {
     <div class="shrink-0 pb-[env(safe-area-inset-bottom)]">
       <CommandInput
         :disabled="gameStore.isInputDisabled"
+        :exit-ready="exitReady"
         @command="play"
+        @exit="takeExit"
       />
     </div>
   </div>

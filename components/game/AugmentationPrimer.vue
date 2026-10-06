@@ -5,15 +5,14 @@ import { interpolate } from '~/utils/prompt-builder'
 import { useInputMode } from '~/composables/useInputMode'
 
 /**
- * La fenêtre qui présente l'augmentation, au premier passage à la loupe.
+ * La fenêtre qui présente l'augmentation, à sa remise.
  *
  * Le joueur vient d'obtenir un objet dont il ne sait rien : ni ce qu'il fait,
  * ni comment s'en servir. Sans ce moment, il repart avec une loupe dans la
  * barre d'outils sans savoir qu'elle existe ni qu'il faut S'ARRÊTER sur un mot.
  *
- * Elle s'ouvre au PREMIER passage à la loupe, pas à la remise : le détenteur
- * vient d'en dire deux mots, et couper sa réplique par une fenêtre arrivait
- * avant que le joueur ait quoi que ce soit à en faire.
+ * Elle s'ouvre à la REMISE, une seule fois par partie : c'est le moment où le
+ * joueur se demande ce qu'il vient de recevoir.
  *
  * Le RÉCIT est brodé à partir des champs déjà générés de l'objet — il change
  * donc d'un joueur à l'autre, comme l'objet lui-même — et ne coûte aucun appel

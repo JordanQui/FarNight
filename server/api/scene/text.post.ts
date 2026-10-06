@@ -147,6 +147,10 @@ export default defineEventHandler(async (event) => {
         await new Promise(resolve => setTimeout(resolve, Math.min(ms + 500, 30000)))
         return ask(msgs, waits - 1)
       }
+      // « Connection error. » ne dit rien : la vraie cause est dans `cause`.
+      if (err instanceof OpenAI.APIConnectionError) {
+        console.error('[scene/text] OpenAI injoignable :', err.cause ?? err)
+      }
       throw createError({
         statusCode: 502,
         statusMessage: err instanceof Error ? err.message : `Appel à ${gen.model} échoué`,

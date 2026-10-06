@@ -82,7 +82,7 @@ export const useGameStore = defineStore('game', {
      * loupe à chaque lieu traversé.
      */
     primerSeen: false,
-    /** La fenêtre est à l'écran. Ouverte au premier clic sur la loupe. */
+    /** La fenêtre est à l'écran. Ouverte à la remise de l'augmentation. */
     primerOpen: false,
     /** Échanges déjà eus avec le détenteur de l'objet, une fois informé. */
     keyItemExchanges: 0,
@@ -523,11 +523,6 @@ export const useGameStore = defineStore('game', {
       if (tool === 'lens' && !this.hasAugmentation) return
       this.activeTool = tool
       this.revealing = null
-      // PREMIER passage à la loupe, et là seulement : celui qui l'a cédée en a
-      // dit deux mots, la fenêtre dit le reste. L'ouvrir à la remise coupait la
-      // conversation en deux et arrivait avant que le joueur ait quoi que ce
-      // soit à en faire.
-      if (tool === 'lens' && !this.primerSeen) this.primerOpen = true
     },
 
     setTyping(typing: boolean) {
@@ -698,6 +693,9 @@ export const useGameStore = defineStore('game', {
       // se porte pas, ne se tend pas, ne se range pas avec les cartes.
       if (grantsAugmentation) {
         this.hasAugmentation = true
+        // La fenêtre s'ouvre à la remise : c'est là que le joueur découvre ce
+        // qu'il vient de recevoir. Une seule fois par partie.
+        if (!this.primerSeen) this.primerOpen = true
         if (item?.name) {
           this.augmentation = {
             name: item.name,

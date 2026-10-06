@@ -3,8 +3,8 @@ const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
-const props = defineProps<{ disabled?: boolean }>()
-const emit = defineEmits<{ command: [value: string] }>()
+const props = defineProps<{ disabled?: boolean; exitReady?: boolean }>()
+const emit = defineEmits<{ command: [value: string]; exit: [] }>()
 
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -86,5 +86,36 @@ onMounted(() => {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
       </svg>
     </button>
+    <!-- Issue de secours : éteinte tant que la porte ne cède pas, allumée dès qu'elle cède. -->
+    <button
+      :disabled="disabled || !exitReady"
+      class="exit-sign shrink-0 p-1.5 -my-1.5 border transition-all duration-500"
+      :class="exitReady
+        ? 'exit-sign--lit text-neon-300 border-neon-400/80 hover:text-neon-100'
+        : 'text-ink-600 border-ink-700/60 opacity-40'"
+      @click="emit('exit')"
+    >
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="13.5" cy="3.5" r="2" />
+        <path d="M11 7.2l-3.6 1.6-1.5 3.4 1.6.7 1.2-2.6 1.6-.7-1.5 6.2-3.6 4.2 1.4 1.2 4-4.6.8-2.6 2 2v5.2h1.8v-6l-2.1-2.3.7-2.8.9 1.6 3.4 1.5.7-1.6-2.8-1.3-1.5-2.8c-.6-1-1.7-1.5-2.8-1.3z" />
+        <path d="M19.5 4v16" stroke="currentColor" stroke-width="1.6" fill="none" />
+      </svg>
+    </button>
   </div>
 </template>
+
+<style scoped>
+/* Le panneau s'allume comme un néon qu'on rebranche, puis respire. */
+.exit-sign--lit {
+  box-shadow: 0 0 10px rgb(var(--neon-400) / 0.45), inset 0 0 6px rgb(var(--neon-400) / 0.25);
+  filter: drop-shadow(0 0 4px currentColor);
+  animation: exit-sign-on 0.9s steps(1) 1, exit-sign-breathe 2.6s ease-in-out 0.9s infinite;
+}
+@keyframes exit-sign-on {
+  0%, 20%, 45% { opacity: 1 }
+  10%, 35% { opacity: 0.2 }
+}
+@keyframes exit-sign-breathe {
+  50% { filter: drop-shadow(0 0 8px currentColor) }
+}
+</style>

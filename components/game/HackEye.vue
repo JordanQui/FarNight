@@ -18,22 +18,16 @@ const playerStore = usePlayerStore()
 const { usesTouch, enabled, denied, unavailable, enable } = useGyroEye()
 
 /**
- * On dit d'abord ce que le bouton allume, on l'ouvre ensuite.
- *
- * Le bouton de la fenêtre est lui-même un geste utilisateur : iOS accepte donc
- * `requestPermission()` depuis là, ce qui n'aurait pas marché depuis un
- * `onMounted` ou une frame plus tard.
+ * Tant que l'oeil est fermé à l'arrivée sur la page, un voile opaque couvre
+ * tout et dit ce que le bouton allume. Son bouton est lui-même un geste
+ * utilisateur : iOS accepte donc `requestPermission()` depuis là, ce qui
+ * n'aurait pas marché depuis un `onMounted` ou une frame plus tard. Une fois
+ * touché, le voile part ; si l'ouverture échoue, reste le petit bouton.
  */
-const showPrimer = ref(false)
-
-/** La fenêtre ne se lit qu'une fois par partie : ensuite le bouton ouvre l'oeil. */
-function onButton() {
-  if (gameStore.eyePrimerSeen) void enable()
-  else showPrimer.value = true
-}
+const primerDone = ref(false)
 
 async function confirmPrimer() {
-  showPrimer.value = false
+  primerDone.value = true
   gameStore.eyePrimerSeen = true
   await enable()
 }
@@ -71,9 +65,8 @@ const style = computed(() => ({
 <template>
   <div>
     <EyePrimer
-      v-if="showPrimer"
+      v-if="!enabled && !reopening && !primerDone"
       @confirm="confirmPrimer"
-      @close="showPrimer = false"
     />
 
     <!-- Avant activation : le bouton, partout. Au tactile, c'est aussi le geste
@@ -87,7 +80,7 @@ const style = computed(() => ({
         class="flex items-center gap-2 px-3 py-2
                font-display text-[10px] uppercase tracking-[0.18em]
                text-neon-300 bg-ink-900/90 border border-neon-600/50"
-        @click="onButton"
+        @click="enable()"
       >
         <svg viewBox="0 0 24 16" class="w-5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.4">
           <path d="M1 8s4-6.5 11-6.5S23 8 23 8s-4 6.5-11 6.5S1 8 1 8Z" />

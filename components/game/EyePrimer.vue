@@ -4,7 +4,8 @@ const { t } = useLang()
 import { usePlayerStore } from '~/stores/player'
 
 /**
- * Ce que le bouton de l'oeil allume, au moment de le toucher.
+ * Ce que le bouton de l'oeil allume : un voile opaque, pleine page, tant que
+ * l'oeil est fermé à l'arrivée sur la page.
  *
  * UNE FENÊTRE D'INTERFACE, PAS UN MORCEAU DE RÉCIT. L'oeil n'est pas un objet
  * qu'on trouve ni un pouvoir qu'on gagne : c'est la commande qui active la
@@ -16,7 +17,7 @@ import { usePlayerStore } from '~/stores/player'
  * RIEN AVANT LA PERMISSION, et cette fenêtre est précisément ce qui la précède :
  * l'icône dérive donc d'elle-même tant que rien ne parle.
  */
-const emit = defineEmits<{ confirm: []; close: [] }>()
+const emit = defineEmits<{ confirm: [] }>()
 
 const playerStore = usePlayerStore()
 const labels = computed(() => playerStore.scene?.eye_primer)
@@ -84,10 +85,8 @@ const style = computed(() => ({
 
 <template>
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center px-6 py-8 overflow-y-auto"
-    @click.self="emit('close')"
+    class="fixed inset-0 z-[60] flex items-center justify-center px-6 py-8 overflow-y-auto bg-ink-900"
   >
-    <div class="absolute inset-0 bg-ink-900/92" />
 
     <div
       class="relative z-10 w-full max-w-sm bg-ink-900 border border-neon-600/50 p-7 space-y-6"
