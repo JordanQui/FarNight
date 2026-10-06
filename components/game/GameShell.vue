@@ -93,6 +93,15 @@ function takeExit() {
  */
 const showNpcs = ref(true)
 
+/** « Acte 1 · Scène 2 », lu dans l'identifiant (a1s2) ; l'auberge est le prologue. */
+const sceneMark = computed(() => {
+  const id = playerStore.scene?.scene_id
+  if (!id) return null
+  const m = /^a(\d+)s(\d+)$/.exec(id)
+  if (m) return t('game.act_scene', { act: m[1], scene: m[2] })
+  return id === firstSceneId ? t('game.prologue') : null
+})
+
 /**
  * À l'arrivée dans la première scène, une fois par partie : ce qu'on cherche
  * dans le décor, et comment on parle aux gens.
@@ -338,6 +347,12 @@ function retryImage() {
 
     <!-- Réglages, en surimpression en haut à droite de l'écran -->
     <SettingsPanel />
+    <p
+      v-if="sceneMark"
+      class="fixed top-3 right-14 z-30 h-[38px] flex items-center px-2 bg-ink-900/85 border border-steel-600/50 text-neon-400/90 font-display uppercase tracking-[0.14em] text-[11px] pointer-events-none"
+    >
+      {{ sceneMark }}
+    </p>
 
     <!-- Liste des PNJ -->
     <Transition name="slide">

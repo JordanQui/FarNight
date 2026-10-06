@@ -413,6 +413,8 @@
     "game.psycho_prompt": "Trouve le signe qui vient après.",
     "game.reading_position": "Position de lecture",
     "game.reading_position_hint": "Cale la visée sur la façon dont tu tiens l'appareil.",
+    "game.act_scene": "Acte {{act}} · Scène {{scene}}",
+    "game.prologue": "Prologue",
     "game.scene_alt": "Illustration de la scène",
     "game.pickup": "Tu ramasses {{label}}.",
     "game.action_pickup": "Ramasser",

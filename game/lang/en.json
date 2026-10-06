@@ -346,6 +346,8 @@
     "game.psycho_prompt": "Find the sign that comes next.",
     "game.reading_position": "Reading position",
     "game.reading_position_hint": "Set the aim to the way you are holding the device.",
+    "game.act_scene": "Act {{act}} · Scene {{scene}}",
+    "game.prologue": "Prologue",
     "game.scene_alt": "Scene illustration",
     "game.pickup": "You pick up {{label}}.",
     "game.action_pickup": "Take",
