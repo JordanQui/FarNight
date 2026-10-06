@@ -387,8 +387,9 @@ export function useStorylets() {
         gameStore.setPlayingSubState('awaiting_input')
         return
       }
-      answerLocally(input, localText(moment.play.say, q), q.localAnswer?.npcName)
+      // Découvert AVANT d'être dit : son nom paraît déjà chiffré dans la réponse.
       if (moment.play.say === 'oracle' && q.localAnswer?.reveals) gameStore.revealInteractable(q.localAnswer.reveals)
+      answerLocally(input, localText(moment.play.say, q), q.localAnswer?.npcName)
       return
     }
 

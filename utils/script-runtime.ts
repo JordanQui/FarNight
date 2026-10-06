@@ -1164,7 +1164,52 @@ ${lines}`)
       }
     }
 
-    const objects = generated.interactables ?? []
+    const objects = (generated.interactables ??= [])
+    // DEUX FAÇONS D'ÊTRE LÀ, DANS CHAQUE LIEU : chiffré en vue, ou rangé dans
+    // une chose qu'on examine. Le modèle oublie la seconde (constaté à
+    // l'auberge) : on y range alors le dernier objet à prendre, sans nouvelle
+    // génération, et il en reste toujours un en vue. Un nom absent du récit
+    // passe d'abord — rangé, il ne s'y lit pas en clair. L'offrande a son
+    // contenant dans `bindOffering`.
+    const written = fold(generated.scene_text ?? '')
+    if (!this.scene.key_item.offering && !objects.some(o => o.contains_id)) {
+      const loose = objects.filter(o => isTakeable(o, this.lang) && !o.hidden && o.item_kind !== 'carte'
+        && Boolean(o.label?.trim()) && Boolean(o.observation?.trim()))
+      const inside = loose.length < 2 ? undefined
+        : [...loose].reverse().find(o => !this.namedIn(o.label, written)) ?? loose[loose.length - 1]
+      const spot = (generated.decor ?? []).find(d => d.name?.trim() && this.namedIn(d.name, written))
+      const thing = objects.find(o => !isTakeable(o, this.lang) && !o.hidden && !o.triggers_paywall
+        && Boolean(o.label?.trim()) && this.namedIn(o.label, written))
+      const box = thing ?? (spot && { id: `contenant_${spot.slot_id}`, label: spot.name, verb: this.pack.input.look[0] ?? '' })
+      if (inside && box) {
+        if (!thing) objects.push(box)
+        box.contains_id = inside.id
+        box.observation = box.observation?.trim() || (spot && fold(spot.name) === fold(box.label) ? spot.description : '')
+        inside.hidden = true
+      }
+    }
+    // AU PLUS 35 % DES NOMS EN GRAS RENFERMENT DE QUOI RAMASSER — objet-clé et
+    // décor compris. Au-delà, le contenant redevient une chose qu'on examine,
+    // et ce qu'il cachait part avec les orphelins ci-dessous. L'offrande passe
+    // en premier : sans elle, la sortie d'a3s1 ne s'ouvre pas.
+    const shown = objects.filter(o => !o.hidden).length + (generated.decor?.length ?? 0) + (generated.key_item?.name ? 1 : 0)
+    const full = objects.filter(o => o.contains_id)
+      .sort((a, b) => Number(b.contains_id === OFFERING_ID) - Number(a.contains_id === OFFERING_ID))
+    for (const box of full.slice(Math.max(1, Math.floor(shown * 0.35)))) {
+      delete box.contains_id
+      delete box.observation
+    }
+    // Examiner le contenant donne ce qu'il renferme, sous son nom EXACT : c'est
+    // ce nom que le récit chiffre une fois l'objet découvert. L'offrande a le
+    // sien dans `bindOffering`.
+    for (const box of objects.filter(o => o.contains_id && o.contains_id !== OFFERING_ID)) {
+      const inside = objects.find(o => o.id === box.contains_id)
+      if (!inside?.label?.trim()) { delete box.contains_id; delete box.observation; continue }
+      const seen = box.observation?.trim() ?? ''
+      if (!seen.toLowerCase().includes(inside.label.toLowerCase())) {
+        box.observation = [seen, inside.label].filter(Boolean).join(' — ')
+      }
+    }
     // Un contenant montre aussi ce qu'il renferme, et l'offrande cachée attend
     // le sien : `bindOffering` l'y range, ou la rend visible.
     const revealed = [
@@ -1252,7 +1297,7 @@ ${lines}`)
         container.contains_id = OFFERING_ID
         // Ouvrir le contenant doit dire ce qu'on y trouve, dans la langue du modèle.
         const seen = container.observation?.trim() ?? ''
-        container.observation = this.namedIn(offering.label, fold(seen))
+        container.observation = seen.toLowerCase().includes(offering.label.toLowerCase())
           ? seen : [seen, offering.label].filter(Boolean).join(' — ')
         offering.hidden = true
       } else {
