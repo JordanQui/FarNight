@@ -123,7 +123,7 @@ export default defineEventHandler(async (event) => {
   ]
 
   /** Un appel au modèle, et le JSON brut qu'il rend. */
-  async function ask(msgs: Message[]): Promise<string> {
+  async function ask(msgs: Message[], waits = 2): Promise<string> {
     let completion
     try {
       completion = await openai.chat.completions.create({
@@ -135,6 +135,18 @@ export default defineEventHandler(async (event) => {
         messages: msgs,
       })
     } catch (err) {
+      // Limite de débit par minute : une scène pèse presque tout le plafond
+      // Tier 1 (30k TPM), et OpenAI dit combien attendre — souvent plus que
+      // les deux reprises du SDK. On attend ce délai, borné, puis on relance.
+      // `insufficient_quota` n'est pas un débit : attendre n'y changerait rien.
+      if (err instanceof OpenAI.APIError && err.status === 429
+        && err.code !== 'insufficient_quota' && waits > 0) {
+        const m = /try again in ([\d.]+)(ms|s)/.exec(err.message)
+        const ms = m ? Number(m[1]) * (m[2] === 's' ? 1000 : 1) : 15000
+        console.warn(`[scene/text] limite de débit ${gen.model}, nouvel essai dans ${Math.ceil(ms / 1000)} s`)
+        await new Promise(resolve => setTimeout(resolve, Math.min(ms + 500, 30000)))
+        return ask(msgs, waits - 1)
+      }
       throw createError({
         statusCode: 502,
         statusMessage: err instanceof Error ? err.message : `Appel à ${gen.model} échoué`,
