@@ -11,6 +11,7 @@ import { usePuzzle } from '~/composables/usePuzzle'
 import { usePaywall } from '~/composables/usePaywall'
 import { savePlaying } from '~/composables/useScene'
 import type { ScenePuzzle } from '~/types/scene'
+import { pack } from '~/utils/languages'
 
 const gameStore = useGameStore()
 const playerStore = usePlayerStore()
@@ -208,6 +209,19 @@ const readyToTake = computed(() => {
   if (!waiting.length) return null
   const order = (id: string) => gameStore.decryptedObjectIds.indexOf(id)
   return waiting.reduce((a, b) => order(b) > order(a) ? b : a)
+})
+
+/**
+ * Un mot en gras touché dans le récit vaut « examiner <mot> » : même chemin
+ * que la saisie, donc même récit. Si c'est une chose lue qui se prend, elle
+ * entre en poche dans le même geste.
+ */
+watch(() => gameStore.lookRequest, async (label) => {
+  if (!label) return
+  gameStore.lookRequest = null
+  const obj = readyToTake.value?.label === label ? readyToTake.value : null
+  await play(`${pack(playerStore.language).input.look[0]} ${label}`)
+  if (obj) take(obj)
 })
 
 /** Le joueur prend l'objet que le détenteur lui tend. */

@@ -532,7 +532,7 @@
     "game.eye_open": "Ouvrir l'œil",
     "game.howto_eyebrow": "Comment jouer",
     "game.howto_look_title": "Chercher dans le décor",
-    "game.howto_look_body": "Ce qui est écrit **en gras et en Majuscule** dans le récit est vraiment là, dans la salle. Écris ce que tu en fais : regarder, prendre, ouvrir. Certaines choses, personne ne te les tendra — il faut les trouver.",
+    "game.howto_look_body": "Ce qui est écrit **en gras et en Majuscule** dans le récit est vraiment là, dans la salle. Clique dessus pour l'examiner : sous la souris, le curseur redevient une flèche et le mot se souligne. Sur téléphone, il n'y a pas de survol, rien ne se souligne : touche simplement le mot du doigt, même l'œil ouvert, et l'examen part aussitôt. Tu peux aussi écrire ce que tu en fais : regarder, prendre, ouvrir. Certaines choses, personne ne te les tendra — il faut les trouver.",
     "game.howto_talk_title": "Parler aux gens",
     "game.howto_talk_body": "Les noms des gens sont brouillés. Touche le bouton de l'**œil bionique**, puis amène-le sur un nom : il se déchiffre, et tu peux parler à cette personne. Pose-lui une question — ici, on ne répond qu'à ça.",
     "game.howto_cta": "Entrer",

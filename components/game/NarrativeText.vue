@@ -46,12 +46,14 @@ const names = computed<Term[]>(() => {
     .map(o => ({ value: o.label, kind: 'object', id: o.id }))
 
   // CE QU'ON OBSERVE POUR EN APPRENDRE QUELQUE CHOSE EST EN GRAS, DANS TOUTES
-  // LES LANGUES : les objets de la scène et le décor qu'on examine. Ni le lieu
-  // ni l'augmentation : on ne les observe pas. Placés en tête : un nom déjà
-  // brouillé comme personne ou comme chose garde son brouillage.
+  // LES LANGUES : les objets de la scène, le décor qu'on examine et l'objet-clé
+  // — à l'auberge, l'augmentation en PascalCase est le seul nom lisible, et le
+  // seul objet à obtenir. Pas le lieu. Placés en tête : un nom déjà brouillé
+  // comme personne ou comme chose garde son brouillage.
   const marks: Term[] = [
     ...visible(scene.interactables, gameStore.revealedInteractableIds).map(i => i.label),
     ...(scene.decor ?? []).map(d => d.name),
+    scene.key_item?.name,
   ]
     .filter((v): v is string => Boolean(v?.trim()))
     // Un nom de décor qui CONTIENT une chose à déchiffrer l'avalerait : le plus

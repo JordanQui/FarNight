@@ -93,7 +93,8 @@ onUnmounted(cancel)
 
 /** Le clic reste : au clavier et à la souris, on peut vouloir aller vite. */
 function onActivate() {
-  if (decrypted.value) return
+  // Déchiffré, c'est un mot en gras comme les autres : le toucher l'examine.
+  if (decrypted.value) { gameStore.requestLook(props.label); return }
   cancel()
   // Sans l'augmentation, ou avec l'oeil en main, rien à tenter : seule la
   // loupe ouvre l'épreuve.
@@ -110,10 +111,10 @@ function onActivate() {
     class="glitch-object"
     :class="[
       decrypted ? 'is-clear' : 'is-sealed',
-      !decrypted && gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive ? 'cursor-eye' : null,
+      decrypted ? null : gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive ? 'cursor-eye' : null,
     ]"
-    :tabindex="decrypted ? -1 : 0"
-    :role="decrypted ? undefined : 'button'"
+    tabindex="0"
+    role="button"
     :aria-label="decrypted ? label : t('game.sealed_object')"
     :data-glitch-object="decrypted ? undefined : id"
     :data-glitch-label="decrypted ? undefined : label"
@@ -159,5 +160,9 @@ function onActivate() {
 .is-sealed { color: rgb(var(--steel-400)); }
 
 /* Déchiffré : la couleur du texte, l'objet devient un mot comme un autre. */
-.is-clear { color: rgb(var(--ink-100)); font-weight: 600; }
+/* Sous la souris, flèche et soulignement, comme les autres mots en gras. */
+.is-clear { color: rgb(var(--ink-100)); font-weight: 600; cursor: default; }
+@media (hover: hover) {
+  .is-clear:hover, .is-clear:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+}
 </style>

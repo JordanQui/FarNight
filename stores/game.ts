@@ -184,6 +184,8 @@ export const useGameStore = defineStore('game', {
      * celle de l'objet scellé — il faut savoir LEQUEL est sous la loupe.
      */
     pendingChallenge: null as { id: string; label: string } | null,
+    /** Un mot en gras touché dans le récit : GameShell le joue comme « examiner ». */
+    lookRequest: null as string | null,
     /** Lecture refusée : tout le texte se brouille un instant. */
     readDenied: false,
     /**
@@ -636,6 +638,10 @@ export const useGameStore = defineStore('game', {
 
     requestChallenge(id: string, label: string) {
       this.pendingChallenge = { id, label }
+    },
+
+    requestLook(label: string) {
+      if (!this.isInputDisabled) this.lookRequest = label
     },
 
     clearChallenge() {

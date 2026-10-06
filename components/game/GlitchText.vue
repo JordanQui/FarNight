@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { splitByNames, type Term } from '~/utils/glitch'
+import { useGameStore } from '~/stores/game'
+
+const gameStore = useGameStore()
 
 const props = defineProps<{
   text: string
@@ -43,9 +46,22 @@ const segments = computed(() => {
     :label="seg.name"
   /><strong
     v-else-if="seg.name && seg.kind === 'mark'"
-    class="font-bold text-parchment"
+    class="mark-link font-bold text-parchment"
+    role="button"
+    tabindex="0"
+    @click="gameStore.requestLook(seg.name)"
+    @keydown.enter="gameStore.requestLook(seg.name)"
   >{{ seg.name }}</strong><GlitchName
     v-else-if="seg.name"
     :name="seg.name"
   /><template v-else>{{ seg.text }}</template></template></span>
 </template>
+
+<style scoped>
+/* Un mot en gras s'examine d'un clic : sous la souris, le curseur redevient
+   une flèche et le mot se souligne. Au doigt, pas de survol, pas de trait. */
+.mark-link { cursor: default; outline: none; }
+@media (hover: hover) {
+  .mark-link:hover, .mark-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+}
+</style>
