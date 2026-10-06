@@ -3,7 +3,7 @@ import { usePlayerStore } from '~/stores/player'
 import { translate } from '~/utils/languages'
 import { isSolved, searchedSpot } from '~/utils/puzzles'
 import { CARD_HALF_ID, isPieceId } from '~/utils/interactables'
-import { keyItemNameInClear, sceneKeyInventoryKind } from '~/utils/scene-item-policy'
+import { keyItemNameInClear, keyItemIsFirstHalf, sceneKeyInventoryKind } from '~/utils/scene-item-policy'
 
 /**
  * L'énigme de la scène, côté partie.
@@ -42,7 +42,7 @@ export function usePuzzle() {
     gameStore.collectKeyItem(scene.grants_augmentation ?? false, {
       // Toujours le même id que celui sous lequel le récit l'a chiffré : déchiffré
       // dans le texte, il doit rester déchiffré dans l'inventaire.
-      id: keyId.value,
+      id: keyItemIsFirstHalf(scene.scene_id) ? CARD_HALF_ID : keyId.value,
       name: item.name ?? '',
       from: scene.place?.name,
       color: item.color,

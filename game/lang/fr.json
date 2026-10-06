@@ -535,6 +535,8 @@
     "game.howto_look_body": "Ce qui est écrit **en gras et en Majuscule** dans le récit est vraiment là, dans la salle. Clique dessus pour l'examiner : sous la souris, le curseur redevient une flèche et le mot se souligne. Sur téléphone, il n'y a pas de survol, rien ne se souligne : touche simplement le mot du doigt, même l'œil ouvert, et l'examen part aussitôt. Tu peux aussi écrire ce que tu en fais : regarder, prendre, ouvrir. Certaines choses, personne ne te les tendra — il faut les trouver.",
     "game.howto_talk_title": "Parler aux gens",
     "game.howto_talk_body": "Les noms des gens sont brouillés. Touche le bouton de l'**œil bionique**, puis amène-le sur un nom : il se déchiffre, et tu peux parler à cette personne. Pose-lui une question — ici, on ne répond qu'à ça.",
+    "game.howto_trade_title": "Échanger",
+    "game.howto_trade_body": "Certaines choses valent surtout pour quelqu'un d'autre. Pendant que tu parles à une personne, ouvre **Sur toi** et touche **Donner** sur un objet. Si c'est ce qu'elle attendait, elle le garde et te rend la pareille : ce qu'elle sait de ta quête, un objet dont tu as besoin, ou une chose cachée dans le décor. Sinon, elle te le rend.",
     "game.howto_cta": "Entrer",
     "game.eye_body_1": "Ce bouton allume l'oeil. Il lit les noms des gens : amène-le sur l'un d'eux, et son nom se déchiffre.",
     "game.eye_body_2": "Chacun ici a sa note, et tu l'entends au moment où tu le reconnais. Mets le son.",

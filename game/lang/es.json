@@ -519,6 +519,8 @@
     "game.howto_look_body": "Lo que está escrito **en negrita y con Mayúscula** en el relato está de verdad ahí, en la sala. Haz clic encima para examinarlo: bajo el ratón, el cursor vuelve a ser una flecha y la palabra se subraya. En el móvil no hay paso del ratón y nada se subraya: toca la palabra con el dedo, incluso con el ojo abierto, y el examen empieza enseguida. También puedes escribir lo que haces con ello: mirar, coger, abrir. Hay cosas que nadie te dará: tendrás que encontrarlas.",
     "game.howto_talk_title": "Hablar con la gente",
     "game.howto_talk_body": "Los nombres de la gente están cifrados. Toca el botón del **ojo biónico** y llévalo sobre un nombre: se descifra, y puedes hablar con esa persona. Hazle una pregunta: aquí solo se responde a eso.",
+    "game.howto_trade_title": "Intercambiar",
+    "game.howto_trade_body": "Algunas cosas valen sobre todo para otra persona. Mientras hablas con alguien, abre **Encima** y toca **Dar** en un objeto. Si es lo que esperaba, se lo queda y te devuelve el favor: lo que sabe de tu búsqueda, un objeto que necesitas o algo escondido en el decorado. Si no, te lo devuelve.",
     "game.howto_cta": "Entrar",
     "game.eye_body_1": "Este botón enciende el ojo. Lee los nombres de la gente: llévalo hasta uno de ellos y su nombre se descifra.",
     "game.eye_body_2": "Cada cual tiene aquí su nota, y la oyes en el momento en que lo reconoces. Pon el sonido.",

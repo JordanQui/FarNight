@@ -4,9 +4,10 @@ const { t } = useLang()
 /**
  * Ce qu'on fait ici, dit avant que le barman parle.
  *
- * Elle s'ouvre à l'arrivée dans l'auberge, une fois par partie, et dit les deux
+ * Elle s'ouvre à l'arrivée dans l'auberge, une fois par partie, et dit les trois
  * gestes du jeu : chercher dans le décor ce que le récit met en gras et en
- * Majuscule, et ouvrir l'oeil pour lire le nom des gens avant de leur parler.
+ * Majuscule, ouvrir l'oeil pour lire le nom des gens avant de leur parler, et
+ * leur donner un objet pour obtenir une info, un objet ou un morceau caché du décor.
  *
  * UNE FENÊTRE D'INTERFACE, PAS UN MORCEAU DE RÉCIT : son texte est fixe, dans
  * les paquets de langue, et ne coûte aucun appel. Les `**…**` des chaînes sont
@@ -17,6 +18,7 @@ const emit = defineEmits<{ close: [] }>()
 const sections = computed(() => [
   { icon: 'look', title: t('game.howto_look_title'), body: t('game.howto_look_body') },
   { icon: 'eye', title: t('game.howto_talk_title'), body: t('game.howto_talk_body') },
+  { icon: 'trade', title: t('game.howto_trade_title'), body: t('game.howto_trade_body') },
 ])
 
 /** Découpe une chaîne autour de ses `**…**` : les morceaux impairs sont en gras. */
@@ -53,6 +55,10 @@ function parts(text: string) {
                 <circle cx="10.5" cy="10.5" r="6" />
                 <path d="M15 15l6 6" />
                 <path d="M8 9h5M8 12h3" opacity="0.7" />
+              </svg>
+              <svg v-else-if="s.icon === 'trade'" viewBox="0 0 24 24" class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M3 8h15M14 4l4 4-4 4" />
+                <path d="M21 16H6M10 12l-4 4 4 4" />
               </svg>
               <svg v-else viewBox="0 0 24 16" class="w-8 h-6" fill="none" stroke="currentColor" stroke-width="1.2">
                 <path d="M1 8s4-6.5 11-6.5S23 8 23 8s-4 6.5-11 6.5S1 8 1 8Z" />

@@ -301,12 +301,11 @@ export class SceneRuntime {
 
   /**
    * L'objet-clé est-il une carte d'accès ? Tout lieu qui fait avancer en donne
-   * une, sauf A2S1 (objet d'échange) et les valeurs — fréquence, code, séquence.
+   * une — en A2S1, la carte cassée — sauf les valeurs : fréquence, code, séquence.
    */
   private get keyItemIsCard(): boolean {
     const puzzle = this.scene.key_item?.puzzle
     return this.scene.objective?.kind === 'advance'
-      && this.scene.id !== 'a2s1'
       && puzzle !== 'frequency' && puzzle !== 'code' && puzzle !== 'sequence'
   }
 
@@ -1574,12 +1573,16 @@ ${lines}`)
       const colored = (o: Interactable) => Boolean(this.scene.key_item.completes_half || o.card_color?.trim())
       const half = takeable.find(o => o.item_kind === 'carte' && !o.hidden
         && colored(o) && Boolean(o.observation?.trim())
-        && Boolean(o.label?.trim()) && written.includes(fold(o.label)))
+        && Boolean(o.label?.trim()) && this.namedIn(o.label, written))
       if (!half) {
+        const seen = (generated.interactables ?? [])
+          .map(o => `${o.id}/${o.item_kind || '—'}/${o.verb || '—'}/${o.card_color || '—'}/« ${o.label} »`
+            + `${o.label?.trim() && this.namedIn(o.label, written) ? '' : ' (absent du texte)'}${o.hidden ? ' (caché)' : ''}`)
+          .join(' ; ')
         throw new Error(
           'Scène invalide : aucune moitié de carte — un objet de `interactables` doit être la carte cassée '
           + `posée dans le décor : item_kind "carte", un card_color, une observation, un verbe ${this.takeVerbs}, `
-          + 'et son label exact en Majuscules dans scene_text')
+          + `et son label exact en Majuscules dans scene_text. Reçu : ${seen || 'aucun objet'}`)
       }
     }
     // CE QU'UN ÉCHANGE DÉCOUVRE DOIT EXISTER. Un `reveals_id` qui ne désigne
@@ -2038,7 +2041,7 @@ ${lines}`)
         // est l'accent de son lieu, on la lui rend.
         color: this.keyItemIsCard
           ? palette.accent.name
-          : this.scene.id === 'a2s1' ? undefined : generated.key_item?.color?.trim(),
+          : generated.key_item?.color?.trim(),
         exchanges_before_handover: this.scene.key_item.exchanges_before_handover,
         // Comment il s'obtient voyage avec la scène : le client doit savoir
         // qu'ici personne ne le tend, et que c'est le déchiffrage qui le donne.

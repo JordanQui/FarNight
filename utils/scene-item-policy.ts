@@ -1,6 +1,14 @@
-/** A2S1 s’ouvre avec l’objet trouvé ; on peut ensuite le donner en A2S2. */
-export function sceneKeyInventoryKind(sceneId: string): 'key' | 'trade' {
-  return sceneId === 'a2s1' ? 'trade' : 'key'
+/** Toute scène remet une carte ou une valeur ; A2S1, la carte cassée contre l’offrande. */
+export function sceneKeyInventoryKind(_sceneId: string): 'key' | 'trade' {
+  return 'key'
+}
+
+/**
+ * L’objet-clé d’A2S1 est la première moitié de la carte d’A2S2 : il entre en
+ * poche sous l’id que la seconde cherche.
+ */
+export function keyItemIsFirstHalf(sceneId: string): boolean {
+  return sceneId === 'a2s1'
 }
 
 /**

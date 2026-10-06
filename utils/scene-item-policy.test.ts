@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { sceneKeyInventoryKind, finalSequenceNeedsExchange, keyItemNameInClear } from './scene-item-policy.ts'
+import { keyItemIsFirstHalf, sceneKeyInventoryKind, finalSequenceNeedsExchange, keyItemNameInClear } from './scene-item-policy.ts'
 
-test('l’objet personnel A2S1 peut être donné au PNJ d’A2S2', () => {
-  assert.equal(sceneKeyInventoryKind('a2s1'), 'trade')
+test('la carte cassée d’A2S1 entre en poche comme la moitié qu’A2S2 attend', () => {
+  assert.equal(sceneKeyInventoryKind('a2s1'), 'key')
+  assert.equal(keyItemIsFirstHalf('a2s1'), true)
+  assert.equal(keyItemIsFirstHalf('a3s1'), false)
 })
 
 test('A3S1 redevient une carte pour atteindre le dernier lieu', () => {
