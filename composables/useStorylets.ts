@@ -388,6 +388,7 @@ export function useStorylets() {
         return
       }
       answerLocally(input, localText(moment.play.say, q), q.localAnswer?.npcName)
+      if (moment.play.say === 'oracle' && q.localAnswer?.reveals) gameStore.revealInteractable(q.localAnswer.reveals)
       return
     }
 

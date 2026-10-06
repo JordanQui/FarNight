@@ -18,7 +18,7 @@ import { isSecondLook } from '~/utils/puzzle-look'
  * ce qu'il est seul à savoir faire : une réplique neuve, une réaction inédite.
  */
 
-export type LocalAnswerKind = 'decor' | 'npc_known' | 'guidance' | 'budget_exhausted'
+export type LocalAnswerKind = 'decor' | 'container' | 'npc_known' | 'guidance' | 'budget_exhausted'
 
 /** Ce que l'oracle a besoin de savoir du joueur pour répondre sans le modèle. */
 export interface OracleState {
@@ -37,6 +37,8 @@ export interface LocalAnswer {
   kind: LocalAnswerKind
   /** Rendu comme réplique de PNJ plutôt que comme narration. */
   npcName?: string
+  /** Ce que l'ouverture d'un contenant fait apparaître. */
+  reveals?: string
 }
 
 function containsAny(haystack: string, needles: string[]): boolean {
@@ -201,6 +203,12 @@ export function resolveLocally(
   if (containsAny(text, guidance)) {
     return { text: buildGuidance(scene, state, lang), kind: 'guidance' }
   }
+
+  // Un contenant qu'on nomme s'ouvre : ce qu'on y trouve est déjà écrit.
+  // Seulement là où l'un d'eux cache quelque chose ; ailleurs rien ne change.
+  const box = scene.interactables?.some(o => o.contains_id) && visible(scene.interactables, state.revealedIds)
+    .find(o => o.label && o.observation?.trim() && !isTakeable(o, lang) && namedIn(text, o.label, lang))
+  if (box) return { text: box.observation!, kind: 'container', reveals: box.contains_id }
 
   // Observation d'un élément de décor : sa description est déjà écrite.
   if (containsAny(text, look)) {

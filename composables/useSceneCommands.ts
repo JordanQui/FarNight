@@ -121,6 +121,66 @@ export function useSceneCommands() {
       },
     },
     {
+      name: 'solution',
+      help: 'déroule le chemin de la scène, lu dans la scène déjà générée (aucun appel)',
+      run() {
+        const scene = playerStore.scene
+        const item = scene?.key_item
+        if (!scene || !item) {
+          say('Aucune scène chargée.')
+          return
+        }
+        const has = gameStore.hasKeyItem
+        const carried = (id: string) => gameStore.inventory.some(o => o.id === id)
+        const npc = (id?: string) => scene.npcs.find(n => n.id === id)?.name ?? id ?? '?'
+        const label = (id?: string) => scene.interactables.find(o => o.id === id)?.label
+          ?? gameStore.inventory.find(o => o.id === id)?.label ?? id ?? '?'
+        // [fait, étape] — null quand l'état du joueur ne permet pas de trancher.
+        const steps: Array<[boolean | null, string]> = []
+
+        const p = scene.puzzle
+        if (item.acquisition === 'found' && p) {
+          steps.push([has, 'Regarder deux choses du lieu : la seconde donne l\'indice.'])
+          steps.push([has, `Énigme (${p.kind}) : ${
+            p.kind === 'frequency' ? `régler sur ${p.solution} (${p.min}–${p.max})`
+            : p.kind === 'code' ? `taper ${p.solution}`
+            : p.kind === 'sequence' ? p.solution.map(i => p.steps[i]).join(' → ')
+            : p.kind === 'lock' ? `présenter ${label(p.card_id)} (prise à ${p.place})`
+            : `fouiller ${p.spots.find(s => s.id === p.solution)?.label ?? p.solution}`}`])
+        } else if (item.acquisition === 'found') {
+          steps.push([has, `Lire ${item.name} à l'oeil : le déchiffrer le remet.`])
+        } else {
+          if (item.acquisition !== 'holder' && item.informant_npc_id) {
+            steps.push([has || gameStore.talkedToNpcIds.includes(item.informant_npc_id),
+              `Questionner ${npc(item.informant_npc_id)} sur la quête : ${item.informant_hint}`])
+          }
+          const box = item.offering_id && scene.interactables.find(o => o.contains_id === item.offering_id)
+          if (box) steps.push([has, `Nommer ${box.label} pour l'ouvrir, puis ramasser ${label(item.offering_id)}.`])
+          steps.push([has, `Questionner ${npc(item.npc_id)}${
+            item.offering_id ? `, lui donner ${label(item.offering_id)}` : ` (${item.exchanges_before_handover} échanges)`
+          } : ${item.handover_hint} → ${item.name}`])
+        }
+
+        for (const n of scene.npcs.filter(n => n.wants)) {
+          const w = n.wants!
+          steps.push([null, `(facultatif) Donner ${label(w.item_id)} à ${n.name} → ${
+            w.reward_item?.label ?? (w.reveals_id ? label(w.reveals_id) : w.reward)}`])
+        }
+        if (scene.required_item_id) {
+          steps.push([carried(scene.required_item_id), `Ramasser ${label(scene.required_item_id)}.`])
+        }
+        if (scene.opens_with_card) {
+          steps.push([null, `Utiliser ${item.name} sur ${scene.card_reader?.label ?? 'le lecteur'}.`])
+        }
+        steps.push([null, `Sortir : ${scene.exit_label || scene.paywall.exit_keywords[0] || '?'}`])
+
+        say([
+          `Solution — ${scene.scene_title}`,
+          ...steps.map(([done, text], i) => `${done ? '✓' : '·'} ${i + 1}. ${text}`),
+        ].join('\n'))
+      },
+    },
+    {
       name: 'aide',
       help: 'liste les commandes disponibles',
       run() {

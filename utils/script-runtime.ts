@@ -1164,9 +1164,14 @@ ${lines}`)
       }
     }
 
-    const revealed = (generated.npcs ?? [])
-      .map(n => n.wants?.reveals_id).filter((id): id is string => Boolean(id))
     const objects = generated.interactables ?? []
+    // Un contenant montre aussi ce qu'il renferme, et l'offrande cachée attend
+    // le sien : `bindOffering` l'y range, ou la rend visible.
+    const revealed = [
+      ...(generated.npcs ?? []).map(n => n.wants?.reveals_id),
+      ...objects.map(o => o.contains_id),
+      this.scene.key_item.offering ? OFFERING_ID : undefined,
+    ].filter((id): id is string => Boolean(id))
     const orphans = objects.filter(o => o.hidden && !revealed.includes(o.id))
     if (!orphans.length) return
 
@@ -1196,7 +1201,12 @@ ${lines}`)
     const takeVerb = this.pack.input.take[0] ?? ''
     const named = (o: Interactable) => Boolean(o.label?.trim()) && this.namedIn(o.label, written)
     const claimed = objects.find(o => o.id === OFFERING_ID)
-    if (claimed && !claimed.triggers_paywall && named(claimed)) {
+    // L'offrande se cache dans un contenant du décor : une chose nommée qu'on
+    // ouvre sans l'emporter. Celui que le modèle a désigné passe en premier.
+    const boxes = objects.filter(o => o.id !== OFFERING_ID && !o.hidden && !o.triggers_paywall
+      && !o.card_color && !isTakeable(o, this.lang) && named(o))
+    const container = boxes.find(o => o.contains_id === OFFERING_ID) ?? boxes[0]
+    if (claimed && !claimed.triggers_paywall && (named(claimed) || (container && claimed.label?.trim()))) {
       // Nommée dans le texte : il ne lui manquait que la prise.
       if (!isTakeable(claimed, this.lang) && takeVerb) claimed.verb = takeVerb
     } else {
@@ -1237,7 +1247,17 @@ ${lines}`)
     const offering = objects.find(o => o.id === OFFERING_ID)
     if (offering) {
       offering.item_kind = 'echange'
-      delete offering.hidden
+      for (const box of boxes) delete box.contains_id
+      if (container && container !== offering) {
+        container.contains_id = OFFERING_ID
+        // Ouvrir le contenant doit dire ce qu'on y trouve, dans la langue du modèle.
+        const seen = container.observation?.trim() ?? ''
+        container.observation = this.namedIn(offering.label, fold(seen))
+          ? seen : [seen, offering.label].filter(Boolean).join(' — ')
+        offering.hidden = true
+      } else {
+        delete offering.hidden
+      }
       // Une offrande sans observation reste lisible : la loupe dit au moins
       // qu'elle manque à quelqu'un ici.
       if (!offering.observation?.trim()) {
@@ -1538,8 +1558,10 @@ ${lines}`)
       const written = fold(generated.scene_text ?? '')
       const named = (o: Interactable) => Boolean(o.label?.trim()) && this.namedIn(o.label, written)
       const offering = takeable.find(o => o.id === OFFERING_ID)
-      if (!offering || offering.hidden || !offering.label?.trim()
-        || !this.namedIn(offering.label, written) || !offering.observation?.trim()) {
+      // Cachée, elle doit l'être dans un contenant que le texte nomme.
+      const box = (generated.interactables ?? []).find(o => o.contains_id === OFFERING_ID && !o.hidden && named(o))
+      if (!offering || (offering.hidden && !box) || !offering.label?.trim()
+        || (!box && !this.namedIn(offering.label, written)) || !offering.observation?.trim()) {
         // Ce qui est arrivé, dans le message même : sans lui, un refus après
         // reprise ne laisse aucune trace de ce que le modèle avait écrit.
         const seen = (generated.interactables ?? [])
@@ -1850,7 +1872,7 @@ ${lines}`)
       taken.add(fold(color))
       return { ...i, card_color: color, card_hex: i.card_hex && HEX_RE.test(i.card_hex) ? i.card_hex : undefined }
     })
-    const iconed = carded.map(i => drawn({ ...i, id: fresh(i.id) }))
+    const iconed = carded.map(i => drawn({ ...i, id: fresh(i.id), contains_id: i.contains_id && fresh(i.contains_id) }))
     const npcs = (scene.npcs ?? []).map(n => !n.wants ? n : {
       ...n,
       wants: {
