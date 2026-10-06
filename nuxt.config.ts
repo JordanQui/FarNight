@@ -157,6 +157,12 @@ export default defineNuxtConfig({
     openaiApiKey: process.env.OPENAI_API_KEY,
     squareAccessToken: process.env.SQUARE_ACCESS_TOKEN,
     nuxtSecret: process.env.NUXT_SECRET,
+    /**
+     * Images coupées en production le temps du développement : un aplat
+     * remplace chaque appel OpenAI. `PROD_IMAGES=1` sur Vercel, puis
+     * redéployer, les rétablit. Voir server/utils/image-gen.ts.
+     */
+    imagesOff: process.env.PROD_IMAGES !== '1',
 
     public: {
       /** Dominante, secondaire et accent de l'auberge. Voir plus haut. */

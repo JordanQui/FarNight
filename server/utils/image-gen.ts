@@ -48,11 +48,12 @@ function remember(key: string, result: ImageResult): void {
  * aplat sombre aux bonnes proportions au lieu d'appeler OpenAI. Pour retrouver
  * les vraies images : `DEV_IMAGES=1` dans le .env.
  *
- * `import.meta.dev` est figé à la compilation : la production n'est jamais
- * concernée, quoi que contienne son environnement.
+ * La production suit le même régime le temps du développement : coupée tant
+ * que `PROD_IMAGES=1` n'est pas posé sur Vercel (valeur lue au build).
  */
 function imagesBlocked(): boolean {
-  return import.meta.dev && process.env.DEV_IMAGES !== '1'
+  if (import.meta.dev) return process.env.DEV_IMAGES !== '1'
+  return useRuntimeConfig().imagesOff
 }
 
 function placeholder(size: string): ImageResult {
@@ -61,7 +62,7 @@ function placeholder(size: string): ImageResult {
     + `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">`
     + `<stop offset="0" stop-color="#0b0d14"/><stop offset="1" stop-color="#1a1424"/></linearGradient></defs>`
     + `<rect width="100%" height="100%" fill="url(#g)"/>`
-    + `<text x="50%" y="50%" fill="#3a3550" font-family="monospace" font-size="${Math.round(w / 40)}" text-anchor="middle">IMAGE COUPÉE EN DEV · DEV_IMAGES=1</text>`
+    + `<text x="50%" y="50%" fill="#3a3550" font-family="monospace" font-size="${Math.round(w / 40)}" text-anchor="middle">IMAGE COUPÉE · DÉVELOPPEMENT</text>`
     + `</svg>`
   return {
     image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
