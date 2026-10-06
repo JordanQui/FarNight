@@ -239,6 +239,13 @@
     ],
     "use": ["usar", "uso", "usa", "utilizar", "utiliza", "inserir", "insere", "meter", "mete", "deslizar", "desliza", "passar o cartão", "passa o cartão", "passar o cartao", "passa o cartao", "apresentar", "apresenta"],
     "card": ["cartão", "cartao", "cartões", "cartoes"],
+    "greet": [
+      "ola",
+      "oi",
+      "boa noite",
+      "boa tarde",
+      "e ai"
+    ],
     "question": [
       "por que",
       "como",

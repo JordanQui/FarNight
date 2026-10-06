@@ -244,6 +244,14 @@
     ],
     "use": ["usar", "uso", "usa", "utilizar", "utiliza", "insertar", "inserta", "meter", "mete", "deslizar", "desliza", "pasar la tarjeta", "pasa la tarjeta", "presentar", "presenta"],
     "card": ["tarjeta", "tarjetas"],
+    "greet": [
+      "hola",
+      "buenas",
+      "buenas noches",
+      "buenas tardes",
+      "saludos",
+      "hey"
+    ],
     "question": [
       "por que",
       "como",

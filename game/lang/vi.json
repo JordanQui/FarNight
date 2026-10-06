@@ -184,6 +184,13 @@
     ],
     "use": ["dùng", "dung", "sử dụng", "su dung", "đưa thẻ", "dua the", "nhét", "nhet", "quẹt", "quet", "cắm", "cam", "trình", "trinh"],
     "card": ["thẻ", "the"],
+    "greet": [
+      "xin chao",
+      "chao",
+      "chao anh",
+      "chao chi",
+      "chao ban"
+    ],
     "question": [
       "tại sao",
       "vì sao",

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { draw, type Qualities } from './storylets.ts'
-import { isQuestion } from './text-match.ts'
+import { isGreeting, isQuestion } from './text-match.ts'
 
 const words = (lang: string): string[] =>
   JSON.parse(readFileSync(new URL(`../game/lang/${lang}.json`, import.meta.url), 'utf8')).input.question
@@ -31,8 +31,8 @@ const talking: Qualities = {
   holderExchanges: 1,
   exchangesBeforeHandover: 2,
   holderAwaitsOffering: false,
-  holderAwaitsPassword: false,
-  saysPassword: false,
+  holderAwaitsSecret: false,
+  citesSecret: false,
   failureAtTurn: 10,
   takesReadableObject: false,
   takesUnreadObject: false,
@@ -148,8 +148,23 @@ test('posture, caractère, rôle tiré du dossier', () => {
   assert.ok(script.scenes[0].narrative.structure.some(presents))
 })
 
-test('la relique ne se cède qu’à qui dit la formule', () => {
-  const holder = { ...talking, talksToNpc: true, addressesHolder: true, sceneHasKeyItem: true, informed: true, holderAwaitsPassword: true }
-  assert.notEqual(draw({ ...holder, saysPassword: false }).id, 'remise')
-  assert.equal(draw({ ...holder, saysPassword: true }).id, 'remise')
+test('la relique ne se cède qu’à qui parle du secret', () => {
+  const holder = { ...talking, talksToNpc: true, addressesHolder: true, sceneHasKeyItem: true, informed: true, holderAwaitsSecret: true }
+  assert.notEqual(draw({ ...holder, citesSecret: false }).id, 'remise')
+  assert.equal(draw({ ...holder, citesSecret: true }).id, 'remise')
+})
+
+test('un simple bonjour engage la conversation, avec ou sans le nom', () => {
+  const greet = (lang: string): string[] =>
+    JSON.parse(readFileSync(new URL(`../game/lang/${lang}.json`, import.meta.url), 'utf8')).input.greet
+  const fr = greet('fr')
+  assert.ok(isGreeting('Bonjour', fr, 'Kaneshi'))
+  assert.ok(isGreeting('Bonsoir Kaneshi !', fr, 'Kaneshi'))
+  assert.ok(isGreeting('salut, kaneshi.', fr, 'Kaneshi'))
+  assert.ok(!isGreeting('Kaneshi', fr, 'Kaneshi'))
+  assert.ok(!isGreeting('Bonjour, je cherche le module', fr, 'Kaneshi'))
+  assert.ok(isGreeting('good evening', greet('en'), 'Ash Vale'))
+  assert.ok(isGreeting('你好', greet('zh'), '凯'))
+  assert.ok(isGreeting('مرحبا', greet('ar'), 'كريم'))
+  assert.equal(draw({ ...talking, citesName: true }).id, 'tour')
 })

@@ -196,6 +196,16 @@
     ],
     "use": ["use", "using", "insert", "swipe", "slide", "present", "show the card", "scan", "put the card", "badge"],
     "card": ["card", "cards", "keycard", "badge"],
+    "greet": [
+      "hello",
+      "hi",
+      "hey",
+      "good evening",
+      "good night",
+      "greetings",
+      "yo",
+      "howdy"
+    ],
     "question": [
       "why",
       "how",

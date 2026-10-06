@@ -7,7 +7,7 @@ import { usePaywall } from '~/composables/usePaywall'
 import { useSceneCommands } from '~/composables/useSceneCommands'
 import { resolveLocally, buildGuidance, lookedThing } from '~/utils/scene-oracle'
 import { translate, pack } from '~/utils/languages'
-import { isQuestion, matchesKeyword, normalize } from '~/utils/text-match'
+import { isGreeting, isQuestion, matchesKeyword, normalize } from '~/utils/text-match'
 import { CARD_HALF_2_ID, isPieceId, takeTarget, observationOf } from '~/utils/interactables'
 import { usePuzzle } from '~/composables/usePuzzle'
 import type { Interactable } from '~/types/scene'
@@ -67,9 +67,9 @@ export function useStorylets() {
    *
    * Les noms en PascalCase du récit — objet, décor, augmentation, sortie — sont
    * ce que le joueur est invité à saisir : en parler à quelqu'un n'a pas à
-   * prendre la forme d'une question. Le nom du personnage seul aussi : c'est
-   * ainsi qu'on l'aborde. Soudés ou non : « FocaleBraise » se tape aussi
-   * « focale braise ».
+   * prendre la forme d'une question. Le nom du personnage seul aussi, ou un
+   * simple « bonjour », avec ou sans son nom : c'est ainsi qu'on l'aborde.
+   * Soudés ou non : « FocaleBraise » se tape aussi « focale braise ».
    */
   function citesName(input: string, npc?: { name: string }): boolean {
     const scene = playerStore.scene
@@ -90,6 +90,7 @@ export function useStorylets() {
     })
     if (cited) return true
     if (!npc) return false
+    if (isGreeting(input, pack(playerStore.language).input.greet ?? [], npc.name)) return true
     const rest = normalize(npc.name).split(' ')
       .reduce((left, part) => left.replace(part, ''), text)
     return !rest.replace(/[^\p{L}\p{N}]+/gu, '')
@@ -144,8 +145,14 @@ export function useStorylets() {
     // Le don ne se lit pas dans la phrase : il vient du clic sur « Donner »,
     // qui a déjà désigné l'objet ET le destinataire. La saisie ne sert qu'à
     // laisser une trace au fil.
-    // La formule se reconnaît mot pour mot, sans accents ni ponctuation.
+    // Le secret de la relique : il suffit d'en reprendre les mots qui portent
+    // (4 lettres et plus), sans casse, accents ni ponctuation.
     const bare = (t: string) => normalize(t).replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim()
+    const citesSecret = (secret: string) => {
+      const said = ` ${bare(input)} `
+      const words = bare(secret).split(' ').filter(w => w.length >= 4)
+      return words.length ? words.every(w => said.includes(` ${w} `)) : said.includes(` ${bare(secret)} `)
+    }
 
     const give = gameStore.pendingGive
     const wanted = give
@@ -192,9 +199,8 @@ export function useStorylets() {
       holderExchanges: gameStore.keyItemExchanges + 1,
       exchangesBeforeHandover: item?.exchanges_before_handover ?? 0,
       holderAwaitsOffering: Boolean(item?.offering_id),
-      holderAwaitsPassword: Boolean(item?.relic && item.password?.trim()),
-      saysPassword: Boolean(item?.relic && item.password?.trim())
-        && bare(input).includes(bare(item!.password!)),
+      holderAwaitsSecret: Boolean(item?.relic && item.secret?.trim()),
+      citesSecret: Boolean(item?.relic && item.secret?.trim()) && citesSecret(item!.secret!),
 
       failureAtTurn: pacing?.failure_after_turns ?? 0,
 

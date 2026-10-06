@@ -145,8 +145,8 @@ export interface SceneKeyItem {
   offering_id?: string
   /** La relique d’A3S1 : tendue par son détenteur, elle entre chiffrée. Voir `key_item.relic`. */
   relic?: boolean
-  /** La formule que l'informateur livre et que le détenteur de la relique attend. */
-  password?: string
+  /** Ce que l'informateur révèle sur le détenteur, et dont il faut lui parler. */
+  secret?: string
   /**
    * Les gestes du dénouement, DANS L'ORDRE, quand l'énigme est une séquence.
    *

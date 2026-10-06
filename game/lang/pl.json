@@ -211,6 +211,14 @@
     ],
     "use": ["użyć", "uzyc", "użyj", "uzyj", "używam", "uzywam", "włożyć", "wlozyc", "włóż", "wloz", "przesunąć", "przesunac", "przesuń", "przesun", "przyłożyć", "przylozyc", "przyłóż", "przyloz", "pokazać", "pokazac", "pokaż", "pokaz"],
     "card": ["karta", "kartę", "karte", "karty", "kartą", "karta"],
+    "greet": [
+      "czesc",
+      "dzien dobry",
+      "dobry wieczor",
+      "witaj",
+      "siema",
+      "hej"
+    ],
     "question": [
       "dlaczego",
       "czemu",

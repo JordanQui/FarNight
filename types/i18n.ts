@@ -168,6 +168,12 @@ export interface LangInput {
    */
   question?: string[]
   /**
+   * Salutations — « bonjour », « bonsoir ». Saluer quelqu'un, seul ou avec son
+   * nom, suffit à engager la conversation : ce n'est pas une question, mais
+   * c'est ainsi qu'on aborde quelqu'un.
+   */
+  greet?: string[]
+  /**
    * Fouiller un endroit — plonger la main, pas seulement regarder. Seul geste
    * de la fouille qui coûte la nuit : « regarder » lit l'indice gratuitement.
    */

@@ -94,10 +94,10 @@ export interface Qualities {
    * décor. Les échanges ne comptent plus, le don seul fait la remise.
    */
   holderAwaitsOffering: boolean
-  /** La relique d'A3S1 : il ne cède qu'à qui lui dit la formule. */
-  holderAwaitsPassword: boolean
-  /** La saisie contient cette formule. */
-  saysPassword: boolean
+  /** La relique d'A3S1 : il ne cède qu'à qui lui parle du secret que l'informateur a livré. */
+  holderAwaitsSecret: boolean
+  /** La saisie reprend ce secret. */
+  citesSecret: boolean
 
   /**
    * Tour où la nuit se referme si le joueur n'a toujours pas l'objet.
@@ -214,7 +214,7 @@ function remiseImminente(q: Qualities): boolean {
     && q.informed
     && !q.hasKeyItem
     && !q.pendingKeyItem
-    && (q.holderAwaitsPassword ? q.saysPassword : q.holderExchanges >= q.exchangesBeforeHandover)
+    && (q.holderAwaitsSecret ? q.citesSecret : q.holderExchanges >= q.exchangesBeforeHandover)
 }
 
 export const DECK: Storylet[] = [

@@ -243,7 +243,7 @@ export default defineEventHandler(async (event) => {
   scene.ensurePuzzleObjects(generated)
   scene.bindOffering(generated)
   scene.weldAugmentationName(generated)
-  if (scene.id === 'a1s2') ensureFrequencyTarget(generated)
+  if (scene.id === 'a1s2' || scene.id === 'a3s2') ensureFrequencyTarget(generated)
   scene.pinPlayerPalette(generated, user)
 
   try {
@@ -262,7 +262,7 @@ export default defineEventHandler(async (event) => {
     scene.ensurePuzzleObjects(generated)
     scene.bindOffering(generated)
     scene.weldAugmentationName(generated)
-    if (scene.id === 'a1s2') ensureFrequencyTarget(generated)
+    if (scene.id === 'a1s2' || scene.id === 'a3s2') ensureFrequencyTarget(generated)
     scene.pinPlayerPalette(generated, user)
 
     try {

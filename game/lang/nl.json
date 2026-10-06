@@ -208,6 +208,14 @@
     ],
     "use": ["gebruiken", "gebruik", "invoeren", "voer", "steken", "steek", "halen door", "haal", "tonen", "toon", "scannen", "scan"],
     "card": ["kaart", "kaarten", "pasje"],
+    "greet": [
+      "hallo",
+      "hoi",
+      "goedenavond",
+      "goede avond",
+      "dag",
+      "hey"
+    ],
     "question": [
       "waarom",
       "hoe",

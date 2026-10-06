@@ -189,6 +189,13 @@
     ],
     "use": ["gunakan", "pakai", "memakai", "menggunakan", "masukkan", "memasukkan", "gesek", "menggesek", "tempelkan", "tunjukkan", "pindai"],
     "card": ["kartu", "kartunya"],
+    "greet": [
+      "halo",
+      "hai",
+      "selamat malam",
+      "selamat sore",
+      "permisi"
+    ],
     "question": [
       "kenapa",
       "mengapa",

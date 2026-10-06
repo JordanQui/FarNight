@@ -94,3 +94,24 @@ export function isQuestion(input: string, words: string[]): boolean {
   if (/[?¿؟？]/.test(input)) return true
   return matchesKeyword(input.replace(/[-‐]/g, ' '), words)
 }
+
+/**
+ * La saisie n'est-elle qu'une salutation — « bonjour », « bonsoir Kaneshi ! » ?
+ *
+ * Une fois retirés les mots de salut, le nom du personnage et la ponctuation,
+ * il ne doit rien rester. « Bonjour, je cherche le module » n'en est pas une :
+ * la phrase dit autre chose, la règle des questions s'y applique.
+ */
+export function isGreeting(input: string, words: string[], name = ''): boolean {
+  let text = ` ${normalize(input).replace(/[^\p{L}\p{N} ]/gu, ' ')} `
+  let greeted = false
+  for (const word of words.map(normalize).filter(Boolean).sort((a, b) => b.length - a.length)) {
+    const needle = isDense(word) ? word : ` ${word} `
+    if (!text.includes(needle)) continue
+    greeted = true
+    text = text.split(needle).join(' ')
+  }
+  if (!greeted) return false
+  for (const part of normalize(name).split(' ').filter(Boolean)) text = text.split(part).join(' ')
+  return !text.replace(/[^\p{L}\p{N}]+/gu, '')
+}

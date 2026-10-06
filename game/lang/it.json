@@ -251,6 +251,14 @@
     ],
     "use": ["usare", "uso", "usa", "utilizzare", "utilizza", "inserire", "inserisci", "infilare", "infila", "strisciare", "striscia", "passare la carta", "passa la carta", "presentare", "presenta"],
     "card": ["carta", "carte", "tessera", "tessere"],
+    "greet": [
+      "ciao",
+      "salve",
+      "buonasera",
+      "buona sera",
+      "buonanotte",
+      "ehi"
+    ],
     "question": [
       "perche",
       "come",

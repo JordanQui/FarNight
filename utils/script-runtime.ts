@@ -523,28 +523,12 @@ export class SceneRuntime {
       }
     }
 
-    // LA RELIQUE : l'informateur réclame n'importe quel objet porté, et ne rend
-    // que ce qu'il sait — le nom du détenteur.
-    if (this.scene.key_item.relic) {
-      const npcs = schema.npcs as Array<Record<string, unknown>> | undefined
-      const npc = npcs?.[0]
-      const wants = npc?.wants as Record<string, unknown> | undefined
-      if (npc && wants) {
-        const { reward_item: _ri, reveals_id: _rv, ...rest } = wants
-        schema.npcs = [{
-          ...npc,
-          wants: {
-            ...rest,
-            item_id: "string (chez l'informateur seulement : l'id EXACT d'un objet de CE QUE LE JOUEUR PORTE, carte comprise — vide chez tous les autres)",
-            reward: "string (2 à 3 phrases, dans sa voix, une fois l'objet en main : il livre la formule de `key_item.password` mot pour mot, entre guillemets, et dit à qui la dire par ce qu'on voit de lui, jamais par son nom)",
-          },
-        }]
-      }
-      if (schema.key_item) {
-        schema.key_item = {
-          ...(schema.key_item as Record<string, unknown>),
-          password: "string (la formule qui fait céder la relique, 2 à 4 mots dans la langue du joueur, tirée de sa dynamique — SIGNE et NOMBRES —, jamais un mot de passe banal)",
-        }
+    // LA RELIQUE : l'informateur sait sur le détenteur un secret, dont il
+    // faudra lui parler.
+    if (this.scene.key_item.relic && schema.key_item) {
+      schema.key_item = {
+        ...(schema.key_item as Record<string, unknown>),
+        secret: "string (ce que l'informateur sait du détenteur et que celui-ci croit caché, 2 à 4 mots dans la langue du joueur, tirés de sa dynamique — SIGNE et NOMBRES —, jamais banal)",
       }
     }
 
@@ -756,8 +740,7 @@ ${JSON.stringify(s.generation.output_schema, null, 2)}`
 
     // Rien de troquable, rien à réclamer : la section entière ne ferait que
     // décrire au modèle une mécanique qu'il n'a pas de quoi armer.
-    // A3S1 : l'informateur réclame n'importe quel objet porté, carte comprise.
-    const canTrade = carried.some(o => o.kind === 'trade') || (Boolean(s.key_item.relic) && carried.length > 0)
+    const canTrade = carried.some(o => o.kind === 'trade')
 
     const c = this.script.defaults.continuity
     const story = journal.length
@@ -777,7 +760,7 @@ LA QUÊTE DE LA NUIT
 ${this.describeNight(theme, journal)}
 ${this.describeReading(journal)}
 
-${this.describeCarried(carried, false, s.key_item.relic)}
+${this.describeCarried(carried)}
 ${canTrade && !s.key_item.offering && !s.key_item.relic ? `\nCE QU'UN PERSONNAGE PEUT EN VOULOIR\n${this.script.defaults.exchange.instruction}\n` : ''}
 
 NOM DU LIEU
@@ -882,7 +865,7 @@ ${list(o.posture)}`
    * ignorait l'existence. Un objet dont le nom n'a pas encore été déchiffré
    * est décrit par sa forme, jamais nommé — le joueur ne le connaît pas.
    */
-  private describeCarried(carried: CarriedItem[], ending = false, withIds = false): string {
+  private describeCarried(carried: CarriedItem[], ending = false): string {
     const inv = this.script.defaults.inventory
     if (!carried.length) return ending ? inv.ending_empty : inv.empty
 
@@ -892,7 +875,7 @@ ${list(o.posture)}`
     const mark = (o: CarriedItem) =>
       o.kind === 'key' ? 'OUVRE' : o.kind === 'trade' ? 'ÉCHANGE' : 'ÉCLAIRE'
     const items = carried
-      .map(o => `  - [${mark(o)}] ${label(o)}${withIds ? ` (id : ${o.id})` : ''}`
+      .map(o => `  - [${mark(o)}] ${label(o)}`
         + (o.color ? ` — couleur : ${o.color}` : '')
         + (o.from ? ` — récupéré : ${o.from}` : ''))
       .join('\n')
@@ -1759,9 +1742,9 @@ ${lines}`)
       // Le nom brouillé de l'objet-clé doit être dans le texte pour ouvrir le
       // cadran à la loupe. Un autre objet visible sert au second regard.
       const puzzle = this.scene.key_item.puzzle
-      // Le code et la fréquence commencent par un objet visible dans le récit :
+      // Le code, la fréquence et la séquence commencent par un objet visible dans le récit :
       // son nom brouillé est la cible que la loupe doit pouvoir ouvrir.
-      if (puzzle === 'code' || puzzle === 'frequency') {
+      if (puzzle === 'code' || puzzle === 'frequency' || puzzle === 'sequence') {
         if (!written.includes(fold(item.name))) {
           throw new Error(
             `Scène invalide : "${item.name}" (key_item.name) n'apparaît pas dans scene_text — `
@@ -1947,27 +1930,11 @@ ${lines}`)
       return { ...i, card_color: color, card_hex: i.card_hex && HEX_RE.test(i.card_hex) ? i.card_hex : undefined }
     })
     const iconed = carded.map(i => drawn({ ...i, id: fresh(i.id), contains_id: i.contains_id && fresh(i.contains_id) }))
-    // LA RELIQUE : un seul `wants`, chez l'informateur, sur un id réellement
-    // porté — le modèle écrit parfois le libellé à la place de l'id.
-    if (this.scene.key_item.relic) {
-      const informant = (scene.npcs ?? []).find(n => n.id === generated.key_item?.informant_npc_id)
-      const wants = informant?.wants?.hint?.trim() ? informant.wants
-        : (scene.npcs ?? []).find(n => n.wants?.hint?.trim())?.wants
-      for (const n of scene.npcs ?? []) delete n.wants
-      const aimed = wants && (carried.find(c => c.id === wants.item_id)
-        ?? carried.find(c => fold(c.label) === fold(wants.item_id ?? '')) ?? carried[0])
-      if (informant && wants && aimed) {
-        const { reward_item: _ri, reveals_id: _rv, ...rest } = wants
-        // La formule doit tomber dans sa réplique : c'est le seul endroit où
-        // le joueur peut l'apprendre.
-        const password = generated.key_item?.password?.trim()
-        if (password && !fold(rest.reward ?? '').includes(fold(password))) {
-          rest.reward = `${rest.reward ?? ''} « ${password} ».`.trim()
-        }
-        informant.wants = { ...rest, item_id: aimed.id }
-      } else {
-        console.warn(`[scene/${this.scene.id}] la relique n'a pas d'échange : l'informateur parlera sans objet`)
-      }
+    // LA RELIQUE : le secret doit tomber dans ce que dit l'informateur — c'est
+    // le seul endroit où le joueur peut l'apprendre.
+    const secret = this.scene.key_item.relic ? generated.key_item?.secret?.trim() : undefined
+    if (secret && generated.key_item && !fold(generated.key_item.informant_hint ?? '').includes(fold(secret))) {
+      generated.key_item.informant_hint = `${generated.key_item.informant_hint ?? ''} « ${secret} ».`.trim()
     }
     const npcs = (scene.npcs ?? []).map(n => !n.wants ? n : {
       ...n,
@@ -2197,7 +2164,6 @@ ${lines}`)
           item_handover_hint: ctx.key_item.handover_hint || "ce qu'il est vraiment sorti chercher cette nuit",
           item_holder: ctx.npcs.find(n => n.id === ctx.key_item?.npc_id)?.name ?? 'un habitué',
           item_informant: ctx.npcs.find(n => n.id === ctx.key_item?.informant_npc_id)?.name ?? 'un habitué',
-          item_informant_wants: ctx.npcs.find(n => n.id === ctx.key_item?.informant_npc_id)?.wants?.hint ?? '',
           exit_label: this.exitLabel,
         })}`
       : agreed
@@ -2399,10 +2365,7 @@ ${lines}`)
     // parle vraiment, lâche au mieux un fragment, et jauge son interlocuteur.
     const warmedUp = (ctx.npc_exchanges ?? 0) >= (t.exchanges_before_steer ?? 2)
 
-    // La relique : tant qu'on ne lui a pas tendu ce qu'il attend, il jauge.
-    const awaitsTrade = Boolean(this.scene.key_item.relic && npc.wants?.item_id
-      && this.stillCarried(ctx, npc.wants.item_id))
-    if (item && !ctx.has_key_item && npc.id === item.informant_npc_id && (!warmedUp || awaitsTrade)) {
+    if (item && !ctx.has_key_item && npc.id === item.informant_npc_id && !warmedUp) {
       return interpolate(t.informant_warmup_prompt, {
         ...rules,
         npc_name: npc.name,
@@ -2411,7 +2374,7 @@ ${lines}`)
         npc_knows: npc.knows,
         player_input: input,
         quest_title: ctx.quest.title,
-      }) + (awaitsTrade ? `\n${rules.wants_rule}` : '')
+      })
     }
 
     // L'informateur met sur la piste : c'est lui qui ouvre la chaîne.

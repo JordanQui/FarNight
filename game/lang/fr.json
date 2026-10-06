@@ -238,6 +238,16 @@
     ],
     "use": ["utiliser", "utilise", "utilises", "insérer", "insere", "inserer", "insère", "glisser", "glisse", "présenter", "presente", "presenter", "présente", "passer la carte", "passe la carte", "badger", "badge", "introduire", "introduis"],
     "card": ["carte", "cartes", "badge"],
+    "greet": [
+      "bonjour",
+      "bonsoir",
+      "salut",
+      "coucou",
+      "hello",
+      "bonne nuit",
+      "yo",
+      "hey"
+    ],
     "question": [
       "pourquoi",
       "comment",

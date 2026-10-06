@@ -103,7 +103,7 @@ export interface TurnRules {
   key_item_context_found: string
   /** Variante où le détenteur ne cède que contre l'offrande posée dans le décor. */
   key_item_context_offering?: string
-  /** A3S1 : la chaîne objet porté → formule → relique. Voir `key_item.relic`. */
+  /** A3S1 : la chaîne secret de l'informateur → détenteur → relique. Voir `key_item.relic`. */
   key_item_context_relic?: string
   /** Ce qu'un personnage réclame, greffé à ses répliques. Interpole `{{npc_wants_hint}}`. */
   wants_rule?: string
@@ -438,9 +438,9 @@ export interface SceneScript {
      */
     offering?: boolean
     /**
-     * A3S1 : l'informateur ne nomme le détenteur que contre un objet que le
-     * joueur porte, carte comprise ; le détenteur tend alors une relique
-     * chiffrée, qu'il ne sait pas lire lui-même.
+     * A3S1 : l'informateur révèle un secret sur le détenteur ; le joueur lui
+     * en parle, et il tend alors une relique chiffrée, qu'il ne sait pas lire
+     * lui-même.
      */
     relic?: boolean
   }

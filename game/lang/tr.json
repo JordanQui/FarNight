@@ -205,6 +205,13 @@
     ],
     "use": ["kullan", "kullanmak", "kullaniyorum", "sok", "sokmak", "takmak", "tak", "okut", "okutmak", "gecir", "göster", "goster"],
     "card": ["kart", "karti", "kartı", "kartla", "kartlar"],
+    "greet": [
+      "merhaba",
+      "selam",
+      "iyi aksamlar",
+      "iyi geceler",
+      "selamlar"
+    ],
     "question": [
       "neden",
       "niye",

@@ -230,6 +230,15 @@
     ],
     "use": ["benutzen", "benutze", "verwenden", "verwende", "einführen", "einfuhren", "führe", "fuhre", "einstecken", "stecke", "durchziehen", "ziehe", "vorzeigen", "zeige", "halte die karte"],
     "card": ["karte", "karten", "schlüsselkarte", "schlusselkarte"],
+    "greet": [
+      "hallo",
+      "guten abend",
+      "gute nacht",
+      "servus",
+      "moin",
+      "hi",
+      "hey"
+    ],
     "question": [
       "warum",
       "wieso",
