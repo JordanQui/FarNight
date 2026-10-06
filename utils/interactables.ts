@@ -96,7 +96,7 @@ export function isPieceId(id: string, piece: string): boolean {
  */
 export function analyzables(scene: {
   scene_id?: string
-  key_item?: { name?: string; observation?: string; acquisition?: string } | null
+  key_item?: { name?: string; observation?: string; acquisition?: string; relic?: boolean } | null
   /** Cette scène remet l'augmentation : son objet-clé ne se brouille pas. */
   grants_augmentation?: boolean
   sealed_object?: { id: string; name?: string; observation?: string } | null
@@ -118,7 +118,7 @@ export function analyzables(scene: {
   // est, sous le même nom. Brouiller aussi la carte entière ferait deux cibles
   // d'un seul mot, et la loupe ouvrirait la mauvaise.
   const halves = (scene.interactables ?? []).some(i => i.card_half && isPieceId(i.id, CARD_HALF_2_ID))
-  if (scene.key_item?.name && !scene.grants_augmentation && !keyItemNameInClear(scene.key_item.acquisition)
+  if (scene.key_item?.name && !scene.grants_augmentation && !keyItemNameInClear(scene.key_item.acquisition, scene.key_item.relic)
     && !halves) {
     out.push({
       id: `cle_${scene.scene_id}`,

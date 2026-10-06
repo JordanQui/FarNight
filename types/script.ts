@@ -103,6 +103,8 @@ export interface TurnRules {
   key_item_context_found: string
   /** Variante où le détenteur ne cède que contre l'offrande posée dans le décor. */
   key_item_context_offering?: string
+  /** A3S1 : la chaîne objet porté → formule → relique. Voir `key_item.relic`. */
+  key_item_context_relic?: string
   /** Ce qu'un personnage réclame, greffé à ses répliques. Interpole `{{npc_wants_hint}}`. */
   wants_rule?: string
   /** Il prend l'objet et lâche ce qu'il sait. */
@@ -435,6 +437,12 @@ export interface SceneScript {
      * écho poétique de l'objet auquel le joueur tient. Voir `defaults.offering`.
      */
     offering?: boolean
+    /**
+     * A3S1 : l'informateur ne nomme le détenteur que contre un objet que le
+     * joueur porte, carte comprise ; le détenteur tend alors une relique
+     * chiffrée, qu'il ne sait pas lire lui-même.
+     */
+    relic?: boolean
   }
   /** L'acte auquel la scène appartient. Voir `acts` à la racine du script. */
   act?: string

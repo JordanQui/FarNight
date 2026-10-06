@@ -31,6 +31,8 @@ const talking: Qualities = {
   holderExchanges: 1,
   exchangesBeforeHandover: 2,
   holderAwaitsOffering: false,
+  holderAwaitsPassword: false,
+  saysPassword: false,
   failureAtTurn: 10,
   takesReadableObject: false,
   takesUnreadObject: false,
@@ -144,4 +146,10 @@ test('posture, caractère, rôle tiré du dossier', () => {
   const presents = (s: string) => /POSTURE/.test(s) && /CARACTÈRE/.test(s) && /`role`/.test(s)
   assert.ok(presents(script.defaults.narrative.structure[4]))
   assert.ok(script.scenes[0].narrative.structure.some(presents))
+})
+
+test('la relique ne se cède qu’à qui dit la formule', () => {
+  const holder = { ...talking, talksToNpc: true, addressesHolder: true, sceneHasKeyItem: true, informed: true, holderAwaitsPassword: true }
+  assert.notEqual(draw({ ...holder, saysPassword: false }).id, 'remise')
+  assert.equal(draw({ ...holder, saysPassword: true }).id, 'remise')
 })

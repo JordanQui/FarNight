@@ -54,7 +54,7 @@ export function usePuzzle() {
       kind: sceneKeyInventoryKind(scene.scene_id),
     })
     // Tendu et nommé par son détenteur : il entre lisible dans l'inventaire.
-    if (keyItemNameInClear(item.acquisition)) gameStore.markDecrypted(keyId.value)
+    if (keyItemNameInClear(item.acquisition, item.relic)) gameStore.markDecrypted(keyId.value)
     // Le récit brouille ce nom tant que la loupe ne l'a pas ouvert : l'écrire
     // ici ne le livre pas.
     gameStore.addNarrativeEntry('system', t('puzzle.holding', { name: item.name }))

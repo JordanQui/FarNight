@@ -144,6 +144,9 @@ export function useStorylets() {
     // Le don ne se lit pas dans la phrase : il vient du clic sur « Donner »,
     // qui a déjà désigné l'objet ET le destinataire. La saisie ne sert qu'à
     // laisser une trace au fil.
+    // La formule se reconnaît mot pour mot, sans accents ni ponctuation.
+    const bare = (t: string) => normalize(t).replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim()
+
     const give = gameStore.pendingGive
     const wanted = give
       ? playerStore.npcs.find(n => n.id === give.npcId)?.wants?.item_id === give.itemId
@@ -189,6 +192,9 @@ export function useStorylets() {
       holderExchanges: gameStore.keyItemExchanges + 1,
       exchangesBeforeHandover: item?.exchanges_before_handover ?? 0,
       holderAwaitsOffering: Boolean(item?.offering_id),
+      holderAwaitsPassword: Boolean(item?.relic && item.password?.trim()),
+      saysPassword: Boolean(item?.relic && item.password?.trim())
+        && bare(input).includes(bare(item!.password!)),
 
       failureAtTurn: pacing?.failure_after_turns ?? 0,
 

@@ -405,6 +405,10 @@ export function useNarrative() {
     // Découvert, pas ramassé : l'élément EXISTE désormais dans la salle, et le
     // joueur en fait ce qu'il veut — le prendre s'il se prend, l'ouvrir sinon.
     if (wants.reveals_id) gameStore.revealInteractable(wants.reveals_id)
+
+    // La relique : l'informateur vient de nommer le détenteur en échange.
+    const item = playerStore.scene?.key_item
+    if (item?.relic && npcId === item.informant_npc_id) gameStore.markInformedAboutItem()
   }
 
   /**
@@ -438,11 +442,17 @@ export function useNarrative() {
 
     if (npc) gameStore.recordNpcTalk(npc.id)
 
+    // La relique (A3S1) : personne ne mène au détenteur tant que l'informateur
+    // n'a pas reçu l'objet qu'il attend.
+    const wanted = item?.relic
+      ? playerStore.npcs.find(n => n.id === item.informant_npc_id)?.wants?.item_id : undefined
+    const awaitsTrade = Boolean(wanted && gameStore.inventory.some(o => o.id === wanted))
+
     // Parler à l'informateur ouvre la chaîne — mais pas au premier bonjour. Il
     // faut lui avoir parlé deux ou trois fois : avant, il jauge, et il ne
     // nomme personne.
     const beforeSteer = playerStore.scene?.pacing?.exchanges_before_steer ?? 2
-    if (npc && item && npc.id === item.informant_npc_id && !gameStore.informedAboutItem
+    if (npc && item && npc.id === item.informant_npc_id && !gameStore.informedAboutItem && !awaitsTrade
       && (gameStore.npcExchanges[npc.id] ?? 0) >= beforeSteer) {
       gameStore.markInformedAboutItem()
     }
@@ -451,7 +461,7 @@ export function useNarrative() {
     // détenteur. Sans ce relais, l'état n'avancerait que si le joueur pensait
     // à l'interpeller : il se ferait aborder en boucle sans jamais progresser.
     const steerFrom = playerStore.scene?.pacing?.steer_after_turns
-    if (item && !gameStore.informedAboutItem && steerFrom && gameStore.turnCount >= steerFrom + 2) {
+    if (item && !gameStore.informedAboutItem && !awaitsTrade && steerFrom && gameStore.turnCount >= steerFrom + 2) {
       gameStore.markInformedAboutItem()
     }
 
@@ -464,7 +474,7 @@ export function useNarrative() {
     // coup, il laissait passer un tour de plus, où il reposait sa question à
     // un joueur qui venait d'y répondre. Le rythme est désormais celui qu'on
     // veut : il demande, le joueur répond, il commente et il cède.
-    if (npc && item && npc.id === item.npc_id && !gameStore.informedAboutItem) {
+    if (npc && item && npc.id === item.npc_id && !gameStore.informedAboutItem && !awaitsTrade) {
       gameStore.markInformedAboutItem()
     }
 

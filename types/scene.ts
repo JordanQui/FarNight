@@ -143,6 +143,10 @@ export interface SceneKeyItem {
    * en pose une. Ni question ni compte d'échanges : la donner est la remise.
    */
   offering_id?: string
+  /** La relique d’A3S1 : tendue par son détenteur, elle entre chiffrée. Voir `key_item.relic`. */
+  relic?: boolean
+  /** La formule que l'informateur livre et que le détenteur de la relique attend. */
+  password?: string
   /**
    * Les gestes du dénouement, DANS L'ORDRE, quand l'énigme est une séquence.
    *

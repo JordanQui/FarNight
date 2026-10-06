@@ -154,14 +154,20 @@ export function useSceneCommands() {
             steps.push([has || gameStore.talkedToNpcIds.includes(item.informant_npc_id),
               `Questionner ${npc(item.informant_npc_id)} sur la quête : ${item.informant_hint}`])
           }
+          const informant = scene.npcs.find(n => n.id === item.informant_npc_id)
+          if (item.relic && informant?.wants) {
+            steps.push([has || !carried(informant.wants.item_id),
+              `Donner ${label(informant.wants.item_id)} à ${informant.name} → la formule`])
+            steps.push([has, `Dire « ${item.password ?? '?'} » à ${npc(item.npc_id)} → ${item.name}`])
+          }
           const box = item.offering_id && scene.interactables.find(o => o.contains_id === item.offering_id)
           if (box) steps.push([has, `Nommer ${box.label} pour l'ouvrir, puis ramasser ${label(item.offering_id)}.`])
-          steps.push([has, `Questionner ${npc(item.npc_id)}${
+          if (!(item.relic && informant?.wants)) steps.push([has, `Questionner ${npc(item.npc_id)}${
             item.offering_id ? `, lui donner ${label(item.offering_id)}` : ` (${item.exchanges_before_handover} échanges)`
           } : ${item.handover_hint} → ${item.name}`])
         }
 
-        for (const n of scene.npcs.filter(n => n.wants)) {
+        for (const n of scene.npcs.filter(n => n.wants && !(item.relic && n.id === item.informant_npc_id))) {
           const w = n.wants!
           steps.push([null, `(facultatif) Donner ${label(w.item_id)} à ${n.name} → ${
             w.reward_item?.label ?? (w.reveals_id ? label(w.reveals_id) : w.reward)}`])
