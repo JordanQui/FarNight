@@ -161,7 +161,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     openaiApiKey: process.env.OPENAI_API_KEY,
-    squareAccessToken: process.env.SQUARE_ACCESS_TOKEN,
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     nuxtSecret: process.env.NUXT_SECRET,
     /**
      * Images coupées par défaut, en local comme en production : un aplat
@@ -203,9 +203,7 @@ export default defineNuxtConfig({
        * En local le bouton est toujours là.
        */
       lockOverride: process.env.LOCK_OVERRIDE !== '0',
-      squareApplicationId: process.env.SQUARE_APPLICATION_ID,
-      squareLocationId: process.env.SQUARE_LOCATION_ID,
-      squareEnvironment: process.env.SQUARE_ENVIRONMENT || 'sandbox',
+      stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     },
   },
 
