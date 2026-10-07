@@ -1,4 +1,4 @@
-import { SquareClient, SquareEnvironment } from 'square'
+import { SquareClient, SquareEnvironment, SquareError } from 'square'
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import { grantAccess, assertNotLocked } from '~/server/utils/session-quota'
@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
       : SquareEnvironment.Sandbox,
   })
 
+  // Un refus de Square (carte déclinée, 3-D Secure manquant…) lève une
+  // SquareError : on renvoie son code, sinon le joueur ne lit qu'une erreur 500.
   const response = await client.payments.create({
     sourceId: body.sourceId,
     idempotencyKey: crypto.randomUUID(),
@@ -34,6 +36,11 @@ export default defineEventHandler(async (event) => {
       currency: paywall.currency as 'EUR' | 'USD',
     },
     locationId: config.public.squareLocationId,
+  }).catch((err) => {
+    if (!(err instanceof SquareError)) throw err
+    const code = err.errors[0]?.code ?? 'UNKNOWN'
+    console.error('[payment] refus Square', code, err.errors)
+    throw createError({ statusCode: 402, statusMessage: `Paiement refusé : ${code}` })
   })
 
   if (response.payment?.status !== 'COMPLETED') {
