@@ -4,7 +4,7 @@ import { usePaymentStore } from '~/stores/payment'
 
 type SquareTokenizer = {
   attach?(selector: string, options?: Record<string, string>): Promise<void>
-  tokenize(verificationDetails?: Record<string, unknown>): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
+  tokenize(): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
 }
 
 declare global {
@@ -32,8 +32,6 @@ export function usePaywall() {
 
   // Un tokenizer par moyen de paiement que Square a accepté d'ouvrir ici.
   const tokenizers: Partial<Record<PaymentMethod, SquareTokenizer>> = {}
-  // Le montant, pour le 3-D Secure de la carte. Retenu à l'ouverture du formulaire.
-  let charge: { amountCents: number; currency: string } | null = null
 
   /**
    * Ouvre la sortie. Un joueur qui a déjà payé passe directement à la suite :
@@ -106,7 +104,6 @@ export function usePaywall() {
     // ou le pays ne s'y prêtent pas (Apple Pay hors Safari, domaine non vérifié…).
     // Un refus n'est pas une erreur : il reste la carte.
     if (wallet) {
-      charge = { amountCents: wallet.amountCents, currency: wallet.currency }
       const request = () => payments.paymentRequest({
         countryCode: wallet.currency === 'USD' ? 'US' : 'FR',
         currencyCode: wallet.currency,
@@ -190,20 +187,7 @@ export function usePaywall() {
 
     // Tokeniser AVANT de quitter l'écran : Apple Pay et Google Pay ouvrent leur
     // feuille depuis le bouton cliqué, et l'écran de traitement la démonterait.
-    // Carte : en Europe la banque exige l'authentification forte (3-D Secure).
-    // Sans ces détails, Square ne la déclenche pas et une vraie carte est
-    // refusée — la carte de test du sandbox, elle, passait. Les portefeuilles
-    // font leur propre vérification.
-    const result = await tokenizer.tokenize(method === 'card' && charge
-      ? {
-          amount: (charge.amountCents / 100).toFixed(2),
-          currencyCode: charge.currency,
-          intent: 'CHARGE',
-          customerInitiated: true,
-          sellerKeyedIn: false,
-          billingContact: {},
-        }
-      : undefined)
+    const result = await tokenizer.tokenize()
     if (result.status !== 'OK' || !result.token) {
       paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
       return false
