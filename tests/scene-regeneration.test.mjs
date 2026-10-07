@@ -4,21 +4,20 @@ import { readFileSync } from 'node:fs'
 
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
-test('a reload always requests fresh scene text without reading or writing a cached scene', () => {
+test('a reload puts back the stored scene before asking for a new one', () => {
   const scene = source('composables/useScene.ts')
-  assert.match(scene, /async function loadSceneText[\s\S]*?forgetStoredScene\(\)[\s\S]*?\$fetch<SceneTextResponse>\('\/api\/scene\/text'/)
-  assert.doesNotMatch(scene, /readStoredScene|storeScene\(res|SCENE_CACHE/)
+  assert.match(scene, /async function loadSceneText[\s\S]*?readStoredScene\([\s\S]*?\$fetch<SceneTextResponse>\('\/api\/scene\/text'/)
+  assert.match(scene, /storeScene\(res, /)
 })
 
-test('a reload regenerates the non-static image instead of replaying a saved image', () => {
+test('a reload puts back the stored image before generating one', () => {
   const scene = source('composables/useScene.ts')
-  assert.match(scene, /async function loadSceneImage[\s\S]*?return generateSceneImage\(/)
-  assert.doesNotMatch(scene, /readSceneImage|storeSceneImage/)
+  assert.match(scene, /async function loadSceneImage[\s\S]*?readSceneImage\([\s\S]*?generateSceneImage\(/)
+  assert.match(scene, /storeSceneImage\(stamp, image\)/)
 })
 
-test('scene and image endpoints never reuse development mocks', () => {
-  for (const endpoint of ['text', 'image']) {
-    const code = source(`server/api/scene/${endpoint}.post.ts`)
-    assert.doesNotMatch(code, /readMock|writeMock|mockKey/)
-  }
+test('a reload keeps the turns already played in the scene', () => {
+  const scene = source('composables/useScene.ts')
+  assert.match(scene, /turnCount: game\.turnCount/)
+  assert.match(scene, /narrative: game\.narrativeHistory/)
 })

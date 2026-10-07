@@ -1812,6 +1812,7 @@
     "note": "Hypothèses de prévision, pour /admin/marge. La forme de la nuit n'est plus déclarée ici : la page la lit dans `progression.order`, `is_free` et `static_image`, et MESURE l'entrée de chaque prompt en le rendant à chaque chargement. Le prix de vente vient de `paywall.amount_cents`. Restent ici les sorties, les volumes et les frais, à réviser dès que du trafic réel existe.",
     "eur_usd": 1.08,
     "conversion_rate_pct": 3.0,
+    "ai_budget_per_sale_eur": 3,
     "vat": {
       "note": "TVA comprise dans le prix affiché. 0 en franchise en base ; 20 si l'activité y est assujettie — elle se prélève alors sur chaque vente avant tout le reste.",
       "pct": 0

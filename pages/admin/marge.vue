@@ -128,6 +128,20 @@ const ceilings = computed(() => {
   }
 })
 
+/** Le plafond fixé pour l'IA d'une vente. */
+const budget = computed(() => data.value?.economics.ai_budget_per_sale_eur ?? 3)
+
+/**
+ * La nuit jouée jusqu'au verrou dans chaque scène : le plus qu'un acheteur
+ * puisse coûter sans recharger. Les rechargements, eux, sont gratuits depuis
+ * que la scène et son image sont gardées par le navigateur.
+ */
+const maxNight = computed(() => {
+  const lockTurns = data.value?.limits.lock.turns_per_scene ?? 0
+  const playable = rows.value.filter(x => x.role !== 'ending').length
+  return night.value.total + Math.max(0, lockTurns - turnsPerScene.value) * playable * turnCost.value
+})
+
 /** Vercel sur un mois : le forfait, et l'Analytics au-delà du crédit inclus. */
 function hosting(v: number) {
   const h = data.value?.economics.hosting
@@ -173,7 +187,12 @@ const warnings = computed(() => {
   const w: string[] = []
   if (!d.limits.enabled) {
     w.push('Quotas désactivés (limits.enabled à false) : les plafonds de dépense ci-dessous ne bornent rien aujourd’hui. '
-      + `Seul le verrou tient — ${d.limits.lock.turns_per_scene} tours par scène.`)
+      + `Le verrou (${d.limits.lock.turns_per_scene} tours par scène) et le cache du navigateur tiennent le joueur ordinaire ; `
+      + 'celui qui vide les données du site régénère sans limite.')
+  }
+  if (ceilings.value.paid > budget.value) {
+    w.push(`Le quota payant autorise ${money(ceilings.value.paid)} d’IA par vente, au-dessus du budget de ${money(budget.value)}. `
+      + 'Baisser limits.paid.*_per_window.')
   }
   if (d.pricing.image_size_billed && d.pricing.image_size_billed !== d.models.image_size) {
     w.push(`Le prix image a été relevé sur facture en ${d.pricing.image_size_billed} ; les images sortent maintenant en `
@@ -351,9 +370,16 @@ const warnings = computed(() => {
               <p class="text-neon-400/70 text-[11px]">
                 Vous conservez {{ fmt(price ? netPerSale / price * 100 : 0, 0) }} % du prix.
               </p>
-              <p class="text-steel-400 text-[11px]">
-                Plafond si le quota de {{ data.limits.paid.window_days }} jours est épuisé : {{ money(ceilings.paid) }}
-              </p>
+              <ul class="text-[11px] space-y-1 border-t border-steel-700/60 pt-2">
+                <li class="text-steel-400">Budget IA par vente : {{ money(budget) }}</li>
+                <li :class="maxNight > budget ? 'text-red-400' : 'text-ink-300'">
+                  Nuit jouée jusqu'au verrou ({{ data.limits.lock.turns_per_scene }} tours partout) : {{ money(maxNight) }}
+                </li>
+                <li :class="ceilings.paid > budget ? 'text-red-400' : 'text-ink-300'">
+                  Plafond si le quota de {{ data.limits.paid.window_days }} jours est épuisé : {{ money(ceilings.paid) }}
+                  <span v-if="!data.limits.enabled" class="text-red-400">— quota éteint, rien ne le tient</span>
+                </li>
+              </ul>
             </div>
           </div>
         </section>

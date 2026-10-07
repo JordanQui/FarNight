@@ -604,6 +604,8 @@ export interface EconomicsConfig {
   note?: string
   eur_usd: number
   conversion_rate_pct: number
+  /** Ce que l'IA d'un acheteur ne doit jamais dépasser, quota épuisé compris. */
+  ai_budget_per_sale_eur?: number
   /** TVA comprise dans le prix affiché. 0 en franchise en base. */
   vat: { note?: string; pct: number }
   payment: { note?: string; fee_pct: number; fee_fixed_eur: number }
