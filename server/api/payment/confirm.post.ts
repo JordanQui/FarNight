@@ -1,10 +1,9 @@
-import { SquareClient, SquareEnvironment, SquareError } from 'square'
+import { SquareError } from 'square'
 import { ScriptRuntime } from '~/utils/script-runtime'
-import { requireSecret } from '~/server/utils/runtime-secrets'
+import { squareClient, squareLocationId } from '~/server/utils/square'
 import { grantAccess, assertNotLocked } from '~/server/utils/session-quota'
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
   const body = await readBody<{ sourceId: string }>(event)
 
   if (!body?.sourceId) {
@@ -19,27 +18,21 @@ export default defineEventHandler(async (event) => {
   const runtime = await ScriptRuntime.load()
   const paywall = runtime.paywall
 
-  const client = new SquareClient({
-    token: requireSecret(config.squareAccessToken, 'SQUARE_ACCESS_TOKEN'),
-    environment: config.public.squareEnvironment === 'production'
-      ? SquareEnvironment.Production
-      : SquareEnvironment.Sandbox,
-  })
-
-  // Un refus de Square (carte déclinée, 3-D Secure manquant…) lève une
-  // SquareError : on renvoie son code, sinon le joueur ne lit qu'une erreur 500.
-  const response = await client.payments.create({
+  // Un refus de Square (carte déclinée…) lève une SquareError : on renvoie son
+  // code, sinon le joueur ne lit qu'une erreur 500. Pas de verificationToken :
+  // le paiement part sans 3-D Secure, comme dans ronde_v2.
+  const response = await squareClient().payments.create({
     sourceId: body.sourceId,
     idempotencyKey: crypto.randomUUID(),
     amountMoney: {
       amount: BigInt(paywall.amount_cents),
       currency: paywall.currency as 'EUR' | 'USD',
     },
-    locationId: config.public.squareLocationId,
+    locationId: await squareLocationId(),
   }).catch((err) => {
     if (!(err instanceof SquareError)) throw err
     const code = err.errors[0]?.code ?? 'UNKNOWN'
-    console.error('[payment] refus Square', code, err.errors)
+    console.error('[payment] refus Square', err.statusCode, code, err.errors)
     throw createError({ statusCode: 402, statusMessage: `Paiement refusé : ${code}` })
   })
 

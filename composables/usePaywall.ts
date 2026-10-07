@@ -22,16 +22,18 @@ declare global {
 
 export type PaymentMethod = 'card' | 'applePay' | 'googlePay'
 
+type SquareConfig = { applicationId: string; locationId: string; environment: string }
+
 export function usePaywall() {
   const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const paymentStore = usePaymentStore()
   const progression = useProgression()
-  const config = useRuntimeConfig()
 
   // Un tokenizer par moyen de paiement que Square a accepté d'ouvrir ici.
   const tokenizers: Partial<Record<PaymentMethod, SquareTokenizer>> = {}
+  let squareConfig: SquareConfig | null = null
 
   /**
    * Ouvre la sortie. Un joueur qui a déjà payé passe directement à la suite :
@@ -83,12 +85,13 @@ export function usePaywall() {
     containerSelector: string,
     wallet?: { amountCents: number; currency: string; label: string; googlePaySelector: string },
   ) {
-    if (!window.Square) await loadSquareSdk()
+    // Identifiant, location et environnement viennent du serveur, à
+    // l'exécution — comme dans ronde_v2. Bakés au build, ils pouvaient ne plus
+    // correspondre au jeton : la carte se tokenisait, le débit répondait 400.
+    const square = squareConfig ?? await fetchPaymentIntent()
+    if (!window.Square) await loadSquareSdk(square.environment)
 
-    const payments = await window.Square.payments(
-      config.public.squareApplicationId,
-      config.public.squareLocationId
-    )
+    const payments = await window.Square.payments(square.applicationId, square.locationId)
     // Le formulaire vit dans une iframe Square : il ne voit pas nos classes, et
     // se dessine blanc par défaut. On lui passe donc les couleurs de
     // l'interface en dur, lues au moment de l'ouvrir. Si Square refuse un
@@ -149,10 +152,10 @@ export function usePaywall() {
     }
   }
 
-  function loadSquareSdk(): Promise<void> {
+  function loadSquareSdk(environment: string): Promise<void> {
     return new Promise((resolve) => {
       if (window.Square) { resolve(); return }
-      const src = config.public.squareEnvironment === 'production'
+      const src = environment === 'production'
         ? 'https://web.squarecdn.com/v1/square.js'
         : 'https://sandbox.web.squarecdn.com/v1/square.js'
       const script = document.createElement('script')
@@ -163,18 +166,14 @@ export function usePaywall() {
   }
 
   async function fetchPaymentIntent() {
-    const data = await $fetch<{
-      paymentLinkId: string
-      url: string
-      applicationId: string
-      locationId: string
-    }>('/api/payment/intent', { method: 'POST', body: {} })
+    const data = await $fetch<SquareConfig>('/api/payment/intent', { method: 'POST', body: {} })
 
     paymentStore.setIntent({
-      paymentId: data.paymentLinkId,
+      paymentId: null,
       applicationId: data.applicationId,
       locationId: data.locationId,
     })
+    squareConfig = data
     return data
   }
 

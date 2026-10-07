@@ -1,15 +1,14 @@
-import { SquareClient, SquareEnvironment } from 'square'
-import { ScriptRuntime } from '~/utils/script-runtime'
-import { requireSecret } from '~/server/utils/runtime-secrets'
 import { assertNotLocked } from '~/server/utils/session-quota'
+import { squareApplicationId, squareEnvironment, squareLocationId } from '~/server/utils/square'
 
 /**
- * Square v44 : `SquareClient` / `SquareEnvironment`, et les ressources sont
- * imbriquées (`checkout.paymentLinks.create`). Les anciens `Client` /
- * `Environment` / `checkoutApi` de la v3x n'existent plus.
+ * La configuration du formulaire de carte, comme le /config de ronde_v2.
+ *
+ * Plus de lien de paiement : il n'était jamais ouvert, et chaque visite de
+ * l'écran en créait un. Le débit passe par /api/payment/confirm, avec le jeton
+ * de carte — sans 3-D Secure.
  */
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
   await readBody(event).catch(() => null)
 
   /**
@@ -22,45 +21,9 @@ export default defineEventHandler(async (event) => {
    */
   assertNotLocked(event)
 
-  const runtime = await ScriptRuntime.load()
-  const paywall = runtime.paywall
-
-  const client = new SquareClient({
-    token: requireSecret(config.squareAccessToken, 'SQUARE_ACCESS_TOKEN'),
-    environment: config.public.squareEnvironment === 'production'
-      ? SquareEnvironment.Production
-      : SquareEnvironment.Sandbox,
-  })
-
-  const response = await client.checkout.paymentLinks.create({
-    idempotencyKey: crypto.randomUUID(),
-    order: {
-      locationId: config.public.squareLocationId,
-      lineItems: [
-        {
-          name: paywall.cta,
-          quantity: '1',
-          basePriceMoney: {
-            amount: BigInt(paywall.amount_cents),
-            currency: paywall.currency as 'EUR' | 'USD',
-          },
-        },
-      ],
-    },
-    checkoutOptions: {
-      allowTipping: false,
-      askForShippingAddress: false,
-    },
-  })
-
-  if (!response.paymentLink) {
-    throw createError({ statusCode: 502, statusMessage: 'Square n\'a pas créé de lien de paiement' })
-  }
-
   return {
-    paymentLinkId: response.paymentLink.id,
-    url: response.paymentLink.url,
-    applicationId: config.public.squareApplicationId,
-    locationId: config.public.squareLocationId,
+    applicationId: squareApplicationId(),
+    locationId: await squareLocationId(),
+    environment: squareEnvironment(),
   }
 })
