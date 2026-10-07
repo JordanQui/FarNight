@@ -18,6 +18,11 @@ export default defineEventHandler((event) => {
     || path.startsWith('/admin/')
     || path.startsWith('/api/admin/')
 
+  // Le plan des scènes suit les autres outils de test : ouvert tant que
+  // `lockOverride` l'est. Il ne fait rien de plus que la commande `#scene<n>`.
+  const isRoute = path.replace(/\/$/, '') === '/admin/route'
+  if (isRoute && useRuntimeConfig().public.lockOverride) return
+
   if (isAdmin) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' })
   }
