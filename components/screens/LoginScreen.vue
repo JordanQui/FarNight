@@ -2,8 +2,7 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdventure, forgetRun, rememberedAdmission, rememberedProfile, storeAdmission } from '~/composables/useScene'
-import { sampleAdmissionForm } from '~/utils/admission'
+import { forgetAdventure, forgetRun, rememberedProfile } from '~/composables/useScene'
 import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
@@ -98,7 +97,6 @@ const disclaimerPoints = computed(() => [
 ])
 
 const showDisclaimer = ref(false)
-const isLoadingDemo = ref(false)
 
 /**
  * Averse de mégapole. Les valeurs sont dérivées de l'index, jamais tirées au
@@ -112,32 +110,6 @@ const raindrops = Array.from({ length: 44 }, (_, i) => ({
   duration: 0.7 + ((i * 7) % 7) / 10,
   opacity: 0.18 + ((i * 5) % 5) / 20,
 }))
-
-/**
- * Entre avec le dossier type, sans rien remplir.
- *
- * Le raccourci du développement, et la porte de service pour qui veut voir le
- * jeu sans se déclarer : c'est le profil tiré de game/admission.json.
- *
- * Ses réponses sont aussi déposées dans le formulaire, s'il est vide : le
- * rouvrir le rend rempli, et chaque étape se teste en corrigeant une ligne.
- * Jamais par-dessus des réponses déjà tapées — ce sont celles du joueur.
- */
-async function startWithSampleDossier() {
-  isLoadingDemo.value = true
-  startFresh()
-  if (!rememberedAdmission()) storeAdmission({ ...sampleAdmissionForm(), language: lang.value }, 0)
-  try {
-    const profile = await $fetch<UserProfile>('/api/user/demo')
-    // Le dossier type est écrit en français : la langue choisie ici prime.
-    playerStore.setProfile({ ...profile, language: lang.value })
-  } catch {
-    // Le serveur retombera de toute façon sur le dossier type.
-  } finally {
-    isLoadingDemo.value = false
-    gameStore.setScreen('scene_build_loading')
-  }
-}
 
 /**
  * Repartir pour une nuit avec le dossier déjà connu.
@@ -336,16 +308,6 @@ function acceptAndEnroll() {
           {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
         </p>
       </div>
-
-      <button
-        class="font-display text-[10px] uppercase tracking-[0.28em] text-ink-300 hover:text-neon-400
-               border-b border-steel-600 hover:border-neon-600 pb-1
-               transition-colors disabled:opacity-40 py-2 px-1"
-        :disabled="isLoadingDemo"
-        @click="startWithSampleDossier"
-      >
-        {{ isLoadingDemo ? t('login.demo_loading') : t('login.demo_cta') }}
-      </button>
 
       <!--
         LA LANGUE, sur le tout premier écran.
