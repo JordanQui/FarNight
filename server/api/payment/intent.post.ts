@@ -1,11 +1,12 @@
-import Stripe from 'stripe'
+import { SquareClient, SquareEnvironment } from 'square'
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import { assertNotLocked } from '~/server/utils/session-quota'
 
 /**
- * Ouvre un PaymentIntent Stripe au prix du script. Son `client_secret` laisse
- * le navigateur monter le formulaire et confirmer le paiement lui-même.
+ * Square v44 : `SquareClient` / `SquareEnvironment`, et les ressources sont
+ * imbriquées (`checkout.paymentLinks.create`). Les anciens `Client` /
+ * `Environment` / `checkoutApi` de la v3x n'existent plus.
  */
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -24,19 +25,42 @@ export default defineEventHandler(async (event) => {
   const runtime = await ScriptRuntime.load()
   const paywall = runtime.paywall
 
-  const stripe = new Stripe(requireSecret(config.stripeSecretKey, 'STRIPE_SECRET_KEY'))
-
-  // Rien qui renvoie hors de la page : le jeu ne saurait pas y revenir. Le
-  // formulaire, lui, ne propose que la carte.
-  const intent = await stripe.paymentIntents.create({
-    amount: paywall.amount_cents,
-    currency: paywall.currency.toLowerCase(),
-    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-    description: paywall.cta,
+  const client = new SquareClient({
+    token: requireSecret(config.squareAccessToken, 'SQUARE_ACCESS_TOKEN'),
+    environment: config.public.squareEnvironment === 'production'
+      ? SquareEnvironment.Production
+      : SquareEnvironment.Sandbox,
   })
 
+  const response = await client.checkout.paymentLinks.create({
+    idempotencyKey: crypto.randomUUID(),
+    order: {
+      locationId: config.public.squareLocationId,
+      lineItems: [
+        {
+          name: paywall.cta,
+          quantity: '1',
+          basePriceMoney: {
+            amount: BigInt(paywall.amount_cents),
+            currency: paywall.currency as 'EUR' | 'USD',
+          },
+        },
+      ],
+    },
+    checkoutOptions: {
+      allowTipping: false,
+      askForShippingAddress: false,
+    },
+  })
+
+  if (!response.paymentLink) {
+    throw createError({ statusCode: 502, statusMessage: 'Square n\'a pas créé de lien de paiement' })
+  }
+
   return {
-    paymentIntentId: intent.id,
-    clientSecret: intent.client_secret,
+    paymentLinkId: response.paymentLink.id,
+    url: response.paymentLink.url,
+    applicationId: config.public.squareApplicationId,
+    locationId: config.public.squareLocationId,
   }
 })

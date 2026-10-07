@@ -78,7 +78,7 @@ export interface LockPass {
 
 /** Droit d'accès ouvert par le paiement. Signé, donc infalsifiable. */
 export interface AccessPass {
-  /** Identifiant du paiement Stripe, pour le rapprochement comptable. */
+  /** Identifiant du paiement Square, pour le rapprochement comptable. */
   payment_id: string
   paid_at: number
   expires_at: number

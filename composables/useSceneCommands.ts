@@ -37,7 +37,7 @@ export function useSceneCommands() {
   const commands: SceneCommand[] = [
     {
       name: 'sortie',
-      help: 'force la porte : écran de sortie et paiement Stripe',
+      help: 'force la porte : écran de sortie et paiement Square',
       run() {
         const gate = playerStore.scene?.paywall.gate_text
         if (!gate) {
