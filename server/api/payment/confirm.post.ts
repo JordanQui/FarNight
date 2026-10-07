@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
 
   // Un refus de Square (carte déclinée…) lève une SquareError : on renvoie son
   // code, sinon le joueur ne lit qu'une erreur 500. Pas de verificationToken :
-  // le paiement part sans 3-D Secure, comme dans ronde_v2.
+  // le 3-D Secure a eu lieu à la tokenisation, et le jeton en porte le
+  // résultat. Voir `cardVerification` dans composables/usePaywall.ts.
   const response = await squareClient().payments.create({
     sourceId: body.sourceId,
     idempotencyKey: crypto.randomUUID(),
