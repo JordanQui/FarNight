@@ -11,6 +11,7 @@ const paymentStore = usePaymentStore()
 const playerStore = usePlayerStore()
 
 const isInitializing = ref(true)
+const wallets = ref({ applePay: false, googlePay: false })
 
 /**
  * Textes de repli, quand aucune scène n'est chargée — cas du visiteur qui a
@@ -38,7 +39,10 @@ onMounted(async () => {
   try {
     await fetchPaymentIntent()
     await nextTick()
-    await initSquarePayments('#card-container')
+    const p = paywall.value
+    wallets.value = await initSquarePayments('#card-container', p
+      ? { amountCents: p.amount_cents, currency: p.currency, label: p.cta, googlePaySelector: '#google-pay-button' }
+      : undefined)
   } catch (err) {
     paymentStore.setError(err instanceof Error ? err.message : 'Paiement indisponible')
   } finally {
@@ -122,6 +126,16 @@ onMounted(async () => {
         <div v-if="isInitializing" class="h-12 flex items-center justify-center">
           <p class="text-steel-400 text-xs">{{ t('paywall.loading') }}</p>
         </div>
+        <!-- Portefeuilles : chacun n'apparaît que si Square l'a ouvert sur cet appareil -->
+        <button
+          v-if="wallets.applePay"
+          type="button"
+          class="apple-pay-button w-full h-12"
+          aria-label="Apple Pay"
+          @click="submitPayment('applePay')"
+        />
+        <div id="google-pay-button" class="w-full" @click="submitPayment('googlePay')" />
+        <div v-if="wallets.applePay || wallets.googlePay" class="neon-rule w-12 mx-auto opacity-40" />
         <div id="card-container" />
 
         <p v-if="paymentStore.errorMessage" class="text-red-400/80 text-xs text-center">
@@ -134,7 +148,7 @@ onMounted(async () => {
           :loading="paymentStore.status === 'processing'"
           :disabled="isInitializing"
           class="w-full"
-          @click="submitPayment"
+          @click="submitPayment()"
         >
           {{ paywall?.cta ?? t('common.continue') }}
         </GlowButton>
@@ -148,3 +162,12 @@ onMounted(async () => {
     <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-40" />
   </div>
 </template>
+
+<style scoped>
+/* Bouton natif de Safari : seul le style -apple-pay-button est accepté par Apple. */
+.apple-pay-button {
+  -webkit-appearance: -apple-pay-button;
+  -apple-pay-button-type: buy;
+  -apple-pay-button-style: white;
+}
+</style>

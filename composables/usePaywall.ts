@@ -2,18 +2,25 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { usePaymentStore } from '~/stores/payment'
 
+type SquareTokenizer = {
+  attach?(selector: string, options?: Record<string, string>): Promise<void>
+  tokenize(): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
+}
+
 declare global {
   interface Window {
     Square: {
       payments(applicationId: string, locationId: string): Promise<{
-        card(options?: { style?: Record<string, Record<string, string>> }): Promise<{
-          attach(selector: string): Promise<void>
-          tokenize(): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
-        }>
+        card(options?: { style?: Record<string, Record<string, string>> }): Promise<SquareTokenizer>
+        paymentRequest(options: Record<string, unknown>): unknown
+        applePay(request: unknown): Promise<SquareTokenizer>
+        googlePay(request: unknown): Promise<SquareTokenizer>
       }>
     }
   }
 }
+
+export type PaymentMethod = 'card' | 'applePay' | 'googlePay'
 
 export function usePaywall() {
   const { t } = useLang()
@@ -23,7 +30,8 @@ export function usePaywall() {
   const progression = useProgression()
   const config = useRuntimeConfig()
 
-  let squareCard: Awaited<ReturnType<Awaited<ReturnType<typeof window.Square.payments>>['card']>> | null = null
+  // Un tokenizer par moyen de paiement que Square a accepté d'ouvrir ici.
+  const tokenizers: Partial<Record<PaymentMethod, SquareTokenizer>> = {}
 
   /**
    * Ouvre la sortie. Un joueur qui a déjà payé passe directement à la suite :
@@ -71,7 +79,10 @@ export function usePaywall() {
     return gameStore.hasKeyItem
   }
 
-  async function initSquarePayments(containerSelector: string) {
+  async function initSquarePayments(
+    containerSelector: string,
+    wallet?: { amountCents: number; currency: string; label: string; googlePaySelector: string },
+  ) {
     if (!window.Square) await loadSquareSdk()
 
     const payments = await window.Square.payments(
@@ -83,11 +94,32 @@ export function usePaywall() {
     // l'interface en dur, lues au moment de l'ouvrir. Si Square refuse un
     // style, on garde son formulaire nu plutôt que pas de formulaire du tout.
     try {
-      squareCard = await payments.card({ style: squareCardStyle(containerSelector) })
+      tokenizers.card = await payments.card({ style: squareCardStyle(containerSelector) })
     } catch {
-      squareCard = await payments.card()
+      tokenizers.card = await payments.card()
     }
-    await squareCard.attach(containerSelector)
+    await tokenizers.card.attach!(containerSelector)
+
+    // Portefeuilles : Square refuse de les ouvrir quand le navigateur, l'appareil
+    // ou le pays ne s'y prêtent pas (Apple Pay hors Safari, domaine non vérifié…).
+    // Un refus n'est pas une erreur : il reste la carte.
+    if (wallet) {
+      const request = () => payments.paymentRequest({
+        countryCode: wallet.currency === 'USD' ? 'US' : 'FR',
+        currencyCode: wallet.currency,
+        total: { amount: (wallet.amountCents / 100).toFixed(2), label: wallet.label },
+      })
+      try {
+        tokenizers.applePay = await payments.applePay(request())
+      } catch { /* indisponible ici */ }
+      try {
+        const googlePay = await payments.googlePay(request())
+        await googlePay.attach!(wallet.googlePaySelector, { buttonColor: 'white', buttonSizeMode: 'fill', buttonType: 'long' })
+        tokenizers.googlePay = googlePay
+      } catch { /* indisponible ici */ }
+    }
+
+    return { applePay: !!tokenizers.applePay, googlePay: !!tokenizers.googlePay }
   }
 
   /** Le formulaire fondu dans l'écran : fond d'encre, filet discret, aucun néon. */
@@ -146,21 +178,23 @@ export function usePaywall() {
     return data
   }
 
-  async function submitPayment() {
-    if (!squareCard) {
+  async function submitPayment(method: PaymentMethod = 'card') {
+    const tokenizer = tokenizers[method]
+    if (!tokenizer) {
       paymentStore.setError(t('errors.payment_form'))
+      return false
+    }
+
+    // Tokeniser AVANT de quitter l'écran : Apple Pay et Google Pay ouvrent leur
+    // feuille depuis le bouton cliqué, et l'écran de traitement la démonterait.
+    const result = await tokenizer.tokenize()
+    if (result.status !== 'OK' || !result.token) {
+      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
       return false
     }
 
     paymentStore.setProcessing()
     gameStore.setScreen('payment_processing')
-
-    const result = await squareCard.tokenize()
-    if (result.status !== 'OK' || !result.token) {
-      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
-      gameStore.setScreen('paywall')
-      return false
-    }
 
     try {
       const confirmed = await $fetch<{ expiresAt?: number }>('/api/payment/confirm', {
