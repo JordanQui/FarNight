@@ -122,7 +122,7 @@ onMounted(async () => {
         <div v-if="isInitializing" class="h-12 flex items-center justify-center">
           <p class="text-steel-400 text-xs">{{ t('paywall.loading') }}</p>
         </div>
-        <div id="card-container" />
+        <div id="card-container" class="border border-steel-600 px-3 py-3.5" />
 
         <p v-if="paymentStore.errorMessage" class="text-red-400/80 text-xs text-center">
           {{ paymentStore.errorMessage }}

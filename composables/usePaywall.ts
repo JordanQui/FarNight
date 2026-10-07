@@ -2,15 +2,13 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { usePaymentStore } from '~/stores/payment'
 
-type StripeElements = {
-  create(type: 'payment', options?: Record<string, unknown>): { mount(selector: string): void }
-}
+type StripeCard = { mount(selector: string): void }
 
 declare global {
   interface Window {
     Stripe: (publishableKey: string) => {
-      elements(options: { clientSecret: string; appearance?: Record<string, unknown> }): StripeElements
-      confirmPayment(options: { elements: StripeElements; redirect: 'if_required' }): Promise<{
+      elements(): { create(type: 'card', options?: Record<string, unknown>): StripeCard }
+      confirmCardPayment(clientSecret: string, data: { payment_method: { card: StripeCard } }): Promise<{
         error?: { message?: string }
         paymentIntent?: { id: string; status: string }
       }>
@@ -26,9 +24,10 @@ export function usePaywall() {
   const progression = useProgression()
   const config = useRuntimeConfig()
 
-  // Le formulaire monté, et le client Stripe qui le confirmera.
+  // Le formulaire monté, le client Stripe qui le confirmera, et le paiement visé.
   let stripe: ReturnType<Window['Stripe']> | null = null
-  let elements: StripeElements | null = null
+  let card: StripeCard | null = null
+  let secret: string | null = null
 
   /**
    * Ouvre la sortie. Un joueur qui a déjà payé passe directement à la suite :
@@ -80,16 +79,16 @@ export function usePaywall() {
     if (!window.Stripe) await loadStripeSdk()
 
     stripe = window.Stripe(config.public.stripePublishableKey)
-    // Le formulaire vit dans une iframe Stripe : il ne voit pas nos classes, et
-    // se dessine blanc par défaut. On lui passe donc les couleurs de
-    // l'interface en dur, lues au moment de l'ouvrir.
-    elements = stripe.elements({ clientSecret, appearance: stripeAppearance(containerSelector) })
-    // La carte seule : ni Apple Pay ni Google Pay.
-    elements.create('payment', { wallets: { applePay: 'never', googlePay: 'never' } }).mount(containerSelector)
+    secret = clientSecret
+    // Le champ « carte » seul : ni Apple Pay, ni Google Pay, ni Link. Il vit
+    // dans une iframe Stripe qui ne voit pas nos classes : on lui passe les
+    // couleurs de l'interface en dur, lues au moment de l'ouvrir.
+    card = stripe.elements().create('card', { style: stripeCardStyle(containerSelector), hidePostalCode: true })
+    card.mount(containerSelector)
   }
 
   /** Le formulaire fondu dans l'écran : fond d'encre, filet discret, aucun néon. */
-  function stripeAppearance(containerSelector: string) {
+  function stripeCardStyle(containerSelector: string) {
     const el = document.querySelector(containerSelector) ?? document.documentElement
     const css = getComputedStyle(el)
     const hex = (name: string, fallback: string) => {
@@ -97,22 +96,11 @@ export function usePaywall() {
       if (rgb.length !== 3 || rgb.some(n => Number.isNaN(n))) return fallback
       return '#' + rgb.map(n => n.toString(16).padStart(2, '0')).join('')
     }
-    const ground = hex('--ink-900', '#080b12')
-    const line = hex('--steel-600', '#333d53')
     const muted = hex('--steel-400', '#6b7794')
     const text = hex('--ink-100', '#dce1ea')
-    const error = '#f87171'
     return {
-      theme: 'night',
-      variables: {
-        colorPrimary: muted, colorBackground: ground, colorText: text,
-        colorTextPlaceholder: muted, colorDanger: error, borderRadius: '0px',
-      },
-      rules: {
-        '.Input': { border: `1px solid ${line}`, boxShadow: 'none' },
-        '.Input:focus': { borderColor: muted, boxShadow: 'none' },
-        '.Label': { color: muted },
-      },
+      base: { color: text, iconColor: muted, fontSize: '16px', '::placeholder': { color: muted } },
+      invalid: { color: '#f87171', iconColor: '#f87171' },
     }
   }
 
@@ -137,7 +125,7 @@ export function usePaywall() {
   }
 
   async function submitPayment() {
-    if (!stripe || !elements) {
+    if (!stripe || !card || !secret) {
       paymentStore.setError(t('errors.payment_form'))
       return false
     }
@@ -148,7 +136,7 @@ export function usePaywall() {
 
     try {
       // Stripe débite, 3-D Secure compris s'il le faut, sans quitter la page.
-      const result = await stripe.confirmPayment({ elements, redirect: 'if_required' })
+      const result = await stripe.confirmCardPayment(secret, { payment_method: { card } })
       if (result.error || !result.paymentIntent) {
         paymentStore.setError(result.error?.message ?? t('errors.payment_refused'))
         return false

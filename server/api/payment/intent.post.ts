@@ -26,12 +26,12 @@ export default defineEventHandler(async (event) => {
 
   const stripe = new Stripe(requireSecret(config.stripeSecretKey, 'STRIPE_SECRET_KEY'))
 
-  // Carte seulement (les portefeuilles sont coupés côté formulaire) : aucun
-  // moyen de paiement ne renvoie hors de la page — le jeu ne sait pas y revenir.
+  // Rien qui renvoie hors de la page : le jeu ne saurait pas y revenir. Le
+  // formulaire, lui, ne propose que la carte.
   const intent = await stripe.paymentIntents.create({
     amount: paywall.amount_cents,
     currency: paywall.currency.toLowerCase(),
-    payment_method_types: ['card'],
+    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
     description: paywall.cta,
   })
 
