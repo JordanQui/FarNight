@@ -313,9 +313,6 @@ function acceptAndEnroll() {
             {{ t('login.dossier_known') }}
           </p>
           <GlowButton class="w-full" @click="goOutAgain">{{ t('login.dossier_cta') }}</GlowButton>
-          <p class="text-ink-200/70 text-[11px] leading-relaxed">
-            {{ t('login.dossier_named', { name: rememberedName ?? '' }) }}
-          </p>
         </template>
         <button
           class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
