@@ -1,6 +1,7 @@
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { requestLang } from '~/server/utils/lang'
 import { closeForStalling, clearLock } from '~/server/utils/session-quota'
+import { isLocal } from '~/utils/app-env'
 
 /**
  * Referme la scène : le game over.
@@ -17,7 +18,7 @@ import { closeForStalling, clearLock } from '~/server/utils/session-quota'
  *
  * Aucune génération, donc aucun coût.
  *
- * En développement, et en production tant que `lockOverride` est ouvert
+ * En local, et en production tant que `lockOverride` est ouvert
  * (phases de test), `{ open: true }` lève le verrou : sans quoi une seule
  * séance de test condamnerait la journée.
  */
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const runtime = await ScriptRuntime.load(requestLang(event))
 
   if (body?.open) {
-    if (!import.meta.dev && !useRuntimeConfig().public.lockOverride) {
+    if (!isLocal() && !useRuntimeConfig().public.lockOverride) {
       throw createError({ statusCode: 403, statusMessage: 'Indisponible' })
     }
     clearLock(event, runtime.limits)

@@ -1,15 +1,16 @@
 import { createHash } from 'node:crypto'
+import { isLocal } from '~/utils/app-env'
 export { scriptFingerprint } from '~/server/utils/script-fingerprint'
 
 /**
- * Enregistrement et rejeu des générations, en développement uniquement.
+ * Enregistrement et rejeu des générations, en local uniquement.
  *
  * Une scène coûte ~2,6 centimes, son image ~6,5. Sur une journée de mise au
  * point où l'on relance l'expérience trente fois, on paie trente fois la même
  * chose. Ici, la première génération est écrite sur disque et les suivantes la
  * rejouent : gratuit, et instantané.
  *
- * Tout est conditionné à `import.meta.dev`. En production ces fonctions sont
+ * Tout est conditionné à `APP_ENV=local`. En production ces fonctions sont
  * inertes et n'écrivent jamais rien — Vercel a de toute façon un système de
  * fichiers en lecture seule.
  *
@@ -27,9 +28,9 @@ export { scriptFingerprint } from '~/server/utils/script-fingerprint'
 
 const DIR = '.mocks'
 
-/** Les mocks n'existent qu'en développement, et seulement si on les demande. */
+/** Les mocks n'existent qu'en local, et seulement si on les demande. */
 function enabled(): boolean {
-  return import.meta.dev && process.env.DEV_MOCKS === '1'
+  return isLocal() && process.env.DEV_MOCKS === '1'
 }
 
 /** Une empreinte par scène et par joueur : deux profils, deux mocks. */

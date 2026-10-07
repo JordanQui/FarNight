@@ -8,7 +8,7 @@
  * par server/api/admin/story.get.ts : rien n'est recopié ici.
  */
 
-// Voir middleware/admin.ts : la page n'existe qu'en développement.
+// Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
 
 const { data, error } = await useFetch('/api/admin/story')

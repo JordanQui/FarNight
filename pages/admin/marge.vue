@@ -9,7 +9,7 @@
  *  - HYPOTHÈSE : les sorties, les volumes, la conversion (`economics`).
  */
 
-// Voir middleware/admin.ts : la page n'existe qu'en développement.
+// Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
 
 const { data, error } = await useFetch('/api/admin/economics')

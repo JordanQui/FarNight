@@ -172,7 +172,7 @@ function goOutAgain() {
  * dossier qui en sort — on vide l'aventure, pas l'admission. Même garde que la levée du verrou : le
  * bouton n'est pas rendu quand `lockOverride` est fermé.
  */
-const canForget = import.meta.dev || useRuntimeConfig().public.lockOverride
+const canForget = isLocal() || useRuntimeConfig().public.lockOverride
 
 async function forgetEverything() {
   if (!window.confirm(t('login.dev_forget') + ' ?')) return

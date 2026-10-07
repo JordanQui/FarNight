@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import type { LimitsConfig } from '~/types/script'
 import { requireSecret } from '~/server/utils/runtime-secrets'
+import { isLocal } from '~/utils/app-env'
 
 /**
  * Quota par session, tenu dans un cookie signé.
@@ -469,10 +470,10 @@ export function consumeQuota(
     quota.scene_turns = played + 1
   }
 
-  // Interrupteur global, et développement : dans les deux cas on ne décompte
+  // Interrupteur global, et local : dans les deux cas on ne décompte
   // rien. Le premier est temporaire — le laisser à false en production revient
   // à n'avoir aucune borne de dépense.
-  if (limits.enabled && !import.meta.dev) {
+  if (limits.enabled && !isLocal()) {
     const limit = access
       ? limits.paid[`${kind}_per_window` as const]
       : limits[`${kind}_per_session` as const]

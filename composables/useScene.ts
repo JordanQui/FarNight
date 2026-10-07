@@ -328,19 +328,8 @@ export function useScene() {
     // Garder les acquis de la partie avant de demander un nouveau tirage.
     restoreCarry()
 
-    // En développement, on dispose de tout ce que le jeu prévoit : sans ça,
-    // tester une scène tardive demanderait de rejouer toutes les précédentes.
-    // `devInventory` vaut null en production, la ligne y est donc inerte.
-    //
-    // SAUF SUR LA PREMIÈRE SCÈNE : y arriver avec l'augmentation supprime la
-    // seule boucle de jeu de l'auberge — la trouver, en apprendre l'existence,
-    // puis se la faire céder. On la testait donc en la sautant.
-    if (import.meta.dev) {
-      const first = (useRuntimeConfig().public.sceneIndex as Array<{ id: string }>)?.[0]?.id
-      if (sceneId && sceneId !== first) {
-        gameStore.equipFromScript(useRuntimeConfig().public.devInventory as never)
-      }
-    }
+    // L'inventaire de test ne s'équipe plus tout seul en local : la mémoire
+    // vidée, on repart les poches vides. La commande `equipe` le charge.
 
     // Un ancien texte ou une ancienne image ne doivent jamais être rejoués.
     forgetStoredScene()

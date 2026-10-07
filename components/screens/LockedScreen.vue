@@ -34,7 +34,7 @@ onUnmounted(() => { if (ticker) clearInterval(ticker) })
  * refuse ce geste quand `lockOverride` est fermé — le bouton n'est alors même
  * pas rendu.
  */
-const canOverride = import.meta.dev || useRuntimeConfig().public.lockOverride
+const canOverride = isLocal() || useRuntimeConfig().public.lockOverride
 
 async function reopen() {
   await $fetch('/api/lockout', { method: 'POST', body: { open: true } }).catch(() => null)
@@ -90,11 +90,11 @@ const remaining = computed(() => {
         {{ t('locked.the_end') }}
       </p>
 
-      <!-- Phases de test : un lien qu'on voit, pas un bouton qu'on devine -->
+      <!-- Phases de test : un lien discret, pour les testeurs -->
       <button
         v-if="canOverride"
-        class="text-neon-400 hover:text-neon-300 underline underline-offset-4 font-display
-               uppercase text-[11px] tracking-[0.18em] transition-colors"
+        class="text-steel-400/40 hover:text-steel-400 underline underline-offset-4 font-display
+               uppercase text-[10px] tracking-[0.18em] transition-colors"
         @click="reopen"
       >
         {{ t('locked.dev_unlock') }}

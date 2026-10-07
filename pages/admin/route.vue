@@ -13,7 +13,7 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression, type SceneRef } from '~/composables/useProgression'
 
-// Voir middleware/admin.ts : en production, la page suit `lockOverride`.
+// Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
 
 const gameStore = useGameStore()

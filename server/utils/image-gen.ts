@@ -41,18 +41,15 @@ function remember(key: string, result: ImageResult): void {
 }
 
 /**
- * Images coupées en développement.
+ * Images coupées par défaut, en local comme en production.
  *
  * Chaque rechargement régénère la scène, et l'image est le poste le plus cher :
- * une journée de mise au point en brûlait des dizaines. En dev, on rend donc un
- * aplat sombre aux bonnes proportions au lieu d'appeler OpenAI. Pour retrouver
- * les vraies images : `DEV_IMAGES=1` dans le .env.
- *
- * La production suit le même régime le temps du développement : coupée tant
- * que `PROD_IMAGES=1` n'est pas posé sur Vercel (valeur lue au build).
+ * une journée de mise au point en brûlait des dizaines. On rend donc un aplat
+ * sombre aux bonnes proportions au lieu d'appeler OpenAI. Pour retrouver les
+ * vraies images : `IMAGES=1` dans le .env, ou sur Vercel puis redéployer
+ * (valeur lue au build).
  */
 function imagesBlocked(): boolean {
-  if (import.meta.dev) return process.env.DEV_IMAGES !== '1'
   return useRuntimeConfig().imagesOff
 }
 

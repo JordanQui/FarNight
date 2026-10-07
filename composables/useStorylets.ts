@@ -161,18 +161,22 @@ export function useStorylets() {
 
     // Les deux plafonds : le compte de tours mord en pratique, le budget en
     // dollars n'est qu'un filet si les prompts venaient à grossir. En
-    // développement ni l'un ni l'autre : une scène se teste jusqu'au bout.
-    const capReached = !import.meta.dev
+    // local ni l'un ni l'autre : une scène se teste jusqu'au bout.
+    const capReached = !isLocal()
       && (pacing?.hard_turn_cap ?? 0) > 0
       && gameStore.modelTurnsUsed >= pacing!.hard_turn_cap
-    const budgetReached = !import.meta.dev
+    const budgetReached = !isLocal()
       && (pacing?.budget_usd ?? 0) > 0
       && gameStore.spentUsd >= pacing!.budget_usd
 
     return {
       isCommand: isCommand(input),
 
-      turn: gameStore.turnCount,
+      // Chaque saisie de la scène compte, payée ou non : le personnage qui
+      // snobe, la porte qui ne cède pas sont des tours joués. Sans ça la
+      // fermeture n'arrivait jamais. Le canal '#' n'en est pas un.
+      turn: gameStore.narrativeHistory
+        .filter(e => e.type === 'player_command' && !isCommand(e.text)).length,
 
       // Les mots-clés viennent de la scène servie, donc du pack de langue :
       // le client et le serveur testent la MÊME liste. En conversation, une

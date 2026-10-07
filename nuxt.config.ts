@@ -39,12 +39,18 @@ const scriptFingerprint = createHash('sha256')
  * numéro sans que le client connaisse l'histoire.
  */
 /**
- * L'inventaire de développement, exposé HORS PRODUCTION uniquement.
+ * `local` ou `production`, posé par `APP_ENV`. Absent : `production`, pour
+ * qu'un oubli n'ouvre jamais rien. Lu au build. Voir utils/app-env.ts.
+ */
+const appEnv = process.env.APP_ENV === 'local' ? 'local' : 'production'
+
+/**
+ * L'inventaire de développement, exposé en local uniquement.
  *
  * En production il vaut `null` : aucun joueur ne doit recevoir un jeu complet
  * de cartes, et la liste n'a même pas à figurer dans le bundle.
  */
-const devInventory = process.env.NODE_ENV === 'production' ? null : script.dev_inventory
+const devInventory = appEnv === 'local' ? script.dev_inventory : null
 
 /**
  * Combien de jours le navigateur du joueur retient sa partie.
@@ -158,13 +164,15 @@ export default defineNuxtConfig({
     squareAccessToken: process.env.SQUARE_ACCESS_TOKEN,
     nuxtSecret: process.env.NUXT_SECRET,
     /**
-     * Images coupées en production le temps du développement : un aplat
-     * remplace chaque appel OpenAI. `PROD_IMAGES=1` sur Vercel, puis
-     * redéployer, les rétablit. Voir server/utils/image-gen.ts.
+     * Images coupées par défaut, en local comme en production : un aplat
+     * remplace chaque appel OpenAI. `IMAGES=1` les rétablit (sur Vercel, puis
+     * redéployer). Voir server/utils/image-gen.ts.
      */
-    imagesOff: process.env.PROD_IMAGES !== '1',
+    imagesOff: process.env.IMAGES !== '1',
 
     public: {
+      /** `local` ou `production`. Voir utils/app-env.ts. */
+      appEnv,
       /** Dominante, secondaire et accent de l'auberge. Voir plus haut. */
       uiPalette,
       /** Les dix scènes, dans l'ordre. Identifiants et titres seulement. */
@@ -192,7 +200,7 @@ export default defineNuxtConfig({
        * Temporaire, le temps des phases de test : sans lui un testeur qui fait
        * patiner une scène perd sa journée. Ouvert par défaut ; `LOCK_OVERRIDE=0`
        * le retire — à poser sur Vercel, puis redéployer (valeur lue au build).
-       * En développement le bouton est toujours là.
+       * En local le bouton est toujours là.
        */
       lockOverride: process.env.LOCK_OVERRIDE !== '0',
       squareApplicationId: process.env.SQUARE_APPLICATION_ID,
