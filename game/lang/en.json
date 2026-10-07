@@ -479,7 +479,7 @@
     "game.howto_look_title": "Search the scenery",
     "game.howto_look_body": "Whatever is written **in bold and with a Capital** in the story is really there, in the room. Click it to examine it: under the mouse, the cursor turns back into an arrow and the word is underlined. On a phone there is no hover and nothing gets underlined: just tap the word with your finger, even with the eye open, and the examination starts at once. You can also type what you do with it: look, take, open. Some things nobody will hand you — you have to find them.",
     "game.howto_talk_title": "Talk to people",
-    "game.howto_talk_body": "People's names are scrambled. Tap the **bionic eye** button, then bring it onto a name: it deciphers, and you can talk to that person. Ask them a question — here, that is all anyone answers.",
+    "game.howto_talk_body": "People's names are scrambled. Tap the **bionic eye** button, then bring it onto a name: it deciphers, and you can talk to that person. A simple hello is enough to start the conversation, or ask them a question straight away.",
     "game.howto_trade_title": "Trade",
     "game.howto_trade_body": "Some things are worth more to someone else. While you are talking to a person, open **On you** and tap **Give** on an object. If it is what they were waiting for, they keep it and return the favour: what they know about your quest, an object you need, or something hidden in the scenery. If not, they hand it back.",
     "game.howto_cta": "Enter",

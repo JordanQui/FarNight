@@ -4,6 +4,7 @@ const { t } = useLang()
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { useScene } from '~/composables/useScene'
+import { isLocal } from '~/utils/app-env'
 
 const playerStore = usePlayerStore()
 const gameStore = useGameStore()
@@ -39,6 +40,13 @@ const target = gameStore.pendingSceneId ?? undefined
 gameStore.pendingSceneId = null
 
 async function build() {
+  // Pas de dossier, pas de nuit : on renvoie au formulaire. En local seulement,
+  // le serveur retombe sur le dossier type (commandes `#scene<n>`).
+  if (!playerStore.profile && !isLocal()) {
+    gameStore.setScreen('admission')
+    return
+  }
+
   startMessages()
 
   // Phase 1 : le texte. Bloquant, c'est lui qui rend la scène jouable.

@@ -140,6 +140,30 @@ export function describeUser(
 
   if (user.misc_facts?.length) lines.push(`Divers : ${user.misc_facts.join(' ; ')}`)
 
+  // Les cases laissées vides : le modèle les tire au hasard plutôt que de
+  // retomber sur le décor générique qu'il servirait à tout le monde. Ce qui est
+  // déjà lu à l'auberge (animal, nuits) n'est pas un manque.
+  const missing = [
+    !hometown && 'ville d\'origine',
+    !current_location && 'ville actuelle',
+    !user.trajectory.turning_points.length && 'tournant de vie',
+    !marks?.moment && 'moment auquel il tient',
+    !marks?.fear_film && 'film qui lui a fait peur',
+    !marks?.animal && !read && 'animal préféré',
+    !imprints?.keepsake && 'objet auquel il tient',
+    !imprints?.refuge && 'refuge',
+    !imprints?.ally && 'personne qui compte',
+    !imprints?.aversion && 'ce qu\'il ne supporte pas',
+    !user.anthem && 'morceau qui compte',
+    !nights?.awake_note && !read && 'ses nuits sans sommeil',
+    !nights?.dream_note && 'rêve qui revient',
+  ].filter(Boolean)
+  if (missing.length) {
+    lines.push(
+      `Laissé vide au dossier : ${missing.join(', ')} — tire ces réponses au hasard, une par case, `
+      + 'singulières et cohérentes avec le reste, puis traite-les comme s\'il les avait données.')
+  }
+
   // Le principe de tout le dossier, dit une fois : il nourrit une trame
   // symbolique, il ne se recrache pas. Retrouver ses mots de but en blanc,
   // c'est découvrir qu'on a été recopié.

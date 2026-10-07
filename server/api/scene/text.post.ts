@@ -11,6 +11,7 @@ import {
 } from '~/server/utils/session-quota'
 import { scriptFingerprint } from '~/server/utils/script-fingerprint'
 import { requestLang } from '~/server/utils/lang'
+import { isLocal } from '~/utils/app-env'
 
 /** JSON canonique : l'ordre des propriétés envoyé par le navigateur ne doit pas changer le tirage. */
 function stableJson(value: unknown): string {
@@ -75,6 +76,11 @@ export default defineEventHandler(async (event) => {
   // le script n'en connaît que la mécanique.
   const plan = nightOf(body.journal ?? [])
   const scene = runtime.scene(body.sceneId).withPlan(plannedScene(plan, body.sceneId))
+  // Sans dossier, pas de nuit : le dossier type ne sert qu'en local, aux
+  // commandes `#scene<n>` lancées sans être passé par le formulaire.
+  if (!body.user?.identity?.name && !isLocal()) {
+    throw createError({ statusCode: 400, statusMessage: 'Dossier manquant' })
+  }
   const user = body.user ?? await loadUserFixture()
   const seed = generationSeed({
     scene_id: scene.id,
