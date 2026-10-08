@@ -323,11 +323,11 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             <div class="grid grid-cols-2 gap-3">
               <label class="block space-y-2">
                 <span class="field-label">{{ t('admission.first_name') }}</span>
-                <input v-model="form.firstName" type="text" class="field" :placeholder="t('admission.first_name_ph')" autocomplete="given-name">
+                <input v-model="form.firstName" type="text" class="field" autocomplete="given-name">
               </label>
               <label class="block space-y-2">
                 <span class="field-label">{{ t('admission.last_name') }}</span>
-                <input v-model="form.lastName" type="text" class="field" :placeholder="t('admission.last_name_ph')" autocomplete="family-name">
+                <input v-model="form.lastName" type="text" class="field" autocomplete="family-name">
               </label>
             </div>
 
