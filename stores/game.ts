@@ -309,6 +309,12 @@ export const useGameStore = defineStore('game', {
     isInputDisabled: (state) =>
       state.playingSubState === 'narrative_streaming' ||
       state.playingSubState === 'npc_dialogue',
+    /**
+     * La loupe est en main possible. En dev, toujours : on n'a pas à refaire
+     * la scène 1 pour tester la suite. Le serveur, lui, ne voit que
+     * `hasAugmentation`.
+     */
+    lensAvailable: (state) => state.hasAugmentation || import.meta.dev,
   },
 
   actions: {
@@ -522,7 +528,7 @@ export const useGameStore = defineStore('game', {
 
     setTool(tool: 'eye' | 'lens') {
       // La loupe n'existe pas tant que l'augmentation n'a pas été obtenue.
-      if (tool === 'lens' && !this.hasAugmentation) return
+      if (tool === 'lens' && !this.lensAvailable) return
       this.activeTool = tool
       this.revealing = null
     },

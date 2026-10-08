@@ -77,7 +77,7 @@ let dwell: ReturnType<typeof setTimeout> | null = null
 
 /** Vrai quand la loupe est en main et que l'objet est encore scellé. */
 const readable = computed(() =>
-  !decrypted.value && gameStore.hasAugmentation && gameStore.activeTool === 'lens')
+  !decrypted.value && gameStore.lensAvailable && gameStore.activeTool === 'lens')
 
 function onEnter() {
   if (!readable.value) return

@@ -55,7 +55,7 @@ export function useInventory() {
    * il n'y a rien d'autre à en faire que le lire.
    */
   function actionFor(o: { known: boolean; observation?: string; clue?: string }): ItemAction {
-    if (!o.known) return gameStore.hasAugmentation ? 'read' : 'locked'
+    if (!o.known) return gameStore.lensAvailable ? 'read' : 'locked'
     return o.observation?.trim() || o.clue ? 'observe' : 'none'
   }
 

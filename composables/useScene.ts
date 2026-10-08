@@ -3,7 +3,6 @@ import type { LangCode } from '~/types/i18n'
 import type { UserProfile } from '~/types/user'
 import type { JournalEntry, CarriedItem } from '~/utils/journal'
 import type { AdmissionForm } from '~/utils/admission'
-import { profileFromAdmission } from '~/utils/admission'
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useImageGen } from '~/composables/useImageGen'
@@ -379,29 +378,6 @@ export function forgetStoredScene(): void {
 export function forgetRun(): void {
   forgetStoredScene()
   try { memory()?.removeItem(CARRY_KEY) } catch { /* sans conséquence */ }
-}
-
-/**
- * Oublie l'aventure, garde le dossier.
- *
- * Pour « vider la mémoire » : on rejoue la nuit sans retaper le formulaire. Le
- * profil vit dans la même entrée que la partie — on la vide, puis on y remet
- * le dossier seul, sans journal, inventaire ni augmentation.
- *
- * Le profil n'entre dans la partie qu'une fois la première scène jouable :
- * avant, seul le formulaire le porte. On le refait alors depuis ses réponses,
- * sinon le bouton effaçait un dossier qu'il promet de garder.
- */
-export function forgetAdventure(): void {
-  const kept = rememberedAdmission()?.form
-  const profile = rememberedProfile()
-    ?? (kept?.firstName.trim() && kept.birthday.length === 10 ? profileFromAdmission(kept) : null)
-  forgetRun()
-  if (!profile) return
-  storeCarry({
-    journal: [], inventory: [], decrypted: [],
-    augmentation: false, primerSeen: false, profile,
-  })
 }
 
 /**

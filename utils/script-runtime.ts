@@ -1456,22 +1456,23 @@ ${lines}`)
    * recopie parfois mal l'identifiant d'un lieu qu'il a pourtant écrit en
    * entier, et l'auberge — le JSON le plus lourd du jeu — partait en
    * « lieu absent » deux fois de suite. La place d'un lieu dans son acte dit
-   * déjà lequel il est : quand l'acte a le bon nombre de lieux, on reprend les
-   * identifiants du script. Un lieu vraiment manquant reste refusé plus bas.
+   * déjà lequel il est. On juge sur la nuit entière, pas acte par acte : le
+   * modèle écrit parfois deux fois « a1s1 », ou trois lieux sous un acte et un
+   * seul sous le suivant. Six lieux dans l'ordre, ce sont les six du script.
+   * Un lieu vraiment manquant reste refusé plus bas.
    */
   alignPlanIds(generated: GeneratedScene): void {
     if (!this.isStart) return
     const plan = this.planIds
-    const expected = this.script.acts.map(a => a.scenes.filter(id => plan.includes(id)))
-    generated.night?.acts?.forEach((act, i) => {
-      const k = this.script.acts.findIndex(a => a.id === act.act_id)
-      const ids = expected[k >= 0 ? k : i]
-      if (!ids || act.scenes?.length !== ids.length) return
-      act.scenes.forEach((sc, j) => {
-        if (sc.scene_id === ids[j]) return
-        console.warn(`[scene] plan : "${sc.scene_id}" recalé en "${ids[j]}"`)
-        sc.scene_id = ids[j]!
-      })
+    const written = (generated.night?.acts ?? []).flatMap(a => a.scenes ?? [])
+    if (written.length !== plan.length) {
+      console.warn(`[scene] plan : ${written.length} lieux écrits pour ${plan.length} — ${written.map(sc => sc.scene_id).join(', ')}`)
+      return
+    }
+    written.forEach((sc, j) => {
+      if (sc.scene_id === plan[j]) return
+      console.warn(`[scene] plan : "${sc.scene_id}" recalé en "${plan[j]}"`)
+      sc.scene_id = plan[j]!
     })
   }
 

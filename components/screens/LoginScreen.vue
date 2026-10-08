@@ -2,7 +2,7 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdventure, forgetRun, rememberedProfile } from '~/composables/useScene'
+import { forgetAdmission, forgetRun, rememberedProfile } from '~/composables/useScene'
 import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
@@ -28,8 +28,12 @@ const { lang, setLang, t, languages } = useLang()
  * recommencer à l'auberge — y compris avec un droit d'accès payé et sept scènes
  * derrière lui. `/api/access` dit maintenant où il en était ; il ne reste qu'à
  * le lui proposer.
+ *
+ * Sans dossier dans ce navigateur, pas de reprise : le cookie de position
+ * survit à la mémoire locale, et « Continuer » menait alors à une nuit sans
+ * joueur. C'est l'entrée par le formulaire qui reste.
  */
-const resumeScene = computed(() => progression.resumeTarget())
+const resumeScene = computed(() => knownDossier.value ? progression.resumeTarget() : null)
 
 /**
  * Le dossier que ce navigateur a retenu.
@@ -69,6 +73,7 @@ function continueGame() {
  */
 function startFresh() {
   forgetRun()
+  forgetAdmission()
   knownDossier.value = null
   playerStore.journal = []
   playerStore.profile = null
@@ -140,16 +145,17 @@ function goOutAgain() {
  *
  * Plus radical que « repartir de zéro » : les cookies signés partent aussi —
  * quota, accès payé, verrou, position. Ils sont `httpOnly`, seul le serveur
- * peut les effacer. La langue reste, le formulaire aussi : ses réponses et le
- * dossier qui en sort — on vide l'aventure, pas l'admission. Même garde que la levée du verrou : le
- * bouton n'est pas rendu quand `lockOverride` est fermé.
+ * peut les effacer. Le formulaire part avec : ses réponses et le dossier qui
+ * en sort — on rouvre l'admission vide. Seule la langue reste. Même garde que
+ * la levée du verrou : le bouton n'est pas rendu quand `lockOverride` est fermé.
  */
 const canForget = isLocal() || useRuntimeConfig().public.lockOverride
 
 async function forgetEverything() {
   if (!window.confirm(t('login.dev_forget') + ' ?')) return
   await $fetch('/api/dev/forget', { method: 'POST' }).catch(() => null)
-  forgetAdventure()
+  forgetRun()
+  forgetAdmission()
   await forgetSceneImage()
   window.location.reload()
 }
