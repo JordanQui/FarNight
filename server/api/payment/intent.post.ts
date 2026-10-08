@@ -6,7 +6,7 @@ import { squareApplicationId, squareEnvironment, squareLocationId } from '~/serv
  *
  * Plus de lien de paiement : il n'était jamais ouvert, et chaque visite de
  * l'écran en créait un. Le débit passe par /api/payment/confirm, avec le jeton
- * de carte — sans 3-D Secure.
+ * de carte, vérifié 3-D Secure à la tokenisation.
  */
 export default defineEventHandler(async (event) => {
   await readBody(event).catch(() => null)

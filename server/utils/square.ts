@@ -31,7 +31,12 @@ let cachedLocationId: string | null = null
 export async function squareLocationId(): Promise<string> {
   if (cachedLocationId) return cachedLocationId
   const response = await squareClient().locations.list()
-  const id = response.locations?.[0]?.id
+  // La première location n'est pas forcément la bonne : une location fermée,
+  // ou sans traitement carte, fait tout refuser. On prend celle qui encaisse.
+  const locations = response.locations ?? []
+  const id = (locations.find(l => l.status === 'ACTIVE' && l.capabilities?.includes('CREDIT_CARD_PROCESSING'))
+    ?? locations.find(l => l.status === 'ACTIVE')
+    ?? locations[0])?.id
   if (!id) throw createError({ statusCode: 502, statusMessage: 'Aucune location Square sur ce compte' })
   cachedLocationId = id
   return id
