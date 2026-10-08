@@ -455,6 +455,7 @@
     "locked.reopen_in": "Riapertura fra {{remaining}}",
     "locked.the_end": "Tutte le cose belle finiscono",
     "locked.dev_unlock": "Togliere il blocco (test)",
+    "locked.give_solution": "Dare la soluzione",
     "game.replying_to": "Rispondi a {{name}}…",
     "game.facing": "a {{name}}",
     "game.facing_hint": "Gli stai parlando — clicca per voltarti (Esc)",

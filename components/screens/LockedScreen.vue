@@ -2,6 +2,7 @@
 const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
+import { useProgression } from '~/composables/useProgression'
 
 /**
  * La ville fermée.
@@ -40,6 +41,35 @@ async function reopen() {
   await $fetch('/api/lockout', { method: 'POST', body: { open: true } }).catch(() => null)
   gameStore.openCity()
   gameStore.setScreen('login')
+}
+
+/**
+ * La solution, une fois par scène, pour tous.
+ *
+ * Le serveur seul sait si elle a déjà été donnée pour cette scène : on lui
+ * demande à l'affichage. Accordée, elle rouvre la ville et ramène à la scène
+ * gardée — reprise gratuite — où `#solution` est joué comme s'il était tapé.
+ */
+const progression = useProgression()
+const solutionOffered = ref(false)
+onMounted(async () => {
+  if (definitive.value) return
+  const access = await $fetch<{ lock: { solution?: boolean } | null }>('/api/access').catch(() => null)
+  solutionOffered.value = !!access?.lock?.solution
+})
+
+async function giveSolution() {
+  const res = await $fetch<{ resume: { sceneId: string } }>(
+    '/api/lockout', { method: 'POST', body: { solution: true } }).catch(() => null)
+  solutionOffered.value = false
+  if (!res) return
+  gameStore.openCity()
+  gameStore.setResumePoint(res.resume.sceneId)
+  gameStore.pendingSolution = true
+  if (!progression.resume()) {
+    gameStore.pendingSolution = false
+    gameStore.setScreen('login')
+  }
 }
 
 const remaining = computed(() => {
@@ -89,6 +119,15 @@ const remaining = computed(() => {
       <p v-else class="text-steel-400 font-display uppercase text-[11px] tracking-[0.18em]">
         {{ t('locked.the_end') }}
       </p>
+
+      <button
+        v-if="solutionOffered"
+        class="block mx-auto text-neon-400/80 hover:text-neon-400 underline underline-offset-4 font-display
+               uppercase text-[11px] tracking-[0.18em] transition-colors"
+        @click="giveSolution"
+      >
+        {{ t('locked.give_solution') }}
+      </button>
 
       <!-- Phases de test : un lien discret, pour les testeurs -->
       <button

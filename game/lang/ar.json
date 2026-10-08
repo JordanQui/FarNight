@@ -410,6 +410,7 @@
     "locked.reopen_in": "يُعاد الفتح بعد {{remaining}}",
     "locked.the_end": "لكل شيء جميل نهاية",
     "locked.dev_unlock": "تجاوز الحدّ (اختبار)",
+    "locked.give_solution": "إعطاء الحل",
     "login.dev_forget": "امسح الذاكرة (اختبار)",
     "game.replying_to": "تجيب {{name}}…",
     "game.facing": "إلى {{name}}",

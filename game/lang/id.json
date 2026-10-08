@@ -387,6 +387,7 @@
     "locked.reopen_in": "Dibuka lagi dalam {{remaining}}",
     "locked.the_end": "Semua yang baik ada habisnya",
     "locked.dev_unlock": "Angkat kunci (uji coba)",
+    "locked.give_solution": "Berikan solusinya",
     "game.replying_to": "Kau menjawab {{name}}…",
     "game.facing": "ke {{name}}",
     "game.facing_hint": "Kau sedang bicara dengannya — klik untuk berpaling (Esc)",

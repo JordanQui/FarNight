@@ -410,6 +410,7 @@
     "locked.reopen_in": "{{remaining}} sonra yeniden açılıyor",
     "locked.the_end": "Her güzel şeyin bir sonu var",
     "locked.dev_unlock": "Kilidi kaldır (test)",
+    "locked.give_solution": "Çözümü göster",
     "game.replying_to": "{{name}} kişisine cevap veriyorsun…",
     "game.facing": "{{name}} ile",
     "game.facing_hint": "Onunla konuşuyorsun — dönmek için tıkla (Esc)",

@@ -448,6 +448,7 @@
     "locked.reopen_in": "Reapertura en {{remaining}}",
     "locked.the_end": "Todo lo bueno se acaba",
     "locked.dev_unlock": "Levantar el cierre (prueba)",
+    "locked.give_solution": "Dar la solución",
     "game.replying_to": "Le respondes a {{name}}…",
     "game.facing": "a {{name}}",
     "game.facing_hint": "Le estás hablando — haz clic para apartarte (Esc)",

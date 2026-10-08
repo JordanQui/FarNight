@@ -384,6 +384,7 @@
     "locked.reopen_in": "{{remaining}}后重新开放",
     "locked.the_end": "天下没有不散的筵席",
     "locked.dev_unlock": "解除限制（测试）",
+    "locked.give_solution": "给出答案",
     "login.dev_forget": "清除记忆（测试）",
     "game.replying_to": "你回答{{name}}……",
     "game.facing": "对{{name}}",

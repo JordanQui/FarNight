@@ -51,6 +51,8 @@ export interface SessionQuota {
    * fait refermer au premier tour, un cycle après l'autre, indéfiniment.
    */
   locked_until?: number
+  /** La scène pour laquelle la solution a déjà été donnée : une fois par scène. */
+  solution_for?: string
 }
 
 /**
@@ -74,6 +76,8 @@ export interface LockPass {
    * nécessité — un cookie plafonne autour de 4 ko.
    */
   text?: string
+  /** Vrai si l'écran peut proposer la solution : jamais deux fois pour la même scène. */
+  solution?: boolean
 }
 
 /** Droit d'accès ouvert par le paiement. Signé, donc infalsifiable. */
@@ -264,9 +268,11 @@ export function lockOut(
   hours: number,
   reason: LockPass['reason'],
   text?: string,
+  solution?: boolean,
 ): LockPass {
   const secret = requireSecret(useRuntimeConfig().nuxtSecret, 'NUXT_SECRET')
   const lock: LockPass = { until: Date.now() + hours * 3600_000, reason }
+  if (solution) lock.solution = true
   // Tronqué : au-delà, le cookie devient trop lourd et le navigateur le jette
   // en silence — on perdrait le verrou avec le texte.
   if (text) lock.text = text.slice(0, 700)
@@ -295,13 +301,33 @@ export function readLock(event: H3Event): LockPass | null {
  * Effacer le cookie ne suffit pas : `scene_turns` reste plein dans le quota, et
  * le tour suivant refermerait aussitôt. On rend donc ses tours à la scène.
  */
-export function clearLock(event: H3Event, limits: LimitsConfig): void {
+export function clearLock(event: H3Event, limits: LimitsConfig, solutionFor?: string): void {
   deleteCookie(event, LOCK_COOKIE, { path: '/' })
   const windowHours = readAccess(event) ? limits.paid.window_days * 24 : limits.window_hours
   const quota = readQuota(event, windowHours)
   quota.scene_turns = 0
   delete quota.locked_until
+  if (solutionFor) quota.solution_for = solutionFor
   writeQuota(event, quota, windowHours)
+}
+
+/**
+ * Lève le verrou en échange de la solution — une fois par scène.
+ *
+ * Même levée que `clearLock`, tours rendus compris, mais ouverte à tous : le
+ * joueur repart avec le chemin de la scène, pas avec une nuit de plus. La scène
+ * est notée dans le quota, et le verrou suivant ne la proposera plus.
+ * Null si rien n'est à donner.
+ */
+export function giveSolution(event: H3Event, limits: LimitsConfig): PositionPass | null {
+  const lock = readLock(event)
+  const position = readPosition(event)
+  if (!lock?.solution || lock.reason !== 'stalled' || !position) return null
+
+  // Une seule écriture du quota : le relire ici rendrait celui de la requête,
+  // d'avant la levée, et ses tours pleins.
+  clearLock(event, limits, position.scene_id)
+  return position
 }
 
 /**
@@ -334,13 +360,15 @@ export function closeForStalling(event: H3Event, limits: LimitsConfig): LockPass
   const existing = readLock(event)
   if (existing) return existing
 
-  const lock = lockOut(event, limits.lock.hours, 'stalled', readPosition(event)?.game_over)
+  const windowHours = readAccess(event) ? limits.paid.window_days * 24 : limits.window_hours
+  const quota = readQuota(event, windowHours)
+  const position = readPosition(event)
+  const lock = lockOut(event, limits.lock.hours, 'stalled', position?.game_over,
+    !!position && quota.solution_for !== position.scene_id)
 
   // On note l'échéance dans le quota : c'est elle qui, une fois passée, rendra
   // ses tours à la scène. Le cookie de verrou, lui, aura disparu sans laisser
   // de trace — voir `locked_until`.
-  const windowHours = readAccess(event) ? limits.paid.window_days * 24 : limits.window_hours
-  const quota = readQuota(event, windowHours)
   quota.locked_until = lock.until
   writeQuota(event, quota, windowHours)
 

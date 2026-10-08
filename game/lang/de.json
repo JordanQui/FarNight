@@ -440,6 +440,7 @@
     "locked.reopen_in": "Wieder offen in {{remaining}}",
     "locked.the_end": "Alles Gute hat ein Ende",
     "locked.dev_unlock": "Sperre aufheben (Test)",
+    "locked.give_solution": "Lösung zeigen",
     "game.replying_to": "Du antwortest {{name}}…",
     "game.facing": "an {{name}}",
     "game.facing_hint": "Du sprichst mit ihm — klicken, um dich abzuwenden (Esc)",

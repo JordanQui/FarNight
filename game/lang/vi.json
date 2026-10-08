@@ -383,6 +383,7 @@
     "locked.reopen_in": "Mở lại sau {{remaining}}",
     "locked.the_end": "Chuyện hay nào rồi cũng hết",
     "locked.dev_unlock": "Gỡ khoá (thử nghiệm)",
+    "locked.give_solution": "Cho lời giải",
     "game.replying_to": "Bạn trả lời {{name}}…",
     "game.facing": "với {{name}}",
     "game.facing_hint": "Bạn đang nói chuyện với người đó — bấm để quay đi (Esc)",

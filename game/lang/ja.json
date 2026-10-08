@@ -384,6 +384,7 @@
     "locked.reopen_in": "再開まで {{remaining}}",
     "locked.the_end": "どんな良いことにも終わりがある",
     "locked.dev_unlock": "制限を解除（テスト）",
+    "locked.give_solution": "答えを見る",
     "login.dev_forget": "記憶を消去（テスト）",
     "game.replying_to": "{{name}}に答える……",
     "game.facing": "{{name}}へ",

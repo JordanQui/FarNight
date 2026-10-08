@@ -21,6 +21,8 @@ export const useGameStore = defineStore('game', {
      * suit.
      */
     resumeSceneId: null as string | null,
+    /** Posé par « Donner la solution » : la scène reprise jouera `#solution`. */
+    pendingSolution: false,
     playingSubState: 'awaiting_input' as PlayingSubState,
     narrativeHistory: [] as NarrativeEntry[],
     turnCount: 0,

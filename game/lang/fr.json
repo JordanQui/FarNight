@@ -467,6 +467,7 @@
     "locked.reopen_in": "Réouverture dans {{remaining}}",
     "locked.the_end": "Toute bonne chose a une fin",
     "locked.dev_unlock": "Override limit — lever le verrou (test)",
+    "locked.give_solution": "Donner la solution",
     "login.dev_forget": "Vider la mémoire (test)",
     "game.replying_to": "Tu réponds à {{name}}…",
     "game.facing": "à {{name}}",

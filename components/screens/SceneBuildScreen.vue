@@ -5,10 +5,12 @@ import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { useScene } from '~/composables/useScene'
 import { isLocal } from '~/utils/app-env'
+import { useSceneCommands } from '~/composables/useSceneCommands'
 
 const playerStore = usePlayerStore()
 const gameStore = useGameStore()
 const { loadSceneText, loadSceneImage, error, quotaExhausted } = useScene()
+const sceneCommands = useSceneCommands()
 
 const messages = [1, 2, 3, 4].map(n => t(`build.omen_${n}`))
 const currentMessage = ref(messages[0])
@@ -63,6 +65,12 @@ async function build() {
   if (!scene) return
 
   gameStore.setScreen('playing')
+
+  // Retour depuis la ville fermée : comme si le joueur avait tapé `#solution`.
+  if (gameStore.pendingSolution) {
+    gameStore.pendingSolution = false
+    sceneCommands.run('#solution')
+  }
 
   // Phase 2 : l'image, en tâche de fond. On joue déjà.
   void loadSceneImage(scene).then(() => playerStore.markImageReady())

@@ -412,6 +412,7 @@
     "locked.reopen_in": "Ponowne otwarcie za {{remaining}}",
     "locked.the_end": "Wszystko, co dobre, się kończy",
     "locked.dev_unlock": "Zdjąć blokadę (testy)",
+    "locked.give_solution": "Pokaż rozwiązanie",
     "game.replying_to": "Odpowiadasz {{name}}…",
     "game.facing": "do {{name}}",
     "game.facing_hint": "Rozmawiasz z nim — kliknij, żeby się odwrócić (Esc)",

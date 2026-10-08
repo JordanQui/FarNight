@@ -417,6 +417,7 @@
     "locked.reopen_in": "Откроется через {{remaining}}",
     "locked.the_end": "Всё хорошее кончается",
     "locked.dev_unlock": "Снять замок (тестирование)",
+    "locked.give_solution": "Показать решение",
     "game.replying_to": "Ты отвечаешь {{name}}…",
     "game.facing": "к {{name}}",
     "game.facing_hint": "Ты говоришь с ним — нажми, чтобы отвернуться (Esc)",

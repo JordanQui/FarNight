@@ -1,6 +1,6 @@
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { requestLang } from '~/server/utils/lang'
-import { closeForStalling, clearLock } from '~/server/utils/session-quota'
+import { closeForStalling, clearLock, giveSolution } from '~/server/utils/session-quota'
 import { isLocal } from '~/utils/app-env'
 
 /**
@@ -21,10 +21,19 @@ import { isLocal } from '~/utils/app-env'
  * En local, et en production tant que `lockOverride` est ouvert
  * (phases de test), `{ open: true }` lève le verrou : sans quoi une seule
  * séance de test condamnerait la journée.
+ *
+ * `{ solution: true }` la lève pour tous, une fois par scène, et renvoie la
+ * scène où reprendre : le client y retourne et joue `#solution`.
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ open?: boolean }>(event).catch(() => null)
+  const body = await readBody<{ open?: boolean; solution?: boolean }>(event).catch(() => null)
   const runtime = await ScriptRuntime.load(requestLang(event))
+
+  if (body?.solution) {
+    const position = giveSolution(event, runtime.limits)
+    if (!position) throw createError({ statusCode: 403, statusMessage: 'Indisponible' })
+    return { resume: { sceneId: position.scene_id, index: position.index } }
+  }
 
   if (body?.open) {
     if (!isLocal() && !useRuntimeConfig().public.lockOverride) {

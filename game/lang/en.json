@@ -400,6 +400,7 @@
     "locked.reopen_in": "Reopens in {{remaining}}",
     "locked.the_end": "All good things come to an end",
     "locked.dev_unlock": "Override limit (testing)",
+    "locked.give_solution": "Give the solution",
     "login.dev_forget": "Clear memory (testing)",
     "game.replying_to": "You answer {{name}}…",
     "game.facing": "to {{name}}",

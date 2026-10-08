@@ -408,6 +408,7 @@
     "locked.reopen_in": "Weer open over {{remaining}}",
     "locked.the_end": "Aan alle goede dingen komt een eind",
     "locked.dev_unlock": "Slot opheffen (test)",
+    "locked.give_solution": "Geef de oplossing",
     "game.replying_to": "Je antwoordt {{name}}…",
     "game.facing": "tegen {{name}}",
     "game.facing_hint": "Je praat met hem — klik om je af te wenden (Esc)",
