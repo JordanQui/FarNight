@@ -1,52 +1,44 @@
-import { SquareError } from 'square'
 import { ScriptRuntime } from '~/utils/script-runtime'
-import { squareClient, squareLocationId } from '~/server/utils/square'
 import { grantAccess, assertNotLocked } from '~/server/utils/session-quota'
+import { stripeClient } from '~/server/utils/stripe'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ sourceId: string }>(event)
+  const body = await readBody<{ paymentIntentId: string }>(event)
 
-  if (!body?.sourceId) {
-    throw createError({ statusCode: 400, statusMessage: 'sourceId manquant' })
+  if (!body?.paymentIntentId) {
+    throw createError({ statusCode: 400, statusMessage: 'paymentIntentId manquant' })
   }
 
-  // Avant de débiter quoi que ce soit : la ville fermée ne se vend pas. Voir
-  // /api/payment/intent — ici c'est la dernière barrière, et la seule qui
-  // compte, puisque c'est elle qui précède le débit.
+  // La ville fermée ne se vend pas. Voir /api/payment/intent — ici c'est la
+  // dernière barrière, celle qui ouvre l'accès.
   assertNotLocked(event)
 
   const runtime = await ScriptRuntime.load()
   const paywall = runtime.paywall
+  const stripe = stripeClient()
 
-  // Un refus de Square (carte déclinée…) lève une SquareError : on renvoie son
-  // code, sinon le joueur ne lit qu'une erreur 500. Pas de verificationToken :
-  // la vérification 3-D Secure est faite à la tokenisation, le jeton la porte.
-  const response = await squareClient().payments.create({
-    sourceId: body.sourceId,
-    idempotencyKey: crypto.randomUUID(),
-    amountMoney: {
-      amount: BigInt(paywall.amount_cents),
-      currency: paywall.currency as 'EUR' | 'USD',
-    },
-    locationId: await squareLocationId(),
-  }).catch((err) => {
-    if (!(err instanceof SquareError)) throw err
-    const code = err.errors[0]?.code ?? 'UNKNOWN'
-    console.error('[payment] refus Square', err.statusCode, code, err.errors)
-    throw createError({ statusCode: 402, statusMessage: `Paiement refusé : ${code}` })
-  })
+  // Le navigateur a confirmé le paiement auprès de Stripe ; on ne le croit pas
+  // sur parole : on relit le PaymentIntent, son statut et son montant.
+  const intent = await stripe.paymentIntents.retrieve(body.paymentIntentId)
 
-  if (response.payment?.status !== 'COMPLETED') {
-    throw createError({
-      statusCode: 402,
-      statusMessage: `Paiement non abouti : ${response.payment?.status}`,
-    })
+  if (intent.status !== 'succeeded') {
+    throw createError({ statusCode: 402, statusMessage: `Paiement non abouti : ${intent.status}` })
   }
+  if (intent.amount !== paywall.amount_cents || intent.currency !== paywall.currency.toLowerCase()) {
+    throw createError({ statusCode: 402, statusMessage: 'Montant du paiement inattendu' })
+  }
+
+  // Un paiement n'ouvre qu'un accès : sans cette marque, le même identifiant
+  // renvoyé depuis un autre navigateur débloquerait la suite sans payer.
+  if (intent.metadata.granted_at) {
+    throw createError({ statusCode: 409, statusMessage: 'Paiement déjà utilisé' })
+  }
+  await stripe.paymentIntents.update(intent.id, { metadata: { granted_at: String(Date.now()) } })
 
   // Le paiement ouvre l'accès à la suite, pour la durée prévue au script.
   // Cookie SIGNÉ : le précédent portait une valeur fixe en clair, que
   // n'importe qui pouvait renvoyer pour débloquer la suite sans payer.
-  const pass = grantAccess(event, response.payment?.id ?? 'inconnu', runtime.script.limits.paid.window_days)
+  const pass = grantAccess(event, intent.id, runtime.script.limits.paid.window_days)
 
-  return { success: true, paymentId: response.payment?.id, expiresAt: pass.expires_at }
+  return { success: true, paymentId: intent.id, expiresAt: pass.expires_at }
 })

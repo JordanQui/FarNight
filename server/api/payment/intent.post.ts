@@ -1,12 +1,10 @@
+import { ScriptRuntime } from '~/utils/script-runtime'
 import { assertNotLocked } from '~/server/utils/session-quota'
-import { squareApplicationId, squareEnvironment, squareLocationId } from '~/server/utils/square'
+import { stripeClient, stripePublishableKey } from '~/server/utils/stripe'
 
 /**
- * La configuration du formulaire de carte, comme le /config de ronde_v2.
- *
- * Plus de lien de paiement : il n'était jamais ouvert, et chaque visite de
- * l'écran en créait un. Le débit passe par /api/payment/confirm, avec le jeton
- * de carte, vérifié 3-D Secure à la tokenisation.
+ * Ouvre un PaymentIntent Stripe au prix du script. Son `client_secret` laisse
+ * le navigateur monter le formulaire et confirmer le paiement lui-même.
  */
 export default defineEventHandler(async (event) => {
   await readBody(event).catch(() => null)
@@ -21,9 +19,20 @@ export default defineEventHandler(async (event) => {
    */
   assertNotLocked(event)
 
+  const runtime = await ScriptRuntime.load()
+  const paywall = runtime.paywall
+
+  // Rien qui renvoie hors de la page : le jeu ne saurait pas y revenir.
+  const intent = await stripeClient().paymentIntents.create({
+    amount: paywall.amount_cents,
+    currency: paywall.currency.toLowerCase(),
+    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+    description: paywall.cta,
+  })
+
   return {
-    applicationId: squareApplicationId(),
-    locationId: await squareLocationId(),
-    environment: squareEnvironment(),
+    publishableKey: stripePublishableKey(),
+    paymentIntentId: intent.id,
+    clientSecret: intent.client_secret,
   }
 })

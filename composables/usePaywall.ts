@@ -2,27 +2,23 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { usePaymentStore } from '~/stores/payment'
 
-type SquareTokenizer = {
-  attach?(selector: string, options?: Record<string, string>): Promise<void>
-  tokenize(verificationDetails?: Record<string, unknown>): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
+type StripeElements = {
+  create(type: 'payment', options?: Record<string, unknown>): { mount(selector: string): void }
 }
 
 declare global {
   interface Window {
-    Square: {
-      payments(applicationId: string, locationId: string): Promise<{
-        card(options?: { style?: Record<string, Record<string, string>> }): Promise<SquareTokenizer>
-        paymentRequest(options: Record<string, unknown>): unknown
-        applePay(request: unknown): Promise<SquareTokenizer>
-        googlePay(request: unknown): Promise<SquareTokenizer>
+    Stripe: (publishableKey: string) => {
+      elements(options: { clientSecret: string; appearance?: Record<string, unknown> }): StripeElements
+      confirmPayment(options: { elements: StripeElements; redirect: 'if_required' }): Promise<{
+        error?: { message?: string }
+        paymentIntent?: { id: string; status: string }
       }>
     }
   }
 }
 
-export type PaymentMethod = 'card' | 'applePay' | 'googlePay'
-
-type SquareConfig = { applicationId: string; locationId: string; environment: string }
+type PaymentIntentConfig = { publishableKey: string; paymentIntentId: string; clientSecret: string }
 
 export function usePaywall() {
   const { t } = useLang()
@@ -31,11 +27,9 @@ export function usePaywall() {
   const paymentStore = usePaymentStore()
   const progression = useProgression()
 
-  // Un tokenizer par moyen de paiement que Square a accepté d'ouvrir ici.
-  const tokenizers: Partial<Record<PaymentMethod, SquareTokenizer>> = {}
-  let squareConfig: SquareConfig | null = null
-  // Montant du débit, pour la vérification 3-D Secure de la carte.
-  let charge: { amountCents: number; currency: string } | null = null
+  // Le client Stripe et le formulaire monté, qui confirmeront le paiement.
+  let stripe: ReturnType<Window['Stripe']> | null = null
+  let elements: StripeElements | null = null
 
   /**
    * Ouvre la sortie. Un joueur qui a déjà payé passe directement à la suite :
@@ -83,53 +77,20 @@ export function usePaywall() {
     return gameStore.hasKeyItem
   }
 
-  async function initSquarePayments(
-    containerSelector: string,
-    wallet?: { amountCents: number; currency: string; label: string; googlePaySelector: string },
-  ) {
-    // Identifiant, location et environnement viennent du serveur, à
-    // l'exécution — comme dans ronde_v2. Bakés au build, ils pouvaient ne plus
-    // correspondre au jeton : la carte se tokenisait, le débit répondait 400.
-    const square = squareConfig ?? await fetchPaymentIntent()
-    if (!window.Square) await loadSquareSdk(square.environment)
+  async function initPayments(containerSelector: string, intent: PaymentIntentConfig) {
+    if (!window.Stripe) await loadStripeSdk()
 
-    const payments = await window.Square.payments(square.applicationId, square.locationId)
-    // Le formulaire vit dans une iframe Square : il ne voit pas nos classes, et
-    // se dessine blanc par défaut. On lui passe donc les couleurs de
-    // l'interface en dur, lues au moment de l'ouvrir. Si Square refuse un
-    // style, on garde son formulaire nu plutôt que pas de formulaire du tout.
-    try {
-      tokenizers.card = await payments.card({ style: squareCardStyle(containerSelector) })
-    } catch {
-      tokenizers.card = await payments.card()
-    }
-    await tokenizers.card.attach!(containerSelector)
-
-    // Portefeuilles : Square refuse de les ouvrir quand le navigateur, l'appareil
-    // ou le pays ne s'y prêtent pas (Apple Pay hors Safari, domaine non vérifié…).
-    // Un refus n'est pas une erreur : il reste la carte.
-    if (wallet) {
-      charge = { amountCents: wallet.amountCents, currency: wallet.currency }
-      const request = () => payments.paymentRequest({
-        countryCode: wallet.currency === 'USD' ? 'US' : 'FR',
-        currencyCode: wallet.currency,
-        total: { amount: (wallet.amountCents / 100).toFixed(2), label: wallet.label },
-      })
-      try {
-        tokenizers.applePay = await payments.applePay(request())
-      } catch { /* indisponible ici */ }
-      try {
-        const googlePay = await payments.googlePay(request())
-        await googlePay.attach!(wallet.googlePaySelector, { buttonColor: 'white', buttonSizeMode: 'fill', buttonType: 'long' })
-        tokenizers.googlePay = googlePay
-      } catch { /* indisponible ici */ }
-    }
-
-    return { applePay: !!tokenizers.applePay, googlePay: !!tokenizers.googlePay }
+    stripe = window.Stripe(intent.publishableKey)
+    // Le Payment Element montre ce que l'appareil sait payer : carte, Google
+    // Pay, Link… Apple Pay est coupé tant que le domaine n'est pas enregistré.
+    // Il vit dans une iframe Stripe qui ne voit pas nos classes : on lui passe
+    // les couleurs de l'interface en dur, lues au moment de l'ouvrir.
+    elements = stripe.elements({ clientSecret: intent.clientSecret, appearance: stripeAppearance(containerSelector) })
+    elements.create('payment', { wallets: { applePay: 'never' } }).mount(containerSelector)
   }
 
   /** Le formulaire fondu dans l'écran : fond d'encre, filet discret, aucun néon. */
-  function squareCardStyle(containerSelector: string) {
+  function stripeAppearance(containerSelector: string) {
     const el = document.querySelector(containerSelector) ?? document.documentElement
     const css = getComputedStyle(el)
     const hex = (name: string, fallback: string) => {
@@ -141,71 +102,44 @@ export function usePaywall() {
     const line = hex('--steel-600', '#333d53')
     const muted = hex('--steel-400', '#6b7794')
     const text = hex('--ink-100', '#dce1ea')
-    const error = '#f87171'
     return {
-      '.input-container': { borderColor: line, borderRadius: '0px', borderWidth: '1px' },
-      '.input-container.is-focus': { borderColor: muted },
-      '.input-container.is-error': { borderColor: error },
-      input: { backgroundColor: ground, color: text },
-      'input::placeholder': { color: muted },
-      '.message-text': { color: muted },
-      '.message-icon': { color: muted },
-      '.message-text.is-error': { color: error },
-      '.message-icon.is-error': { color: error },
+      theme: 'night',
+      variables: {
+        colorBackground: ground,
+        colorText: text,
+        colorTextSecondary: muted,
+        colorTextPlaceholder: muted,
+        colorPrimary: text,
+        colorDanger: '#f87171',
+        borderRadius: '0px',
+      },
+      rules: {
+        '.Input': { borderColor: line, boxShadow: 'none' },
+        '.Input:focus': { borderColor: muted, boxShadow: 'none' },
+        '.Tab': { borderColor: line, boxShadow: 'none' },
+      },
     }
   }
 
-  function loadSquareSdk(environment: string): Promise<void> {
+  function loadStripeSdk(): Promise<void> {
     return new Promise((resolve) => {
-      if (window.Square) { resolve(); return }
-      const src = environment === 'production'
-        ? 'https://web.squarecdn.com/v1/square.js'
-        : 'https://sandbox.web.squarecdn.com/v1/square.js'
+      if (window.Stripe) { resolve(); return }
       const script = document.createElement('script')
-      script.src = src
+      script.src = 'https://js.stripe.com/v3/'
       script.onload = () => resolve()
       document.head.appendChild(script)
     })
   }
 
   async function fetchPaymentIntent() {
-    const data = await $fetch<SquareConfig>('/api/payment/intent', { method: 'POST', body: {} })
-
-    paymentStore.setIntent({
-      paymentId: null,
-      applicationId: data.applicationId,
-      locationId: data.locationId,
-    })
-    squareConfig = data
+    const data = await $fetch<PaymentIntentConfig>('/api/payment/intent', { method: 'POST', body: {} })
+    paymentStore.setIntent({ paymentId: data.paymentIntentId })
     return data
   }
 
-  async function submitPayment(method: PaymentMethod = 'card') {
-    const tokenizer = tokenizers[method]
-    if (!tokenizer) {
+  async function submitPayment() {
+    if (!stripe || !elements) {
       paymentStore.setError(t('errors.payment_form'))
-      return false
-    }
-
-    // Tokeniser AVANT de quitter l'écran : Apple Pay et Google Pay ouvrent leur
-    // feuille depuis le bouton cliqué, et l'écran de traitement la démonterait.
-    // La carte passe par 3-D Secure : en Europe, sans elle, la banque refuse
-    // la plupart des débits (CARD_DECLINED_VERIFICATION_REQUIRED). Square ne
-    // lance le défi que si la banque l'exige, et le jeton le porte ensuite —
-    // rien à ajouter au débit. Les portefeuilles s'authentifient eux-mêmes.
-    const verification = method === 'card' && charge
-      ? {
-          amount: (charge.amountCents / 100).toFixed(2),
-          currencyCode: charge.currency,
-          intent: 'CHARGE',
-          billingContact: {},
-          customerInitiated: true,
-          sellerKeyedIn: false,
-        }
-      : undefined
-    const result = await tokenizer.tokenize(verification)
-    if (result.status !== 'OK' || !result.token) {
-      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
       return false
     }
 
@@ -214,9 +148,15 @@ export function usePaywall() {
     paymentStore.setProcessing()
 
     try {
+      // Stripe débite, 3-D Secure compris s'il le faut, sans quitter la page.
+      const result = await stripe.confirmPayment({ elements, redirect: 'if_required' })
+      if (result.error || !result.paymentIntent) {
+        paymentStore.setError(result.error?.message ?? t('errors.payment_refused'))
+        return false
+      }
       const confirmed = await $fetch<{ expiresAt?: number }>('/api/payment/confirm', {
         method: 'POST',
-        body: { sourceId: result.token },
+        body: { paymentIntentId: result.paymentIntent.id },
       })
       paymentStore.setSuccess(confirmed?.expiresAt ?? null)
       gameStore.setScreen('payment_success')
@@ -231,5 +171,5 @@ export function usePaywall() {
   // Les prédicats de sortie — « il en parle », « il est trop tôt », « l'objet
   // manque » — vivent désormais dans les qualités du deck : ils s'y lisent
   // dans l'ordre où ils se jouent. Ne reste ici que l'ouverture elle-même.
-  return { objectiveMet, openExit, initSquarePayments, fetchPaymentIntent, submitPayment }
+  return { objectiveMet, openExit, initPayments, fetchPaymentIntent, submitPayment }
 }

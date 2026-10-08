@@ -5,7 +5,7 @@
  * Trois natures de chiffres, que la page ne mélange jamais :
  *  - MESURÉ : la taille d'entrée de chaque prompt, rendue depuis le script à
  *    chaque chargement (server/api/admin/economics.get.ts) ;
- *  - FACTURE et TARIF PUBLIC : les prix unitaires OpenAI, Square, Vercel ;
+ *  - FACTURE et TARIF PUBLIC : les prix unitaires OpenAI, Stripe, Vercel ;
  *  - HYPOTHÈSE : les sorties, les volumes, la conversion (`economics`).
  */
 
@@ -229,7 +229,7 @@ const warnings = computed(() => {
           <div class="neon-rule w-32" />
           <p class="text-steel-400 text-[11px] leading-relaxed">
             {{ data.models.text }} pour le texte, {{ data.models.image }} en {{ data.models.image_size }} pour les images,
-            Square pour l'encaissement, Vercel pour l'hébergement et l'Analytics.
+            Stripe pour l'encaissement, Vercel pour l'hébergement et l'Analytics.
           </p>
         </header>
 
@@ -327,7 +327,7 @@ const warnings = computed(() => {
               { label: `${data.models.text} — sortie`, value: `${fmt(data.pricing.output_per_1m_usd)} $ / 1M`, detail: `${cents(call(0, 1000), 3)} les 1 000 jetons — 4 × l'entrée`, tag: 'tarif' as const },
               { label: `Une image`, value: cents(imageCost), detail: `relevée en ${data.pricing.image_size_billed ?? '?'}, qualité low`, tag: 'facture' as const },
               { label: 'Un tour de jeu', value: cents(turnCost), detail: `~${int(data.turn.input_tokens)} + ${int(data.economics.tokens.turn_history_input)} d'historique, ${int(data.economics.tokens.turn_output)} en sortie`, tag: 'mesure' as const },
-              { label: 'Commission Square', value: money(feePerSale), detail: `${fmt(data.economics.payment.fee_pct)} % + ${money(data.economics.payment.fee_fixed_eur)} par vente`, tag: 'hypothese' as const },
+              { label: 'Commission Stripe', value: money(feePerSale), detail: `${fmt(data.economics.payment.fee_pct)} % + ${money(data.economics.payment.fee_fixed_eur)} par vente`, tag: 'hypothese' as const },
               { label: 'Vercel', value: `${fmt(data.economics.hosting.plan_monthly_usd, 0)} $ / mois`, detail: `Pro, crédit de ${fmt(data.economics.hosting.usage_credit_usd, 0)} $ ; Analytics à ${fmt(data.economics.hosting.analytics_per_1k_events_usd)} $ les 1 000 événements`, tag: 'tarif' as const },
             ]" :key="c.label" class="border border-steel-600/60 p-4 space-y-1">
               <div class="flex items-start justify-between gap-2">
@@ -364,7 +364,7 @@ const warnings = computed(() => {
               <ul class="text-ink-300 text-xs space-y-1">
                 <li>Prix de vente : {{ money(price) }} TTC</li>
                 <li>— TVA à {{ fmt(data.economics.vat.pct, 0) }} % : {{ money(vatPerSale) }}</li>
-                <li>— commission Square : {{ money(feePerSale) }}</li>
+                <li>— commission Stripe : {{ money(feePerSale) }}</li>
                 <li>— IA de sa nuit entière : {{ money(night.total) }}</li>
               </ul>
               <p class="text-neon-400/70 text-[11px]">
@@ -424,7 +424,7 @@ const warnings = computed(() => {
           <ul class="text-ink-300 text-xs leading-relaxed grid gap-1 sm:grid-cols-2">
             <li>IA des {{ int(visits - current.buyers) }} visiteurs qui ne paient pas : {{ money(current.aiVisitors) }}</li>
             <li>IA des acheteurs : {{ money(current.aiBuyers) }}</li>
-            <li>TVA et Square : {{ money(current.vat + current.fees) }}</li>
+            <li>TVA et Stripe : {{ money(current.vat + current.fees) }}</li>
             <li>
               Vercel : {{ money(current.host) }}
               <span class="text-steel-400">— Analytics {{ fmt(hosting(visits).analyticsUsd) }} $, dans le crédit jusqu'à
@@ -483,7 +483,7 @@ const warnings = computed(() => {
           Mesuré : l'entrée des prompts, rendue à chaque chargement depuis
           <code class="text-neon-300/80">game/script.json</code>. Facture : le prix image. Tarifs publics :
           OpenAI et Vercel, relevés le 13/09/2026. <strong class="text-ink-200">Hypothèses</strong> : les sorties,
-          les reprises, les tours joués, la conversion, la TVA et la commission Square, déclarées sous
+          les reprises, les tours joués, la conversion, la TVA et la commission Stripe, déclarées sous
           <code class="text-neon-300/80">economics</code>. À réviser dès qu'il existe une facture sur la nuit à
           {{ rows.length }} scènes et du trafic réel.
         </p>
