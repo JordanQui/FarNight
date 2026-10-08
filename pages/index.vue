@@ -1,4 +1,4 @@
-<script setup lang="ts">   
+<script setup lang="ts">    
 const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
