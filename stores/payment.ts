@@ -15,7 +15,7 @@ export const usePaymentStore = defineStore('payment', {
   }),
 
   actions: {
-    setIntent(data: { paymentId: string | null; applicationId: string; locationId: string }) {
+    setIntent(data: { paymentId: string; applicationId: string; locationId: string }) {
       this.paymentId = data.paymentId
       this.applicationId = data.applicationId
       this.locationId = data.locationId
