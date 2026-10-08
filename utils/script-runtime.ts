@@ -1587,6 +1587,15 @@ ${lines}`)
     if (!Array.isArray(generated.npcs) || generated.npcs.length === 0) {
       throw new Error('Scène invalide : aucun PNJ')
     }
+    // LA MÉCANIQUE A BESOIN DE CHACUN : le détenteur, celui qui met sur la
+    // piste, le témoin. Un personnage manquant, et la scène ne se joue plus.
+    const expectedNpcs = this.scene.npcs?.count ?? 1
+    if (generated.npcs.length < expectedNpcs) {
+      throw new Error(
+        `Scène invalide : ${generated.npcs.length} PNJ au lieu de ${expectedNpcs} — la mécanique de ce lieu `
+        + 'a besoin de chacun : ajoute dans `npcs` le personnage manquant, avec tous ses champs, '
+        + 'et présente-le par son nom exact dans `scene_text`')
+    }
 
     // UNE SALLE DOIT AVOIR QUELQUE CHOSE À RAMASSER. C'est la seule voie du jeu
     // qui ne passe pas par une conversation : l'objet est posé là, la Majuscule
