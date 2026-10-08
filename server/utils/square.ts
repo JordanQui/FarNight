@@ -11,7 +11,10 @@ import { requireSecret } from '~/server/utils/runtime-secrets'
  * lui-même, et le client reçoit le reste par /api/payment/intent.
  */
 export function squareEnvironment(): 'production' | 'sandbox' {
-  const raw = (process.env.SQUARE_ENVIRONMENT || useRuntimeConfig().public.squareEnvironment || 'sandbox').trim()
+  // Collée depuis un .env, la valeur garde ses guillemets sur Vercel :
+  // « "production" » retombait en sandbox, qui refuse toute vraie carte.
+  const raw = (process.env.SQUARE_ENVIRONMENT || useRuntimeConfig().public.squareEnvironment || 'sandbox')
+    .trim().replace(/^["']|["']$/g, '').toLowerCase()
   return raw === 'production' ? 'production' : 'sandbox'
 }
 
