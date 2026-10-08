@@ -13,7 +13,7 @@
     },
     "naming_form": "Las formas de nombre indicadas arriba son francesas. Conserva su INTENCIÓN, no sus artículos: un nombre español toma « La Calle Ahogada », « El Paso Bajo la Vía », « El Neón de … », « La Esquina de … », nunca una traducción literal de un artículo francés.",
     "caps_note": "La regla de las Mayúsculas de Título se aplica tal cual: en español un nombre común va en minúscula, así que la mayúscula sigue siendo una señal clara. Escribe en mayúscula cada palabra significativa del nombre interactivo y deja en minúscula los artículos y preposiciones internos.",
-    "vocabulary": "LÉXICO IMPUESTO — el mundo es ciberpunk, no medieval.\nLa salida es una ESCLUSA. No escribas nunca « puerta », « portón », « umbral » ni « portal »: es una esclusa, y esa palabra exacta debe aparecer en la línea « Salidas: » y en el verbo de acción.\nIgualmente: un bar o un mostrador, nunca una posada ni una taberna; neones, pantallas y tubos, nunca antorchas, faroles ni velas; un camarero, nunca un posadero; cables y estructuras, nunca vigas.",
+    "vocabulary": "LÉXICO IMPUESTO — el mundo es ciberpunk, no medieval.\nLa salida es una ESCLUSA. No escribas nunca « puerta », « portón », « umbral » ni « portal »: es una esclusa, y esa palabra exacta debe aparecer en la línea « Salidas: » y en el verbo de acción.\nIgualmente: el bar del principio es un bar, con su mostrador y su camarero, nunca una posada, una taberna ni un posadero — y es el único bar de la noche; neones, pantallas y tubos, nunca antorchas, faroles ni velas; cables y estructuras, nunca vigas.",
     "address": "Tutea a quien juega, en segunda persona del singular. Nunca « usted »."
   },
   "input": {
@@ -568,13 +568,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "El camarero levanta la vista del mostrador. « Repite eso. »",
+      "narrative_error": "Alguien levanta la vista hacia ti. « Repite eso. »",
       "loading_message": "El mundo se está dibujando...",
       "image_loading": "La lluvia todavía emborrona los neones...",
       "image_error": "La imagen no se forma. El texto, en cambio, aguanta.",
       "key_item_received": "Ahora tienes {{item_name}}.",
       "key_item_offer": "Recuperar {{item_name}}",
-      "resolution_error": "El camarero deja algo delante de ti sin decir palabra. « Lo vas a necesitar fuera. »"
+      "resolution_error": "Alguien deja algo delante de ti sin decir palabra. « Lo vas a necesitar más adelante. »"
     },
     "augmentation_primer": {
       "eyebrow": "Aumento en mano",

@@ -13,7 +13,7 @@
     },
     "naming_form": "Podane wyżej formy nazw są francuskie. Zachowaj ich ZAMIAR, nie ich rodzajniki: polska nazwa miejsca brzmi « Zatopiona Ulica », « Przejście pod Torami », « Neon przy … », « Róg przy … » — nigdy dosłowne tłumaczenie francuskiego rodzajnika.",
     "caps_note": "Zasada Wielkiej Litery obowiązuje tak, jak ją zapisano: po polsku rzeczownik pospolity pisze się małą literą, więc wielka litera pozostaje czytelnym sygnałem. Każde znaczące słowo nazwy interaktywnej zaczyna się wielką literą, przyimki i spójniki wewnątrz nazwy zostają małe.",
-    "vocabulary": "NARZUCONE SŁOWNICTWO — świat jest cyberpunkowy, nie średniowieczny.\nWyjściem jest ŚLUZA. Nigdy nie pisz « drzwi », « brama », « próg » ani « wrota »: to śluza, i dokładnie to słowo musi pojawić się w linijce « Wyjścia: » oraz w czasowniku akcji.\nTak samo: bar albo kontuar, nigdy zajazd ani karczma; neony, ekrany i świetlówki, nigdy pochodnie, latarnie ani świece; barman, nigdy karczmarz; kable i konstrukcje, nigdy belki.",
+    "vocabulary": "NARZUCONE SŁOWNICTWO — świat jest cyberpunkowy, nie średniowieczny.\nWyjściem jest ŚLUZA. Nigdy nie pisz « drzwi », « brama », « próg » ani « wrota »: to śluza, i dokładnie to słowo musi pojawić się w linijce « Wyjścia: » oraz w czasowniku akcji.\nTak samo: bar na początku to bar, z kontuarem i barmanem, nigdy zajazd, karczma ani karczmarz — i to jedyny bar tej nocy; neony, ekrany i świetlówki, nigdy pochodnie, latarnie ani świece; kable i konstrukcje, nigdy belki.",
     "address": "Zwracaj się do grającego na « ty », w drugiej osobie liczby pojedynczej. Nigdy « pan » ani « pani »."
   },
   "input": {
@@ -532,13 +532,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Barman podnosi wzrok znad kontuaru. « Powtórz no to. »",
+      "narrative_error": "Ktoś podnosi na ciebie wzrok. « Powtórz no to. »",
       "loading_message": "Świat się rysuje...",
       "image_loading": "Deszcz wciąż rozmazuje neony...",
       "image_error": "Obraz się nie tworzy. Tekst za to trzyma się nadal.",
       "key_item_received": "Masz teraz {{item_name}}.",
       "key_item_offer": "Odebrać {{item_name}}",
-      "resolution_error": "Barman bez słowa stawia coś przed tobą. « Będzie ci to potrzebne na zewnątrz. »"
+      "resolution_error": "Ktoś bez słowa stawia coś przed tobą. « Będzie ci to potrzebne dalej. »"
     },
     "augmentation_primer": {
       "eyebrow": "Augmentacja w ręku",

@@ -12,7 +12,7 @@
     },
     "naming_form": "De hierboven gegeven naamvormen zijn Frans. Houd hun BEDOELING vast, niet hun lidwoorden: een Nederlandse plaatsnaam luidt « De Verzopen Straat », « De Onderdoorgang », « Het Neon van … », « De Hoek bij … », nooit een letterlijke vertaling van een Frans lidwoord.",
     "caps_note": "De regel van de Titelhoofdletter geldt zoals hij staat: in het Nederlands krijgt een soortnaam een kleine letter, dus blijft de hoofdletter een helder signaal. Zet elk betekenisdragend woord van de interactieve naam met een hoofdletter, en laat lidwoorden en voorzetsels binnen de naam klein.",
-    "vocabulary": "OPGELEGD LEXICON — de wereld is cyberpunk, niet middeleeuws.\nDe uitgang is een SLUIS. Schrijf nooit « deur », « poort », « drempel » of « toegang »: het is een sluis, en precies dat woord moet in de regel « Uitgangen: » en in het handelingswerkwoord staan.\nEvenzo: een bar of een toog, nooit een herberg of een taveerne; neon, schermen en buizen, nooit fakkels, lantaarns of kaarsen; een barman, nooit een waard; kabels en constructies, nooit balken.",
+    "vocabulary": "OPGELEGD LEXICON — de wereld is cyberpunk, niet middeleeuws.\nDe uitgang is een SLUIS. Schrijf nooit « deur », « poort », « drempel » of « toegang »: het is een sluis, en precies dat woord moet in de regel « Uitgangen: » en in het handelingswerkwoord staan.\nEvenzo: de bar van het begin is een bar, met zijn toog en zijn barman, nooit een herberg, een taveerne of een waard — en het is de enige bar van de nacht; neon, schermen en buizen, nooit fakkels, lantaarns of kaarsen; kabels en constructies, nooit balken.",
     "address": "Spreek de speler aan met « je », tweede persoon enkelvoud. Nooit « u »."
   },
   "input": {
@@ -528,13 +528,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "De barman kijkt op van zijn toog. « Zeg dat nog eens. »",
+      "narrative_error": "Iemand kijkt naar je op. « Zeg dat nog eens. »",
       "loading_message": "De wereld wordt getekend...",
       "image_loading": "De regen maakt het neon nog vaag...",
       "image_error": "Het beeld komt niet. De tekst houdt wel stand.",
       "key_item_received": "Je hebt nu {{item_name}}.",
       "key_item_offer": "{{item_name}} aannemen",
-      "resolution_error": "De barman zet zonder een woord iets voor je neer. « Dat heb je buiten nodig. »"
+      "resolution_error": "Iemand zet zonder een woord iets voor je neer. « Dat heb je verderop nodig. »"
     },
     "augmentation_primer": {
       "eyebrow": "Augmentatie in handen",

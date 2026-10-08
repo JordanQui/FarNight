@@ -13,7 +13,7 @@
     },
     "naming_form": "Yukarıda verilen ad kalıpları Fransızcadır. NİYETLERİNİ koru, tanımlıklarını değil: Türkçe bir yer adı « Boğulmuş Sokak », « Alt Geçit », « … Neonu », « … Köşesi » gibi kurulur, asla Fransızca tanımlığın birebir çevirisiyle değil.",
     "caps_note": "Büyük Harf kuralı yazıldığı gibi geçerlidir: Türkçede cins isimler küçük harfle yazılır, dolayısıyla büyük harf net bir işaret olarak kalır. Etkileşimli adın her anlamlı kelimesini büyük harfle başlat, adın içindeki bağlaç ve edatları küçük bırak.",
-    "vocabulary": "ZORUNLU SÖZLÜK — dünya siberpunk, ortaçağ değil.\nÇıkış bir HAVA KİLİDİ. Asla « kapı », « geçit », « eşik » ya da « kanat » yazma: burası bir hava kilidi ve tam olarak bu söz « Çıkışlar: » satırında ve eylem fiilinde geçmeli.\nAynı şekilde: bar ya da tezgâh, asla han ya da meyhane; neon, ekran ve tüp, asla meşale, fener ya da mum; barmen, asla hancı; kablo ve çelik iskelet, asla ahşap kiriş.",
+    "vocabulary": "ZORUNLU SÖZLÜK — dünya siberpunk, ortaçağ değil.\nÇıkış bir HAVA KİLİDİ. Asla « kapı », « geçit », « eşik » ya da « kanat » yazma: burası bir hava kilidi ve tam olarak bu söz « Çıkışlar: » satırında ve eylem fiilinde geçmeli.\nAynı şekilde: başlangıçtaki bar, tezgâhı ve barmeniyle bir bardır, asla han, meyhane ya da hancı değil — ve gecenin tek barı odur; neon, ekran ve tüp, asla meşale, fener ya da mum; kablo ve çelik iskelet, asla ahşap kiriş.",
     "address": "Oyuncuya « sen » diye hitap et, ikinci tekil şahıs. Asla « siz » deme."
   },
   "input": {
@@ -530,13 +530,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Barmen tezgâhtan başını kaldırır. « Bir daha söyle şunu. »",
+      "narrative_error": "Biri başını kaldırıp sana bakar. « Bir daha söyle şunu. »",
       "loading_message": "Dünya çiziliyor...",
       "image_loading": "Yağmur neonları hâlâ bulanıklaştırıyor...",
       "image_error": "Görüntü oluşmuyor. Metin ise hâlâ ayakta.",
       "key_item_received": "Artık {{item_name}} sende.",
       "key_item_offer": "{{item_name}} al",
-      "resolution_error": "Barmen tek kelime etmeden önüne bir şey koyar. « Dışarıda buna ihtiyacın olacak. »"
+      "resolution_error": "Biri tek kelime etmeden önüne bir şey koyar. « İleride buna ihtiyacın olacak. »"
     },
     "augmentation_primer": {
       "eyebrow": "Ogmentasyon elinde",

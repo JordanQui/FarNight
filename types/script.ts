@@ -78,6 +78,13 @@ export interface TurnRules {
    * Sans elle, le modèle tranche seul — et il tranche au masculin.
    */
   agreement_rule: string
+  /**
+   * Ce qui se cherche dans CE lieu, en une ligne du prompt système.
+   *
+   * Vide par défaut : seule l'auberge le remplit (l'augmentation, chez un
+   * habitué). Les autres lieux ont leurs propres personnages.
+   */
+  here_line?: string
   ambient_prompt: string
   npc_dialogue_prompt: string
   exit_nudge_prompt: string

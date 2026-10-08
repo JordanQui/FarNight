@@ -13,7 +13,7 @@
     },
     "naming_form": "As formas de nome indicadas acima são francesas. Guarde a INTENÇÃO delas, não os artigos: um nome português fica « A Rua Afogada », « A Passagem Sob a Via », « O Neon do … », « A Esquina do … », nunca uma tradução literal de artigo francês.",
     "caps_note": "A regra das Maiúsculas de Título se aplica como está: em português um substantivo comum vai em minúscula, então a maiúscula continua sendo um sinal claro. Coloque em maiúscula cada palavra significativa do nome interativo e deixe em minúscula os artigos e preposições internos.",
-    "vocabulary": "LÉXICO IMPOSTO — o mundo é cyberpunk, não medieval.\nA saída é uma COMPORTA. Nunca escreva « porta », « portão », « soleira » nem « portal »: é uma comporta, e essa palavra exata deve aparecer na linha « Saídas: » e no verbo de ação.\nDo mesmo modo: um bar ou um balcão, nunca uma estalagem nem uma taverna; neon, telas e tubos, nunca tochas, lanternas nem velas; um barman, nunca um estalajadeiro; cabos e estruturas, nunca vigas.",
+    "vocabulary": "LÉXICO IMPOSTO — o mundo é cyberpunk, não medieval.\nA saída é uma COMPORTA. Nunca escreva « porta », « portão », « soleira » nem « portal »: é uma comporta, e essa palavra exata deve aparecer na linha « Saídas: » e no verbo de ação.\nDo mesmo modo: o bar da partida é um bar, com seu balcão e seu barman, nunca uma estalagem, uma taverna nem um estalajadeiro — e é o único bar da noite; neon, telas e tubos, nunca tochas, lanternas nem velas; cabos e estruturas, nunca vigas.",
     "address": "Trate quem joga por « você », em segunda pessoa direta. Nunca « o senhor » nem « a senhora »."
   },
   "input": {
@@ -563,13 +563,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "O barman levanta os olhos do balcão. « Repete isso. »",
+      "narrative_error": "Alguém levanta os olhos para você. « Repete isso. »",
       "loading_message": "O mundo está sendo desenhado...",
       "image_loading": "A chuva ainda borra os neons...",
       "image_error": "A imagem não se forma. O texto, esse, continua de pé.",
       "key_item_received": "Agora você tem {{item_name}}.",
       "key_item_offer": "Recuperar {{item_name}}",
-      "resolution_error": "O barman põe alguma coisa na sua frente sem dizer nada. « Você vai precisar disso lá fora. »"
+      "resolution_error": "Alguém põe alguma coisa na sua frente sem dizer nada. « Você vai precisar disso mais adiante. »"
     },
     "augmentation_primer": {
       "eyebrow": "Aumento em mãos",

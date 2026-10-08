@@ -13,7 +13,7 @@
     },
     "naming_form": "Le forme di nome indicate sopra sono francesi. Conservane l'INTENZIONE, non gli articoli: un nome italiano suona « La Via Annegata », « Il Sottopasso », « Il Neon di … », « L'Angolo di … », mai una traduzione letterale di un articolo francese.",
     "caps_note": "La regola delle Maiuscole di Titolo si applica così com'è: in italiano un nome comune va in minuscolo, quindi la maiuscola resta un segnale netto. Metti in maiuscolo ogni parola significativa del nome interattivo e lascia in minuscolo articoli e preposizioni interne.",
-    "vocabulary": "LESSICO IMPOSTO — il mondo è cyberpunk, non medievale.\nL'uscita è una PARATIA. Non scrivere mai « porta », « portone », « soglia » né « uscio »: è una paratia, e quella parola esatta deve comparire nella riga « Uscite: » e nel verbo d'azione.\nAllo stesso modo: un bar o un bancone, mai una locanda né una taverna; neon, schermi e tubi, mai torce, lanterne né candele; un barista, mai un oste; cavi e strutture, mai travi.",
+    "vocabulary": "LESSICO IMPOSTO — il mondo è cyberpunk, non medievale.\nL'uscita è una PARATIA. Non scrivere mai « porta », « portone », « soglia » né « uscio »: è una paratia, e quella parola esatta deve comparire nella riga « Uscite: » e nel verbo d'azione.\nAllo stesso modo: il bar della partenza è un bar, con il suo bancone e il suo barista, mai una locanda, una taverna né un oste — ed è l'unico bar della notte; neon, schermi e tubi, mai torce, lanterne né candele; cavi e strutture, mai travi.",
     "address": "Dai del tu a chi gioca, seconda persona singolare. Mai il « lei »."
   },
   "input": {
@@ -575,13 +575,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Il barista alza gli occhi dal bancone. « Ripeti un po'. »",
+      "narrative_error": "Qualcuno alza gli occhi verso di te. « Ripeti un po'. »",
       "loading_message": "Il mondo si sta disegnando...",
       "image_loading": "La pioggia confonde ancora i neon...",
       "image_error": "L'immagine non si forma. Il testo, quello, tiene ancora.",
       "key_item_received": "Adesso hai {{item_name}}.",
       "key_item_offer": "Recuperare {{item_name}}",
-      "resolution_error": "Il barista ti posa davanti qualcosa senza una parola. « Ti servirà fuori. »"
+      "resolution_error": "Qualcuno ti posa davanti qualcosa senza una parola. « Ti servirà più avanti. »"
     },
     "augmentation_primer": {
       "eyebrow": "Innesto in mano",

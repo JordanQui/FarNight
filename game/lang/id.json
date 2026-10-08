@@ -13,7 +13,7 @@
     },
     "naming_form": "Bentuk nama di atas berasal dari bahasa Prancis. Pertahankan MAKSUDNYA, bukan kata sandangnya: nama tempat dalam bahasa Indonesia berbunyi « Jalan Tenggelam », « Terowongan Bawah Rel », « Neon di … », « Sudut … » — jangan pernah menerjemahkan kata sandang Prancis secara harfiah.",
     "caps_note": "Aturan Huruf Kapital berlaku apa adanya: dalam bahasa Indonesia kata benda umum ditulis dengan huruf kecil, jadi huruf kapital tetap menjadi tanda yang jelas. Tulis setiap kata bermakna dalam nama interaktif dengan huruf kapital, dan biarkan kata depan serta kata sambung di dalamnya tetap kecil.",
-    "vocabulary": "KOSAKATA WAJIB — dunia ini cyberpunk, bukan abad pertengahan.\nJalan keluarnya adalah SEKAT UDARA. Jangan pernah menulis « pintu », « gerbang », « ambang » atau « lawang »: ini sebuah sekat udara, dan kata itu persis harus muncul di baris « Jalan keluar: » dan di kata kerja tindakannya.\nBegitu pula: bar atau meja bar, bukan penginapan atau kedai; neon, layar dan tabung, bukan obor, lentera atau lilin; bartender, bukan pemilik penginapan; kabel dan rangka baja, bukan balok kayu.",
+    "vocabulary": "KOSAKATA WAJIB — dunia ini cyberpunk, bukan abad pertengahan.\nJalan keluarnya adalah SEKAT UDARA. Jangan pernah menulis « pintu », « gerbang », « ambang » atau « lawang »: ini sebuah sekat udara, dan kata itu persis harus muncul di baris « Jalan keluar: » dan di kata kerja tindakannya.\nBegitu pula: bar di awal malam adalah bar, dengan meja bar dan bartendernya, bukan penginapan, kedai atau pemilik penginapan — dan itulah satu-satunya bar malam ini; neon, layar dan tabung, bukan obor, lentera atau lilin; kabel dan rangka baja, bukan balok kayu.",
     "address": "Sapa pemain dengan « kau », orang kedua tunggal, langsung dan tanpa jarak. Jangan gunakan « Anda »."
   },
   "input": {
@@ -507,13 +507,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Bartender mengangkat wajah dari meja bar. « Ulangi itu. »",
+      "narrative_error": "Seseorang mengangkat wajah ke arahmu. « Ulangi itu. »",
       "loading_message": "Dunia sedang digambar...",
       "image_loading": "Hujan masih mengaburkan neon...",
       "image_error": "Gambarnya tidak terbentuk. Teksnya masih berdiri.",
       "key_item_received": "Sekarang {{item_name}} ada padamu.",
       "key_item_offer": "Ambil {{item_name}}",
-      "resolution_error": "Bartender meletakkan sesuatu di depanmu tanpa sepatah kata. « Kau akan membutuhkannya di luar. »"
+      "resolution_error": "Seseorang meletakkan sesuatu di depanmu tanpa sepatah kata. « Kau akan membutuhkannya nanti. »"
     },
     "augmentation_primer": {
       "eyebrow": "Augmentasi di tangan",

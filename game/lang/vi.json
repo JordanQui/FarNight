@@ -13,7 +13,7 @@
     },
     "naming_form": "Các dạng tên nêu trên là tiếng Pháp. Hãy giữ Ý ĐỒ của chúng, đừng giữ mạo từ: một địa danh tiếng Việt nghe như « Con Phố Chìm », « Đường Chui Dưới Ray », « Đèn Neon ở … », « Góc Phố … » — không bao giờ dịch sát mạo từ tiếng Pháp.",
     "caps_note": "Quy tắc Viết Hoa Tên áp dụng nguyên như đã ghi: trong tiếng Việt danh từ chung viết thường, nên chữ hoa vẫn là một tín hiệu rõ ràng. Viết hoa mọi từ có nghĩa trong tên của thứ tương tác được, và để nguyên chữ thường cho giới từ và liên từ nằm bên trong tên.",
-    "vocabulary": "TỪ VỰNG BẮT BUỘC — thế giới này là cyberpunk, không phải trung cổ.\nLối ra là một KHOANG KHÍ. Đừng bao giờ viết « cửa », « cổng », « ngưỡng cửa » hay « cánh cửa »: đó là một khoang khí, và đúng từ đó phải xuất hiện trong dòng « Lối ra: » cũng như trong động từ hành động.\nTương tự: một quán bar hay một quầy rượu, không phải quán trọ hay tửu quán; đèn neon, màn hình và bóng đèn ống, không phải đuốc, đèn lồng hay nến; một người pha chế, không phải chủ quán trọ; dây cáp và khung thép, không phải xà gỗ.",
+    "vocabulary": "TỪ VỰNG BẮT BUỘC — thế giới này là cyberpunk, không phải trung cổ.\nLối ra là một KHOANG KHÍ. Đừng bao giờ viết « cửa », « cổng », « ngưỡng cửa » hay « cánh cửa »: đó là một khoang khí, và đúng từ đó phải xuất hiện trong dòng « Lối ra: » cũng như trong động từ hành động.\nTương tự: quán bar lúc khởi đầu là một quán bar, có quầy và người pha chế, không phải quán trọ, tửu quán hay chủ quán trọ — và đó là quán bar duy nhất của đêm nay; đèn neon, màn hình và bóng đèn ống, không phải đuốc, đèn lồng hay nến; dây cáp và khung thép, không phải xà gỗ.",
     "address": "Xưng hô với người chơi bằng ngôi thứ hai số ít, thẳng thắn và gần gũi. Đừng dùng lối nói trịnh trọng, khách sáo."
   },
   "input": {
@@ -503,13 +503,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Người pha chế ngẩng lên khỏi quầy. « Nói lại xem nào. »",
+      "narrative_error": "Có ai đó ngẩng lên nhìn bạn. « Nói lại xem nào. »",
       "loading_message": "Thế giới đang được vẽ ra...",
       "image_loading": "Mưa vẫn còn làm nhoè những ngọn đèn neon...",
       "image_error": "Hình không hiện lên được. Phần chữ thì vẫn đứng vững.",
       "key_item_received": "Giờ bạn đang giữ {{item_name}}.",
       "key_item_offer": "Nhận {{item_name}}",
-      "resolution_error": "Người pha chế đặt một thứ xuống trước mặt bạn, không nói lời nào. « Ra ngoài kia bạn sẽ cần đến nó. »"
+      "resolution_error": "Có ai đó đặt một thứ xuống trước mặt bạn, không nói lời nào. « Đi tiếp bạn sẽ cần đến nó. »"
     },
     "augmentation_primer": {
       "eyebrow": "Bộ tăng cường trong tay",

@@ -12,7 +12,7 @@
     },
     "naming_form": "The naming forms given above are French. Keep their INTENT, not their articles: an English place name takes « The Drowned Street », « The Underpass », « The Neon of … », « … Corner », never a literal translation of a French article.",
     "caps_note": "The Title Case rule applies as written: English common nouns are lowercase, so a capital stays a clear signal. Capitalise every significant word of an interactive name, keep « the », « of », « to » lowercase inside it.",
-    "vocabulary": "IMPOSED LEXICON — the world is cyberpunk, not medieval.\nThe way out is an AIRLOCK. Never write « door », « gate », « threshold » or « portal »: it is an airlock, and that exact word must appear in the « Exits: » line and in the action verb.\nLikewise: a bar or a counter, never an inn or a tavern; neon, screens and tubes, never torches, lanterns or candles; a bartender, never an innkeeper; cables and structures, never beams.",
+    "vocabulary": "IMPOSED LEXICON — the world is cyberpunk, not medieval.\nThe way out is an AIRLOCK. Never write « door », « gate », « threshold » or « portal »: it is an airlock, and that exact word must appear in the « Exits: » line and in the action verb.\nLikewise: the starting bar is a bar, with its counter and its bartender, never an inn, a tavern or an innkeeper — and it is the only bar of the night; neon, screens and tubes, never torches, lanterns or candles; cables and structures, never beams.",
     "address": "Address the player as « you », second person singular, plain and direct — never formal or archaic."
   },
   "input": {
@@ -520,13 +520,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "The bartender looks up from the counter. « Say that again. »",
+      "narrative_error": "Someone looks up at you. « Say that again. »",
       "loading_message": "The world is being drawn...",
       "image_loading": "The rain is still smearing the neon...",
       "image_error": "The image will not form. The text still holds.",
       "key_item_received": "You are now holding {{item_name}}.",
       "key_item_offer": "Take {{item_name}}",
-      "resolution_error": "The bartender sets something down in front of you without a word. « You'll need that outside. »"
+      "resolution_error": "Someone sets something down in front of you without a word. « You'll need that further on. »"
     },
     "augmentation_primer": {
       "eyebrow": "Augmentation in hand",

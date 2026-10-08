@@ -1012,7 +1012,8 @@ ${list(o.posture)}`
         const head = `ACTE ${act.id} — ${act.arc}`
           + (focus ? `\n  Ce qu'il met à l'épreuve : ${focus.facet_label}${value ? ` — ${value}` : ''}` : '')
         const lines = slots.map(sc =>
-          `  - ${sc.id} : ${sc.mechanic ?? ''} — exigence type : ${sc.objective?.requirement ?? ''}`)
+          `  - ${sc.id} : ${sc.mechanic ?? ''} — exigence type : ${sc.objective?.requirement ?? ''}`
+          + (sc.npcs?.count ? ` — personnages à y loger : ${sc.npcs.count}` : ''))
         return [head, ...lines].join('\n')
       })
       .filter(Boolean)
@@ -2161,6 +2162,7 @@ ${lines}`)
       quest_stakes: ctx.quest.stakes,
       quest_night_goal: ctx.night_goal ?? '',
       quest_artifact: ctx.quest.artifact,
+      here_line: t.here_line ?? '',
       npc_list: npcList,
       narrative_instruction: `${this.scene.narrative.instruction}\n${this.vocabulary}\n${this.namingStyle}`,
       max_words: String(t.max_words),

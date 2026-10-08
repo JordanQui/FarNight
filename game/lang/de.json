@@ -13,7 +13,7 @@
     },
     "naming_form": "Die oben angegebenen Namensformen sind französisch. Behalte ihre ABSICHT, nicht ihre Artikel: ein deutscher Ortsname lautet « Die Ertrunkene Straße », « Die Unterführung », « Das Neon der … », « Die Ecke am … », niemals eine wörtliche Übersetzung eines französischen Artikels.",
     "caps_note": "ACHTUNG — im Deutschen wird jedes Substantiv großgeschrieben, die allgemeine Regel greift hier also NICHT. Das Signal ist das ADJEKTIV: was nur Kulisse ist, behält das kleingeschriebene Adjektiv (« ein schwerer Riegel », « eine rostige Luke »); was der Spieler anfassen kann, wird zum EIGENNAMEN und bekommt großgeschriebene Adjektive und Artikel im Namen (« der Schwere Riegel », « die Rostige Luke »). Genau dieser Unterschied sagt dem Spieler, wo er zugreifen kann — ohne ihn hat er keinen einzigen Hinweis.",
-    "vocabulary": "VORGESCHRIEBENES LEXIKON — die Welt ist Cyberpunk, nicht mittelalterlich.\nDer Ausgang ist eine SCHLEUSE. Schreibe niemals « Tür », « Tor », « Schwelle » oder « Pforte »: es ist eine Schleuse, und genau dieses Wort muss in der Zeile « Ausgänge: » und im Handlungsverb stehen.\nEbenso: eine Bar oder ein Tresen, nie ein Gasthaus oder eine Taverne; Neon, Bildschirme und Röhren, nie Fackeln, Laternen oder Kerzen; ein Barmann, nie ein Wirt; Kabel und Streben, nie Balken.",
+    "vocabulary": "VORGESCHRIEBENES LEXIKON — die Welt ist Cyberpunk, nicht mittelalterlich.\nDer Ausgang ist eine SCHLEUSE. Schreibe niemals « Tür », « Tor », « Schwelle » oder « Pforte »: es ist eine Schleuse, und genau dieses Wort muss in der Zeile « Ausgänge: » und im Handlungsverb stehen.\nEbenso: die Bar am Anfang ist eine Bar mit Tresen und Barmann, nie ein Gasthaus, eine Taverne oder ein Wirt — und sie ist die einzige Bar der Nacht; Neon, Bildschirme und Röhren, nie Fackeln, Laternen oder Kerzen; Kabel und Streben, nie Balken.",
     "address": "Duze die spielende Person, zweite Person Singular. Niemals « Sie »."
   },
   "input": {
@@ -560,13 +560,13 @@
   },
   "script": {
     "error_fallbacks": {
-      "narrative_error": "Der Barmann hebt den Blick vom Tresen. « Sag das noch mal. »",
+      "narrative_error": "Jemand hebt den Blick zu dir. « Sag das noch mal. »",
       "loading_message": "Die Welt wird gezeichnet...",
       "image_loading": "Der Regen verwischt noch das Neon...",
       "image_error": "Das Bild bildet sich nicht. Der Text hält trotzdem.",
       "key_item_received": "Du hältst jetzt {{item_name}}.",
       "key_item_offer": "{{item_name}} an dich nehmen",
-      "resolution_error": "Der Barmann stellt dir wortlos etwas hin. « Das wirst du draußen brauchen. »"
+      "resolution_error": "Jemand stellt dir wortlos etwas hin. « Das wirst du weiter vorn brauchen. »"
     },
     "augmentation_primer": {
       "eyebrow": "Augmentierung in der Hand",
