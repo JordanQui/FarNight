@@ -1450,6 +1450,32 @@ ${lines}`)
   }
 
   /**
+   * Les identifiants du plan, recalés sur leur place avant d'être jugés.
+   *
+   * La mécanique imposée liste les lieux sous « ACTE acte1 » : le modèle
+   * recopie parfois mal l'identifiant d'un lieu qu'il a pourtant écrit en
+   * entier, et l'auberge — le JSON le plus lourd du jeu — partait en
+   * « lieu absent » deux fois de suite. La place d'un lieu dans son acte dit
+   * déjà lequel il est : quand l'acte a le bon nombre de lieux, on reprend les
+   * identifiants du script. Un lieu vraiment manquant reste refusé plus bas.
+   */
+  alignPlanIds(generated: GeneratedScene): void {
+    if (!this.isStart) return
+    const plan = this.planIds
+    const expected = this.script.acts.map(a => a.scenes.filter(id => plan.includes(id)))
+    generated.night?.acts?.forEach((act, i) => {
+      const k = this.script.acts.findIndex(a => a.id === act.act_id)
+      const ids = expected[k >= 0 ? k : i]
+      if (!ids || act.scenes?.length !== ids.length) return
+      act.scenes.forEach((sc, j) => {
+        if (sc.scene_id === ids[j]) return
+        console.warn(`[scene] plan : "${sc.scene_id}" recalé en "${ids[j]}"`)
+        sc.scene_id = ids[j]!
+      })
+    })
+  }
+
+  /**
    * Le nom de l'augmentation, ressoudé avant d'être jugé.
    *
    * La consigne exige un nom sans accent, et le modèle écrit en français :
