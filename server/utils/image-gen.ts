@@ -41,36 +41,6 @@ function remember(key: string, result: ImageResult): void {
 }
 
 /**
- * Images coupées par défaut, en local comme en production.
- *
- * Chaque rechargement régénère la scène, et l'image est le poste le plus cher :
- * une journée de mise au point en brûlait des dizaines. On rend donc un aplat
- * sombre aux bonnes proportions au lieu d'appeler OpenAI. Pour retrouver les
- * vraies images : `IMAGES=1` dans le .env, ou sur Vercel puis redéployer
- * (valeur lue au build).
- */
-function imagesBlocked(): boolean {
-  return useRuntimeConfig().imagesOff
-}
-
-function placeholder(size: string): ImageResult {
-  const [w, h] = size.split('x').map(n => Number(n) || 1024)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`
-    + `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">`
-    + `<stop offset="0" stop-color="#0b0d14"/><stop offset="1" stop-color="#1a1424"/></linearGradient></defs>`
-    + `<rect width="100%" height="100%" fill="url(#g)"/>`
-    + `<text x="50%" y="50%" fill="#3a3550" font-family="monospace" font-size="${Math.round(w / 40)}" text-anchor="middle">IMAGE COUPÉE · DÉVELOPPEMENT</text>`
-    + `</svg>`
-  return {
-    image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
-    model: 'dev-placeholder',
-    format: 'svg',
-    bytes: svg.length,
-    elapsed_ms: 0,
-  }
-}
-
-/**
  * Génère une image via la famille gpt-image-*.
  *
  * Deux différences majeures avec dall-e-3, qui n'est plus servi :
@@ -87,8 +57,6 @@ export async function generateImage(
   >,
   prompt: string
 ): Promise<ImageResult> {
-  if (imagesBlocked()) return placeholder(artDirection.image_size)
-
   const models = [artDirection.image_model, artDirection.image_fallback_model].filter(Boolean)
   let lastError: unknown
 

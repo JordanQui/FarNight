@@ -166,12 +166,6 @@ export default defineNuxtConfig({
     openaiApiKey: process.env.OPENAI_API_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     nuxtSecret: process.env.NUXT_SECRET,
-    /**
-     * Images coupées par défaut, en local comme en production : un aplat
-     * remplace chaque appel OpenAI. `IMAGES=1` les rétablit (sur Vercel, puis
-     * redéployer). Voir server/utils/image-gen.ts.
-     */
-    imagesOff: process.env.IMAGES !== '1',
 
     public: {
       /** `local` ou `production`. Voir utils/app-env.ts. */
