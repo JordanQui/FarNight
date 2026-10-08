@@ -413,6 +413,11 @@ function wantsFresh(): boolean {
   return Boolean(useRoute().query.fresh)
 }
 
+/** L'aplat rendu par le serveur quand les images sont coupées. */
+function isPlaceholder(image: string): boolean {
+  return image.startsWith('data:image/svg+xml')
+}
+
 export function useScene() {
   const { t } = useLang()
   const gameStore = useGameStore()
@@ -624,7 +629,9 @@ export function useScene() {
     const stamp = sceneStamp(res)
     gameStore.startSceneImage()
     const kept = await readSceneImage(stamp, memoryWindowMs)
-    if (kept) {
+    // L'aplat des images coupées (SVG) ne se garde pas : rallumées, elles
+    // doivent être demandées, pas masquées par l'aplat d'hier.
+    if (kept && !isPlaceholder(kept)) {
       gameStore.setSceneImage(kept)
       gameStore.finishSceneImage()
       return kept
@@ -638,7 +645,7 @@ export function useScene() {
       // Le lieu vient du plan de la nuit : c'est lui que l'image dessine.
       planned: res.planned,
     })
-    if (image) void storeSceneImage(stamp, image)
+    if (image && !isPlaceholder(image)) void storeSceneImage(stamp, image)
     return image
   }
 
