@@ -29,8 +29,8 @@ export function upVector(beta: number, gamma: number): Up {
   return [-Math.cos(b) * Math.sin(g), Math.sin(b), Math.cos(b) * Math.cos(g)]
 }
 
-function clamp(v: number): number {
-  return Math.min(1, Math.max(0, v))
+function clamp(v: number, min = 0): number {
+  return Math.min(1, Math.max(min, v))
 }
 
 /**
@@ -91,6 +91,8 @@ export function aimFrom(
   neutralY: number,
   riseScale = 1,
   restUp = upVector(restBeta, 0),
+  topY = 0,
+  flatY?: number,
 ): { x: number; y: number } {
   // Le tangage, en radians, mesuré depuis l'origine déclarée de la posture.
   const delta = Math.atan2(up[1], up[2]) - Math.atan2(restUp[1], restUp[2])
@@ -101,10 +103,21 @@ export function aimFrom(
   // La montée et la descente n'ont pas le même gain quand la posture le demande.
   // Un `dy` négatif fait REMONTER l'oeil : c'est celui-là, et lui seul, que
   // `riseScale` tempère.
-  const dy = raw < 0 ? raw * riseScale : raw
+  let dy = raw < 0 ? raw * riseScale : raw
+
+  // `flatY` : la hauteur de l'oeil appareil POSÉ À PLAT, quand le repos est
+  // ailleurs (allongé, debout). Le côté du plat descend alors en douceur jusqu'à
+  // `flatY`, sur toute la course depuis le repos ; l'autre côté fait remonter.
+  if (flatY !== undefined && restBeta) {
+    const rest = (restBeta * Math.PI) / 180
+    dy = pitch <= 0
+      ? 2 * (flatY - neutralY) * Math.min(1, -pitch / rest)
+      : -raw * riseScale
+  }
 
   // Le roulis : la projection de la verticale sur la largeur de l'écran.
   const dx = -(up[0] - restUp[0]) / Math.sin((rangeDeg * Math.PI) / 180)
 
-  return { x: clamp(0.5 + dx / 2), y: clamp(neutralY + dy / 2) }
+  // `topY` peut être négatif : l'oeil bute alors juste au-dessus de l'écran.
+  return { x: clamp(0.5 + dx / 2), y: clamp(neutralY + dy / 2, topY) }
 }

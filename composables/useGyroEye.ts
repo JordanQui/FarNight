@@ -33,21 +33,37 @@ const RANGE_DEG = 22
 /**
  * Hauteur de l'oeil au repos, par posture, en fraction d'écran.
  *
- * ASSIS, l'appareil est POSÉ À PLAT et l'oeil se range tout en haut : le geste
- * naturel est de relever le bord opposé pour le faire descendre dans le texte,
- * et tout le débattement sert à ça. Ce n'est pas zéro tout rond parce que le
- * réticule est centré sur sa position : à 0 il serait coupé en deux par le bord.
+ * ASSIS, l'appareil est POSÉ À PLAT et l'oeil se range à 15 % du haut : le
+ * geste naturel est de relever le bord opposé pour le faire descendre dans le
+ * texte, et presque tout le débattement sert à ça.
  *
- * ALLONGÉ, l'appareil est TENU AU-DESSUS DE SOI, et l'oeil se range AU MILIEU.
- * Le poignet d'un bras replié va dans les deux sens mais n'a pas de quoi
- * traverser un écran entier dans un seul : partir du haut lui demandait de
- * descendre une hauteur d'écran complète, ce qu'il ne peut pas faire. Du centre,
- * il a une demi-hauteur de chaque côté — pencher le haut de l'appareil loin de
- * soi descend, le ramener vers soi remonte.
+ * ALLONGÉ, l'appareil est TENU DEBOUT au-dessus de soi, en position de
+ * lecture, et l'oeil se range AU MILIEU. Posé à plat, il est aux trois quarts
+ * — voir `POSTURE_FLAT_Y` ; pour monter, on bascule au-delà de la verticale.
  */
 const POSTURE_NEUTRAL_Y: Record<string, number> = {
-  assis: 0.05,
+  assis: 0.15,
   allonge: 0.5,
+}
+
+/**
+ * La butée haute de l'oeil, par posture.
+ *
+ * Allongé, elle est JUSTE AU-DESSUS DE L'ÉCRAN, à -5 % : l'oeil peut sortir
+ * des noms du haut sans en accrocher un au passage.
+ */
+const POSTURE_TOP_Y: Record<string, number> = {
+  assis: 0,
+  allonge: -0.05,
+}
+
+/**
+ * Allongé, la hauteur de l'oeil appareil POSÉ SUR UNE SURFACE, écran vers le
+ * ciel — c'est l'état au chargement. Entre le plat et la position de lecture,
+ * l'oeil va de là au milieu, sur un quart de tour : lent, donc stable.
+ */
+const POSTURE_FLAT_Y: Record<string, number | undefined> = {
+  allonge: 0.75,
 }
 
 /**
@@ -112,8 +128,19 @@ const POSTURE_RISE_SCALE: Record<string, number> = {
   allonge: 0.75,
 }
 
-/** Lissage : le gyroscope est bruité, un oeil qui tremble est illisible. */
-const SMOOTHING = 0.18
+/**
+ * Lissage : le gyroscope est bruité, un oeil qui tremble est illisible.
+ *
+ * ADAPTATIF : le tremblement de la main fait de petits écarts, qu'on lisse
+ * fort ; un vrai geste en fait de grands, qu'on suit vite. Un lissage fixe
+ * obligeait à choisir entre un oeil qui tremble et un oeil qui traîne.
+ */
+const SMOOTHING_MIN = 0.04
+const SMOOTHING_MAX = 0.3
+/** Écart (fraction d'écran) à partir duquel l'oeil suit au gain maximum. */
+const SMOOTHING_SPAN = 0.15
+/** En deçà, l'écart est du bruit : l'oeil ne bouge pas. */
+const DEADZONE = 0.004
 
 /**
  * Délai au-delà duquel un capteur muet est un capteur absent.
@@ -146,9 +173,7 @@ export function useGyroEye() {
   /** Une mesure réelle est arrivée depuis l'ouverture. */
   let sensed = false
   let watchdog: ReturnType<typeof setTimeout> | null = null
-  let target = { x: 0.5, y: POSTURE_NEUTRAL_Y[gameStore.posture] ?? 0.05 }
-  /** En position allongée, la première attitude confortable devient le centre. */
-  let lyingRest: ReturnType<typeof upVector> | null = null
+  let target = { x: 0.5, y: POSTURE_NEUTRAL_Y[gameStore.posture] ?? 0.15 }
   let sampledPosture = gameStore.posture
 
   /**
@@ -163,24 +188,28 @@ export function useGyroEye() {
   function onOrientation(event: DeviceOrientationEvent) {
     const { beta, gamma } = event
     if (beta === null || gamma === null) return
+    const first = !sensed
     sensed = true
 
     const posture = gameStore.posture
     if (posture !== sampledPosture) {
       sampledPosture = posture
-      lyingRest = null
-      target = { x: 0.5, y: POSTURE_NEUTRAL_Y[posture] ?? 0.05 }
+      target = { x: 0.5, y: POSTURE_NEUTRAL_Y[posture] ?? 0.15 }
     }
     const up = upVector(beta, gamma)
-    if (posture === 'allonge' && !lyingRest) lyingRest = up
     target = aimFrom(
       up,
       REST_BETA_DEG[posture] ?? 0,
       RANGE_DEG * (POSTURE_RANGE_SCALE[posture] ?? 1),
-      POSTURE_NEUTRAL_Y[posture] ?? 0.05,
+      POSTURE_NEUTRAL_Y[posture] ?? 0.15,
       POSTURE_RISE_SCALE[posture] ?? 1,
-      posture === 'allonge' && lyingRest ? lyingRest : undefined,
+      undefined,
+      POSTURE_TOP_Y[posture] ?? 0,
+      POSTURE_FLAT_Y[posture],
     )
+    // La première mesure place l'oeil d'un coup : sinon, au chargement, il
+    // glisse depuis son repos jusqu'à l'attitude réelle.
+    if (first) gameStore.setEyePos(target)
   }
 
   /**
@@ -270,11 +299,15 @@ export function useGyroEye() {
 
   function loop() {
     const pos = gameStore.eyePos
+    const dist = Math.hypot(target.x - pos.x, target.y - pos.y)
+    const k = dist < DEADZONE
+      ? 0
+      : SMOOTHING_MIN + (SMOOTHING_MAX - SMOOTHING_MIN) * Math.min(1, dist / SMOOTHING_SPAN)
     const next = {
-      x: pos.x + (target.x - pos.x) * SMOOTHING,
-      y: pos.y + (target.y - pos.y) * SMOOTHING,
+      x: pos.x + (target.x - pos.x) * k,
+      y: pos.y + (target.y - pos.y) * k,
     }
-    gameStore.setEyePos(next)
+    if (k) gameStore.setEyePos(next)
 
     // En veille pendant la saisie : la position continue de suivre l'appareil,
     // mais rien n'est visé — ni nom révélé, ni épreuve ouverte, ni note jouée.
@@ -365,6 +398,10 @@ export function useGyroEye() {
     input.lock()
     unavailable.value = false
     sensed = false
+    // L'oeil part de son repos, pas de là où le store l'avait laissé : sinon il
+    // glisse depuis le milieu de l'écran pendant le chargement.
+    target = { x: 0.5, y: POSTURE_NEUTRAL_Y[gameStore.posture] ?? 0.15 }
+    gameStore.setEyePos(target)
     window.addEventListener('deviceorientation', onOrientation, true)
     enabled.value = true
     gameStore.setEyeActive(true)
