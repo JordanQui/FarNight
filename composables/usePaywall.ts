@@ -124,10 +124,14 @@ export function usePaywall() {
   function loadStripeSdk(): Promise<void> {
     return new Promise((resolve) => {
       if (window.Stripe) { resolve(); return }
-      const script = document.createElement('script')
-      script.src = 'https://js.stripe.com/v3/'
-      script.onload = () => resolve()
-      document.head.appendChild(script)
+      // Posé par le head (nuxt.config.ts) et peut-être encore en chargement.
+      let script = document.getElementById('stripe-js') as HTMLScriptElement | null
+      if (!script) {
+        script = document.createElement('script')
+        script.src = 'https://js.stripe.com/v3/'
+        document.head.appendChild(script)
+      }
+      script.addEventListener('load', () => resolve(), { once: true })
     })
   }
 

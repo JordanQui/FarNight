@@ -156,6 +156,9 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
       ],
+      // Stripe.js dès l'arrivée : Radar juge un paiement sur la navigation qui
+      // l'a précédé, et bloquait comme « trop risqué » un client vu au seul paywall.
+      script: [{ id: 'stripe-js', src: 'https://js.stripe.com/v3/', async: true }],
     },
   },
 
