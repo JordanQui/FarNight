@@ -2,9 +2,19 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { usePaymentStore } from '~/stores/payment'
 
+/** Ce que la banque authentifie en 3-D Secure. Voir `cardVerification`. */
+type CardVerificationDetails = {
+  amount: string
+  currencyCode: string
+  intent: 'CHARGE'
+  billingContact: Record<string, string>
+  customerInitiated: boolean
+  sellerKeyedIn: boolean
+}
+
 type SquareTokenizer = {
   attach?(selector: string, options?: Record<string, string>): Promise<void>
-  tokenize(): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
+  tokenize(verificationDetails?: CardVerificationDetails): Promise<{ status: string; token?: string; errors?: Array<{ message: string }> }>
 }
 
 declare global {
@@ -22,7 +32,13 @@ declare global {
 
 export type PaymentMethod = 'card' | 'applePay' | 'googlePay'
 
-type SquareConfig = { applicationId: string; locationId: string; environment: string }
+type SquareConfig = {
+  applicationId: string
+  locationId: string
+  environment: string
+  amountCents: number
+  currency: string
+}
 
 export function usePaywall() {
   const { t } = useLang()
@@ -177,24 +193,62 @@ export function usePaywall() {
     return data
   }
 
+  /**
+   * L'authentification forte (SCA, 3-D Secure) qu'exigent les banques
+   * européennes.
+   *
+   * Sans elle, une carte soumise à la SCA se tokenisait bien, puis Square
+   * refusait le débit : CARD_DECLINED_VERIFICATION_REQUIRED. Passés à `tokenize()`, ces
+   * détails laissent Square demander l'avis de la banque et, si elle l'exige,
+   * ouvrir son défi par-dessus l'écran. Le jeton qui en sort porte le résultat :
+   * /api/payment/confirm n'a rien de plus à envoyer.
+   *
+   * Le montant vient de /api/payment/intent, qui le lit dans le même script que
+   * /confirm : la banque authentifie une somme précise, ce doit être celle
+   * qu'on débite.
+   *
+   * Contact vide : le jeu ne demande ni nom ni e-mail. Square l'accepte ; sa
+   * documentation dit qu'en donner davantage améliore le taux d'acceptation.
+   */
+  function cardVerification(config: SquareConfig): CardVerificationDetails {
+    return {
+      amount: (config.amountCents / 100).toFixed(2),
+      currencyCode: config.currency,
+      intent: 'CHARGE',
+      billingContact: {},
+      customerInitiated: true,
+      sellerKeyedIn: false,
+    }
+  }
+
   async function submitPayment(method: PaymentMethod = 'card') {
     const tokenizer = tokenizers[method]
-    if (!tokenizer) {
+    if (!tokenizer || !squareConfig) {
       paymentStore.setError(t('errors.payment_form'))
-      return false
-    }
-
-    // Tokeniser AVANT de quitter l'écran : Apple Pay et Google Pay ouvrent leur
-    // feuille depuis le bouton cliqué, et l'écran de traitement la démonterait.
-    const result = await tokenizer.tokenize()
-    if (result.status !== 'OK' || !result.token) {
-      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
       return false
     }
 
     // On reste sur l'écran : le bouton tourne. Passer par un écran de
     // traitement démontait le paywall, et à son retour l'erreur était effacée.
+    // Il tourne dès la tokenisation : le défi 3-D Secure peut durer, et un
+    // second clic pendant ce temps lancerait un second paiement.
     paymentStore.setProcessing()
+
+    // Tokeniser AVANT de quitter l'écran : Apple Pay et Google Pay ouvrent leur
+    // feuille depuis le bouton cliqué, et l'écran de traitement la démonterait.
+    // Rien d'asynchrone ne doit donc précéder cet appel.
+    let result: Awaited<ReturnType<SquareTokenizer['tokenize']>>
+    try {
+      result = method === 'card'
+        ? await tokenizer.tokenize(cardVerification(squareConfig))
+        : await tokenizer.tokenize()
+    } catch {
+      result = { status: 'ERROR' }
+    }
+    if (result.status !== 'OK' || !result.token) {
+      paymentStore.setError(result.errors?.[0]?.message ?? t('errors.tokenize'))
+      return false
+    }
 
     try {
       const confirmed = await $fetch<{ expiresAt?: number }>('/api/payment/confirm', {
