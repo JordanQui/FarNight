@@ -425,7 +425,7 @@
     "game.dawn": "Amanece sobre la ciudad...",
     "game.dawn_download": "Guardar el alba",
     "game.loading_default": "El destino teje su hilo",
-    "game.loading_disclaimer": "Lo que se vive aquí se ofrece a modo de experimento. Cada jugador debe formarse su propia opinión, desde su propio punto de vista. Los modelos de lenguaje pueden cometer errores.",
+    "game.loading_disclaimer": "Lo que se vive aquí se ofrece a modo de experimento. Cada jugador debe formarse su propia opinión, desde su propio punto de vista. Los modelos de lenguaje pueden cometer errores. Todas las respuestas no son más que respuestas entre otras.",
     "seo.title": "Far Night — juego de rol textual",
     "game.player_fallback": "Caminante",
     "oracle.quest": "Misión: {{title}} — {{objective}}",

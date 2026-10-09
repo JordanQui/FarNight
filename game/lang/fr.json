@@ -444,7 +444,7 @@
     "game.dawn": "Le jour se lève sur la ville...",
     "game.dawn_download": "Garder l'aube",
     "game.loading_default": "Le destin tisse son fil",
-    "game.loading_disclaimer": "L’expérience vécue ici est proposée à titre expérimental. Le joueur doit se faire une opinion à partir de son propre point de vue. Les modèles de langage peuvent faire des erreurs.",
+    "game.loading_disclaimer": "L’expérience vécue ici est proposée à titre expérimental. Le joueur doit se faire une opinion à partir de son propre point de vue. Les modèles de langage peuvent faire des erreurs. Toutes les réponses ne sont que des réponses parmi d’autres.",
     "seo.title": "La Nuit du Bout du Monde — jeu de rôle textuel",
     "game.player_fallback": "Aventurier",
     "oracle.quest": "Quête : {{title}} — {{objective}}",

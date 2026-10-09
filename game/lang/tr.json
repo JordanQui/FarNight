@@ -387,7 +387,7 @@
     "game.dawn": "Şehrin üzerinde gün doğuyor...",
     "game.dawn_download": "Şafağı sakla",
     "game.loading_default": "Kader ipliğini örüyor",
-    "game.loading_disclaimer": "Burada yaşadıkların deneysel olarak sunuluyor. Her oyuncu, görüşünü kendi bakış açısından oluşturmalıdır. Dil modelleri hata yapabilir.",
+    "game.loading_disclaimer": "Burada yaşadıkların deneysel olarak sunuluyor. Her oyuncu, görüşünü kendi bakış açısından oluşturmalıdır. Dil modelleri hata yapabilir. Her cevap, başka cevaplar arasında yalnızca bir cevaptır.",
     "seo.title": "Far Night — metin tabanlı rol yapma oyunu",
     "game.player_fallback": "Yolcu",
     "oracle.quest": "Görev: {{title}} — {{objective}}",

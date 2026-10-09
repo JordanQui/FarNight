@@ -417,7 +417,7 @@
     "game.dawn": "Der Tag bricht über der Stadt an...",
     "game.dawn_download": "Die Morgendämmerung behalten",
     "game.loading_default": "Das Schicksal spinnt seinen Faden",
-    "game.loading_disclaimer": "Was du hier erlebst, ist als Experiment gedacht. Jeder Spieler sollte sich aus seiner eigenen Sicht ein Urteil bilden. Sprachmodelle können Fehler machen.",
+    "game.loading_disclaimer": "Was du hier erlebst, ist als Experiment gedacht. Jeder Spieler sollte sich aus seiner eigenen Sicht ein Urteil bilden. Sprachmodelle können Fehler machen. Jede Antwort ist nur eine Antwort unter anderen.",
     "seo.title": "Far Night — ein Text-Rollenspiel",
     "game.player_fallback": "Wanderer",
     "oracle.quest": "Aufgabe: {{title}} — {{objective}}",

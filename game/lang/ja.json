@@ -361,7 +361,7 @@
     "game.dawn": "街の上で夜が明けていく……",
     "game.dawn_download": "この夜明けを残す",
     "game.loading_default": "運命が糸を紡いでいる",
-    "game.loading_disclaimer": "ここでの体験は、実験として提供されています。プレイヤーは自分自身の視点から判断してください。言語モデルは誤りを犯すことがあります。",
+    "game.loading_disclaimer": "ここでの体験は、実験として提供されています。プレイヤーは自分自身の視点から判断してください。言語モデルは誤りを犯すことがあります。すべての答えは、数ある答えのひとつにすぎません。",
     "seo.title": "世界の果ての夜——テキストアドベンチャー",
     "game.player_fallback": "さすらい人",
     "oracle.quest": "クエスト：{{title}}——{{objective}}",
