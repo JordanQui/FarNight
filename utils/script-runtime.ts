@@ -28,6 +28,7 @@ import type { LangCode } from '~/types/i18n'
 import { DEFAULT_LANG } from '~/types/i18n'
 import { agreementFor, overlayValue, pack } from '~/utils/languages'
 import { zodiacKey } from '~/utils/zodiac'
+import { natalChartLines } from '~/utils/natal-chart'
 import { numerologyOf } from '~/utils/numerology'
 import { drawPuzzle, surfacesOf } from '~/utils/puzzles'
 import { profileFromAdmission, sampleAdmissionForm } from '~/utils/admission'
@@ -759,7 +760,7 @@ ${JSON.stringify(s.generation.output_schema, null, 2)}`
       .join('\n')
 
     const theme = resolveTheme(user, this.script)
-    const themeBlock = theme ? this.describeTheme(theme) : ''
+    const themeBlock = theme ? this.describeTheme(theme, natalChartLines(user.identity.birthday, this.lang)) : ''
     const tension = theme?.sign?.tension ?? ''
 
     // Rien de troquable, rien à réclamer : la section entière ne ferait que
@@ -1086,7 +1087,7 @@ ${list(o.posture)}`
       + `Répartition, un morceau par personnage, dans l'ordre de la liste :\n${lines}\n`
   }
 
-  private describeTheme(theme: PlayerTheme): string {
+  private describeTheme(theme: PlayerTheme, chart = ''): string {
     const parts: string[] = []
 
     if (theme.sign) {
@@ -1094,7 +1095,9 @@ ${list(o.posture)}`
 SIGNE
 ${this.script.zodiac.generation_instruction}
 Tension : ${theme.sign.tension}
-Résolution recherchée : ${theme.sign.resolution}`)
+Résolution recherchée : ${theme.sign.resolution}`
+        + (chart && this.script.zodiac.chart_instruction
+          ? `\n\n${this.script.zodiac.chart_instruction}\n${chart}` : ''))
     }
 
     const n = theme.numbers

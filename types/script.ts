@@ -519,6 +519,8 @@ export interface ZodiacScript {
   note?: string
   generation_instruction: string
   turn_instruction: string
+  /** Comment lire le thème natal calculé par utils/natal-chart.ts. */
+  chart_instruction?: string
   signs: Record<string, ZodiacSignScript>
 }
 
