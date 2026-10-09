@@ -413,10 +413,11 @@ export const useGameStore = defineStore('game', {
     /**
      * Un nom lu à l'oeil arme la saisie : la prochaine phrase part chez lui.
      * Pendant un tour en cours, on ne change pas d'interlocuteur sous les pieds
-     * du récit ; une conversation commencée ne se quitte pas par un survol.
+     * du récit. En pleine conversation, un nom que le PNJ vient de donner se
+     * survole pour se tourner vers lui : la saisie doit suivre.
      */
     addressByName(name: string, npcs: Array<{ id: string; name: string }>) {
-      if (this.isInputDisabled || this.conversing) return
+      if (this.isInputDisabled) return
       const npc = npcs.find(n => n.name.toLowerCase() === name.toLowerCase())
       if (!npc || this.activeNpcId === npc.id) return
       this.activeNpcId = npc.id
