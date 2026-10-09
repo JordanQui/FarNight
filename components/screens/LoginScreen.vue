@@ -2,7 +2,8 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdmission, forgetRun, rememberedProfile } from '~/composables/useScene'
+import { forgetAdmission, forgetRun, rememberedAdmission, rememberedProfile } from '~/composables/useScene'
+import { profileFromAdmission } from '~/utils/admission'
 import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
@@ -47,7 +48,20 @@ const resumeScene = computed(() => knownDossier.value ? progression.resumeTarget
  * et l'y toucher ferait diverger l'hydratation.
  */
 const knownDossier = ref<UserProfile | null>(null)
-onMounted(() => { knownDossier.value = rememberedProfile() })
+onMounted(() => { knownDossier.value = rememberedProfile() ?? admittedProfile() })
+
+/**
+ * À défaut de partie gardée, le formulaire rempli jusqu'au bout suffit.
+ *
+ * La partie (`tg_carry`) ne s'écrit qu'une fois la première scène née : un
+ * dossier déposé dont la génération n'a pas abouti — serveur redémarré, build,
+ * onglet fermé pendant le chargement — renvoyait au formulaire.
+ */
+function admittedProfile(): UserProfile | null {
+  const kept = rememberedAdmission()
+  if (!kept || kept.step < ADMISSION_STEPS - 1 || !kept.form.firstName?.trim()) return null
+  return profileFromAdmission({ ...kept.form, language: lang.value })
+}
 
 /** Le nom inscrit au dossier. Complet : c'est une pièce administrative. */
 const rememberedName = computed(() => knownDossier.value?.identity.name ?? null)
@@ -56,16 +70,22 @@ const rememberedName = computed(() => knownDossier.value?.identity.name ?? null)
 const rememberedFirstName = computed(() =>
   knownDossier.value?.identity.first_name || rememberedName.value)
 
-function continueGame() {
+/**
+ * « Sortir de chez vous », pour tout joueur déjà venu : il retourne là où il
+ * en était, ou repart de l'auberge s'il n'y a rien à reprendre.
+ */
+function goOut() {
+  if (!resumeScene.value) return goOutAgain()
+  if (!playerStore.profile && knownDossier.value) playerStore.setProfile(knownDossier.value)
   progression.resume()
 }
 
 /**
  * Repartir de zéro.
  *
- * Efface la partie gardée par le navigateur, dossier d'admission compris :
- * c'est le geste d'oubli qu'annonce l'avertissement, et le seul que le joueur
- * ait sous la main sans aller dans les réglages de son navigateur.
+ * Efface la partie gardée par le navigateur, mais PAS les réponses au
+ * formulaire : on y entre justement pour les retrouver. Les effacer est le
+ * geste du bouton dédié, dans le formulaire.
  *
  * Sans ça, « commencer » servait la scène gardée — celle d'où l'on venait — au
  * lieu de l'auberge, et le journal des scènes précédentes suivait dans la
@@ -73,7 +93,6 @@ function continueGame() {
  */
 function startFresh() {
   forgetRun()
-  forgetAdmission()
   knownDossier.value = null
   playerStore.journal = []
   playerStore.profile = null
@@ -254,44 +273,23 @@ function acceptAndEnroll() {
       </p>
 
       <!--
-        La nuit en cours. En tête et en pleine largeur : pour qui revient, c'est
-        la seule action qui compte — l'entrée ci-dessous recommence.
+        Le dossier est déjà au bureau. Personne ne remplit deux fois le même
+        formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
+        scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
+        Le formulaire reste accessible dessous, pour qui veut repartir sous une
+        autre identité.
       -->
-      <div v-if="resumeScene" class="w-full space-y-4 flex flex-col items-center">
+      <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
         <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-          <template v-if="rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
-          <template v-else>{{ t('login.resume_anon') }}</template>
+          <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
+          <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
+          <template v-else>{{ t('login.dossier_known') }}</template>
         </p>
-        <GlowButton class="w-full" @click="continueGame">{{ t('common.continue') }}</GlowButton>
-        <p class="text-ink-200/70 text-[11px] leading-relaxed">
+        <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
+        <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
           {{ resumeScene.title }}
           <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
         </p>
-
-        <div class="flex items-center gap-4 w-full pt-3">
-          <span class="h-px flex-1 bg-steel-600/40" />
-          <span class="font-display text-[9px] uppercase tracking-[0.3em] text-steel-400">{{ t('common.or') }}</span>
-          <span class="h-px flex-1 bg-steel-600/40" />
-        </div>
-      </div>
-
-      <!--
-        Le dossier est déjà au bureau. Personne ne remplit deux fois le même
-        formulaire : on annonce ce qu'on a retenu, on nomme le dossier, et on
-        ouvre la porte. Le formulaire reste accessible dessous, pour qui veut
-        repartir sous une autre identité.
-
-        Quand une nuit est en cours, « Continuer » suffit : deux boutons pleine
-        largeur l'un sous l'autre se lisaient comme le même geste. Il ne reste
-        alors ici que l'entrée vers un nouveau dossier.
-      -->
-      <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
-        <template v-if="!resumeScene">
-          <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-            {{ t('login.dossier_known') }}
-          </p>
-          <GlowButton class="w-full" @click="goOutAgain">{{ t('login.dossier_cta') }}</GlowButton>
-        </template>
         <button
           class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
                  hover:text-ink-200 transition-colors pt-1"
