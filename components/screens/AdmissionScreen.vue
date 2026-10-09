@@ -695,6 +695,18 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
   display: block;
 }
 
+/*
+  Sous 16px, Safari iOS zoome sur le champ dès qu'on y tape : sur écran
+  tactile, les champs passent à 16px pour que la page reste immobile.
+*/
+@media (hover: none) and (pointer: coarse) {
+  .field,
+  .field-select,
+  .field-multi {
+    font-size: 16px;
+  }
+}
+
 /* Le calendrier natif est blanc sur blanc en thème sombre : on l'inverse. */
 .field::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.45);
