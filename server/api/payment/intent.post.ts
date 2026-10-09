@@ -27,6 +27,10 @@ export default defineEventHandler(async (event) => {
     amount: paywall.amount_cents,
     currency: paywall.currency.toLowerCase(),
     automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+    // 3-D Secure toujours : sans lui, Radar jugeait seules les cartes de débit
+    // (CIC, néobanques…) et les bloquait « highest risk » avant même la banque.
+    // Authentifiées, elles passent, et la responsabilité d'une fraude bascule.
+    payment_method_options: { card: { request_three_d_secure: 'any' } },
     description: paywall.cta,
   })
 
