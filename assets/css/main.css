@@ -42,9 +42,15 @@
     @apply bg-ink-900 text-parchment;
     /* Sans géométrique par défaut. Le serif reste réservé à la narration. */
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /*
+     * Ni « tirer pour rafraîchir », ni rebond élastique : sur mobile, tirer la
+     * page vers le bas rechargeait la partie et faisait bouger la fenêtre.
+     */
+    overscroll-behavior: none;
   }
 
   body {
+    overscroll-behavior: none;
     @apply min-h-[100dvh] overflow-x-hidden;
     /*
      * Source unique et dure, comme un projecteur de film noir : une bande
