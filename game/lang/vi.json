@@ -360,7 +360,7 @@
     "game.dawn": "Trời hửng sáng trên thành phố...",
     "game.dawn_download": "Giữ lại bình minh",
     "game.loading_default": "Định mệnh đang se sợi chỉ của nó",
-    "game.loading_disclaimer": "Những gì bạn trải qua ở đây được đưa ra như một thử nghiệm. Mỗi người chơi nên tự hình thành ý kiến từ góc nhìn của riêng mình.",
+    "game.loading_disclaimer": "Những gì bạn trải qua ở đây được đưa ra như một thử nghiệm. Mỗi người chơi nên tự hình thành ý kiến từ góc nhìn của riêng mình. Các mô hình ngôn ngữ có thể mắc lỗi.",
     "seo.title": "Far Night — trò chơi nhập vai bằng chữ",
     "game.player_fallback": "Kẻ lang thang",
     "oracle.quest": "Nhiệm vụ: {{title}} — {{objective}}",

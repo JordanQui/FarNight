@@ -420,7 +420,7 @@
     "game.dawn": "O dia nasce sobre a cidade...",
     "game.dawn_download": "Guardar a aurora",
     "game.loading_default": "O destino tece o seu fio",
-    "game.loading_disclaimer": "O que se vive aqui é proposto a título experimental. Cada jogador deve formar a sua opinião a partir do seu próprio ponto de vista.",
+    "game.loading_disclaimer": "O que se vive aqui é proposto a título experimental. Cada jogador deve formar a sua opinião a partir do seu próprio ponto de vista. Os modelos de linguagem podem cometer erros.",
     "seo.title": "Far Night — RPG de texto",
     "game.player_fallback": "Andarilho",
     "oracle.quest": "Missão: {{title}} — {{objective}}",

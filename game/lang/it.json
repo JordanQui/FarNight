@@ -432,7 +432,7 @@
     "game.dawn": "Il giorno si leva sulla città...",
     "game.dawn_download": "Conserva l'alba",
     "game.loading_default": "Il destino tesse il suo filo",
-    "game.loading_disclaimer": "Ciò che si vive qui è proposto a titolo sperimentale. Ogni giocatore deve farsi un’opinione a partire dal proprio punto di vista.",
+    "game.loading_disclaimer": "Ciò che si vive qui è proposto a titolo sperimentale. Ogni giocatore deve farsi un’opinione a partire dal proprio punto di vista. I modelli linguistici possono commettere errori.",
     "seo.title": "Far Night — gioco di ruolo testuale",
     "game.player_fallback": "Viandante",
     "oracle.quest": "Missione: {{title}} — {{objective}}",
