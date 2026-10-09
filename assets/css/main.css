@@ -45,7 +45,7 @@
   }
 
   body {
-    @apply min-h-screen overflow-x-hidden;
+    @apply min-h-[100dvh] overflow-x-hidden;
     /*
      * Source unique et dure, comme un projecteur de film noir : une bande
      * verticale froide en haut, et le noir reprend tout le reste. L'ancienne
