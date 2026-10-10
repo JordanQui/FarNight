@@ -1,11 +1,11 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 /**
- * Tourne le Reel avec Veo : 8 secondes, en 9:16, son compris.
+ * Anime l'image du post avec Veo : un Reel de 8 secondes, en 9:16, son compris.
  *
- * Un Reel n'a pas d'image : Veo part du seul texte, le sujet et ce qui bouge,
- * avec le style du jeu. Comme pour les images, chaque appel ajoute une variante.
+ * Veo part de l'image choisie dans la section Reel de l'atelier. Comme pour
+ * les images, chaque appel ajoute une variante.
  *
  * Pas de SDK : l'API Gemini se parle en trois requêtes — lancer, attendre
  * l'opération, télécharger. La vidéo n'y reste que deux jours, on la rapatrie
@@ -18,16 +18,18 @@ const MAX_WAIT_MS = 9 * 60_000
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
-  const body = await readBody<{ subject?: string; motion?: string; model?: string }>(event)
+  const body = await readBody<{ motion?: string; model?: string }>(event)
   const model = MODELS[body?.model === 'standard' ? 'standard' : 'fast']
 
   const posts = await loadPosts()
   const post = posts.find(p => p.id === id)
   if (!post) throw createError({ statusCode: 404, statusMessage: `Post inconnu : ${id}` })
-  const subject = (body?.subject ?? post.subject).trim()
-  if (!subject) throw createError({ statusCode: 400, statusMessage: 'Décris d’abord la scène' })
   const motion = (body?.motion ?? post.motion).trim()
   if (!motion) throw createError({ statusCode: 400, statusMessage: 'Décris d’abord ce qui bouge' })
+  const start = post.source
+  if (!start) throw createError({ statusCode: 400, statusMessage: 'Il faut d’abord une image à animer' })
+  const mimeType = mimeOf(start)
+  if (!mimeType.startsWith('image/')) throw createError({ statusCode: 400, statusMessage: 'Image de départ illisible' })
 
   const key = requireSecret(useRuntimeConfig().geminiApiKey, 'GEMINI_API_KEY')
   const headers = { 'x-goog-api-key': key, 'content-type': 'application/json' }
@@ -40,12 +42,13 @@ export default defineEventHandler(async (event) => {
     return res
   }
 
+  const data = (await readFile(communicationPath(start))).toString('base64')
   let op = await (await call(`${BASE}/models/${model}:predictLongRunning`, {
     method: 'POST',
     body: JSON.stringify({
-      instances: [{ prompt: buildVideoPrompt(subject, motion) }],
-      // En texte seul, Veo 3 n'admet que `allow_all`, Europe comprise.
-      parameters: { aspectRatio: '9:16', durationSeconds: 8, resolution: '1080p', personGeneration: 'allow_all' },
+      instances: [{ prompt: buildVideoPrompt(motion), image: { inlineData: { mimeType, data } } }],
+      // Partir d'une image n'admet que `allow_adult`, seule valeur permise en Europe.
+      parameters: { aspectRatio: '9:16', durationSeconds: 8, resolution: '1080p', personGeneration: 'allow_adult' },
     }),
   })).json()
 
@@ -66,7 +69,6 @@ export default defineEventHandler(async (event) => {
   const video = Buffer.from(await (await call(uri)).arrayBuffer())
 
   return updatePost(id, async (p) => {
-    p.subject = subject
     p.motion = motion
     const rel = `${postDir(id)}/video-${Date.now()}.mp4`
     const abs = communicationPath(rel)

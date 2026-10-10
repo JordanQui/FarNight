@@ -430,11 +430,11 @@ const videoModel = ref<'fast' | 'standard'>('fast')
 
 async function animate() {
   const d = draft.value
-  if (!d?.subject.trim()) return say('Décris d’abord la scène', true)
+  if (!d?.source) return say('Choisis d’abord l’image de départ', true)
   if (!d.motion.trim()) return say('Décris d’abord ce qui bouge', true)
   flushSave()
   const post = await run('video', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/video`, {
-    method: 'POST', body: { subject: d.subject, motion: d.motion, model: videoModel.value }, timeout: 600_000,
+    method: 'POST', body: { motion: d.motion, model: videoModel.value }, timeout: 600_000,
   }))
   if (post) {
     adopt(post)
@@ -502,7 +502,7 @@ const BUSY_LABEL: Record<string, string> = {
   ideas: 'Claude cherche des idées…',
   export: 'Export du format…',
   upload: 'Import de l’image…',
-  video: 'Veo tourne le Reel — compte deux à six minutes…',
+  video: 'Veo anime l’image — compte deux à six minutes…',
   create: 'Création du post…',
   delete: 'Suppression…',
 }
@@ -529,8 +529,8 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
           <h1 class="neon-text font-display uppercase text-2xl sm:text-3xl tracking-[0.05em]">Atelier Instagram</h1>
           <div class="neon-rule w-32" />
           <p class="text-ink-100 text-sm leading-relaxed max-w-3xl">
-            Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la ; un Reel n’a
-            pas d’image, Veo le tourne d’après le texte. Fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
+            Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la ; pour un Reel,
+            choisis l’image que Veo anime. Fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
           </p>
           <nav class="flex gap-2">
             <button
@@ -620,7 +620,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
               </label>
             </section>
 
-            <!-- Image : un Reel n'en a pas, Veo tourne en texte seul -->
+            <!-- Image : celle d'un Reel se choisit dans sa propre section -->
             <section v-if="draft.kind !== 'reel'" class="space-y-4 border-t border-steel-600 pt-6">
               <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">1 · L’image</h2>
               <label class="block space-y-1">
@@ -742,12 +742,28 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
             <!-- Reel -->
             <section v-if="draft.kind === 'reel'" class="space-y-4 border-t border-steel-600 pt-6">
               <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">1 · La vidéo</h2>
+              <div class="space-y-2">
+                <span :class="label">L’image de départ — celle que Veo anime</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <label :class="[button, 'cursor-pointer']">
+                    {{ draft.source ? 'Changer l’image' : 'Choisir une image' }}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="upload">
+                  </label>
+                </div>
+                <div v-if="draft.sources.length" class="flex gap-2 overflow-x-auto pb-1">
+                  <button
+                    v-for="s in draft.sources" :key="s"
+                    class="shrink-0 border-2"
+                    :class="draft.source === s ? 'border-neon-500' : 'border-transparent opacity-60 hover:opacity-100'"
+                    :title="s"
+                    @click="pickSource(s)"
+                  >
+                    <img :src="fileUrl(s)" alt="" class="ig-variant h-40 w-auto bg-ink-800">
+                  </button>
+                </div>
+              </div>
               <label class="block space-y-1">
-                <span :class="label">La scène, en anglais — le style et la palette sont ajoutés tout seuls</span>
-                <textarea v-model="draft.subject" rows="4" :class="input" @input="scheduleSave" />
-              </label>
-              <label class="block space-y-1">
-                <span :class="label">Ce qui bouge, en anglais — Veo tourne en texte seul, sans image</span>
+                <span :class="label">Ce qui bouge, en anglais</span>
                 <textarea
                   v-model="draft.motion" rows="3" :class="input"
                   placeholder="Ce qui bouge dans l’image, et comment la caméra se déplace"
@@ -759,7 +775,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                   <option value="fast">Veo 3.1 Fast — environ 1 $</option>
                   <option value="standard">Veo 3.1 — environ 3,20 $</option>
                 </select>
-                <button :class="button" :disabled="!!busy || !draft.subject.trim() || !draft.motion.trim()" @click="animate">
+                <button :class="button" :disabled="!!busy || !draft.source || !draft.motion.trim()" @click="animate">
                   {{ draft.videos.length ? 'Tourner une variante' : 'Tourner le Reel' }}
                 </button>
               </div>
