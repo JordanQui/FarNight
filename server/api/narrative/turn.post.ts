@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 import type { TurnRequest } from '~/types/scene'
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { clampPlanned } from '~/utils/journal'
@@ -39,45 +39,51 @@ export default defineEventHandler(async (event) => {
     ? body.context.npcs?.find(n => n.id === body.npcId)
     : undefined
 
-  const openai = new OpenAI({ apiKey: requireSecret(config.openaiApiKey, 'OPENAI_API_KEY') })
+  const claude = new Anthropic({ apiKey: requireSecret(config.anthropicApiKey, 'ANTHROPIC_API_KEY') })
+
+  // Claude exige que l'échange commence par le joueur : une réplique de PNJ
+  // restée en tête du fil, une fois l'historique borné, ferait refuser le tour.
+  const history = buildConversationHistory(body.history ?? [])
+  while (history[0]?.role === 'assistant') history.shift()
 
   /**
-   * Un refus d'OpenAI ne doit pas ressortir avec SON statut.
+   * Un refus de l'API ne doit pas ressortir avec SON statut.
    *
-   * h3 recopie le `status` de l'erreur : un 429 d'OpenAI devenait un 429 du
+   * h3 recopie le `status` de l'erreur : un 429 de l'API devenait un 429 du
    * jeu, que le joueur lisait « Le serveur a répondu 429 » — et qui se
    * confond avec le quota de session, lui aussi en 429. Le SDK a déjà
    * réessayé deux fois avant d'abandonner : arrivé ici, ce n'est plus un
-   * à-coup. `insufficient_quota` veut dire que le crédit du compte est épuisé,
-   * le reste est une limite de débit ; on le dit dans les journaux, et le
-   * client n'affiche qu'un narrateur indisponible.
+   * à-coup. Un crédit épuisé arrive en 400 avec « credit balance » dans le
+   * message ; on le dit dans les journaux, et le client n'affiche qu'un
+   * narrateur indisponible.
    */
   let stream
   try {
-    stream = await openai.chat.completions.create({
+    // `create` et non `stream` : il attend la réponse de l'API, si bien qu'un
+    // refus lève ici, avant que les en-têtes SSE ne partent.
+    stream = await claude.messages.create({
       model: scene.generation.model,
-      temperature: scene.generation.temperature,
       max_tokens: scene.turn.max_tokens,
+      // Pas de raisonnement : il retarderait la première phrase et se facture.
+      thinking: { type: 'between_tools' },
       stream: true,
-      // Sans ça le décompte serait une estimation : on veut les vrais chiffres.
-      stream_options: { include_usage: true },
+      system: scene.buildTurnSystemPrompt(body.context, body.turnCount ?? 0),
       messages: [
-        { role: 'system', content: scene.buildTurnSystemPrompt(body.context, body.turnCount ?? 0) },
-        ...buildConversationHistory(body.history ?? []),
+        ...history,
         { role: 'user', content: scene.buildTurnUserPrompt(body.context, body.input, npc, body.mode) },
       ],
     })
   } catch (err) {
-    const status = err instanceof OpenAI.APIError ? err.status : undefined
-    const code = err instanceof OpenAI.APIError ? err.code : undefined
+    const status = err instanceof Anthropic.APIError ? err.status : undefined
+    const noCredit = err instanceof Error && /credit balance/i.test(err.message)
     console.error(
       `[narrative/turn] ${scene.generation.model} a refusé le tour`,
-      `(${status ?? '?'}${code ? ` ${code}` : ''}) :`,
+      `(${status ?? '?'}) :`,
       err instanceof Error ? err.message : err)
     throw createError({
       statusCode: 503,
-      statusMessage: code === 'insufficient_quota'
-        ? 'Crédit OpenAI épuisé'
+      statusMessage: noCredit
+        ? 'Crédit Claude épuisé'
         : `Appel à ${scene.generation.model} refusé (${status ?? 'réseau'})`,
       data: { reason: 'narrator_unavailable' },
     })
@@ -97,18 +103,17 @@ export default defineEventHandler(async (event) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
 
       try {
+        // L'entrée arrive avec `message_start`, la sortie avec `message_delta` :
+        // on les réunit pour envoyer le décompte sous les noms que le client lit.
+        let promptTokens = 0
         for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content
-          if (delta) send({ text: delta })
-
-          // OpenAI place l'usage dans un dernier chunk, sans contenu.
-          if (chunk.usage) {
-            send({
-              usage: {
-                prompt_tokens: chunk.usage.prompt_tokens,
-                completion_tokens: chunk.usage.completion_tokens,
-              },
-            })
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            send({ text: chunk.delta.text })
+          } else if (chunk.type === 'message_start') {
+            const u = chunk.message.usage
+            promptTokens = u.input_tokens + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0)
+          } else if (chunk.type === 'message_delta') {
+            send({ usage: { prompt_tokens: promptTokens, completion_tokens: chunk.usage.output_tokens } })
           }
         }
       } catch {

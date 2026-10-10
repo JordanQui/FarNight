@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 import type { GeneratedScene, SceneTextResponse, GeneratedEnding } from '~/types/scene'
 import type { UserProfile } from '~/types/user'
 import { nightOf, plannedScene, type JournalEntry, type CarriedItem } from '~/utils/journal'
@@ -13,33 +13,17 @@ import { scriptFingerprint } from '~/server/utils/script-fingerprint'
 import { requestLang } from '~/server/utils/lang'
 import { isLocal } from '~/utils/app-env'
 
-/** JSON canonique : l'ordre des propriétés envoyé par le navigateur ne doit pas changer le tirage. */
-function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => a.localeCompare(b))
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`).join(',')}}`
-  }
-  return JSON.stringify(value) ?? 'null'
-}
-
 /**
- * Graine stable acceptée par Chat Completions.
+ * Le JSON seul, sans l'habillage qu'un modèle ajoute parfois.
  *
- * Le modèle reste libre d'écrire une scène, mais deux requêtes identiques ne
- * repartent plus d'un hasard neuf. La palette possède en plus son propre
- * calcul local ; la graine stabilise les noms de couleurs et le reste du JSON.
+ * Claude n'a pas de `response_format: json_object` : le prompt demande le JSON
+ * nu, mais une clôture ```json ou une phrase d'introduction passent encore.
+ * On garde ce qui va de la première accolade à la dernière.
  */
-function generationSeed(value: unknown): number {
-  const input = stableJson(value)
-  let hash = 2166136261
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 1
+function bareJson(raw: string): string {
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  return start >= 0 && end > start ? raw.slice(start, end + 1) : raw
 }
 
 /**
@@ -82,12 +66,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Dossier manquant' })
   }
   const user = body.user ?? await loadUserFixture()
-  const seed = generationSeed({
-    scene_id: scene.id,
-    user,
-    journal: body.journal ?? [],
-    carried: body.carried ?? [],
-  })
 
   /**
    * Retient la scène servie, pour que le joueur puisse y revenir.
@@ -106,7 +84,7 @@ export default defineEventHandler(async (event) => {
     gameOver,
   )
 
-  const openai = new OpenAI({ apiKey: requireSecret(config.openaiApiKey, 'OPENAI_API_KEY') })
+  const claude = new Anthropic({ apiKey: requireSecret(config.anthropicApiKey, 'ANTHROPIC_API_KEY') })
   const gen = scene.generation
 
   // L'épilogue ne suit pas le schéma des autres scènes : ni personnages, ni
@@ -114,12 +92,8 @@ export default defineEventHandler(async (event) => {
   // peupler l'image de ce que ce joueur-là a traversé.
   const isEnding = scene.kind === 'ending'
 
-  /** Les deux messages de la demande. La reprise repart de là. */
-  type Message = { role: 'system' | 'user' | 'assistant'; content: string }
-  const messages: Message[] = [
-    // `scene.systemPrompt` et non `gen.system_prompt` : c'est lui qui remplit
-    // le {{language}} du script et qui y colle la directive de sortie.
-    { role: 'system', content: scene.systemPrompt },
+  /** La demande. La reprise repart de là ; le prompt système voyage à part. */
+  const messages: Anthropic.MessageParam[] = [
     {
       role: 'user',
       content: isEnding
@@ -129,33 +103,34 @@ export default defineEventHandler(async (event) => {
   ]
 
   /** Un appel au modèle, et le JSON brut qu'il rend. */
-  async function ask(msgs: Message[], waits = 2): Promise<string> {
+  async function ask(msgs: Anthropic.MessageParam[], waits = 2): Promise<string> {
     let completion
     try {
-      completion = await openai.chat.completions.create({
+      completion = await claude.messages.create({
         model: gen.model,
-        temperature: gen.temperature,
-        seed,
         max_tokens: gen.max_tokens,
-        response_format: { type: 'json_object' },
+        // Pas de raisonnement : il se facture comme de la sortie, et une scène
+        // est une commande d'écriture, pas un problème à résoudre.
+        thinking: { type: 'between_tools' },
+        // `scene.systemPrompt` et non `gen.system_prompt` : c'est lui qui remplit
+        // le {{language}} du script et qui y colle la directive de sortie.
+        system: scene.systemPrompt,
         messages: msgs,
       })
     } catch (err) {
-      // Limite de débit par minute : une scène pèse presque tout le plafond
-      // Tier 1 (30k TPM), et OpenAI dit combien attendre — souvent plus que
-      // les deux reprises du SDK. On attend ce délai, borné, puis on relance.
-      // `insufficient_quota` n'est pas un débit : attendre n'y changerait rien.
-      if (err instanceof OpenAI.APIError && err.status === 429
-        && err.code !== 'insufficient_quota' && waits > 0) {
-        const m = /try again in ([\d.]+)(ms|s)/.exec(err.message)
-        const ms = m ? Number(m[1]) * (m[2] === 's' ? 1000 : 1) : 15000
+      // Limite de débit par minute : une scène pèse lourd dans le plafond du
+      // palier, et l'API dit combien attendre — souvent plus que les deux
+      // reprises du SDK. On attend ce délai, borné, puis on relance.
+      if (err instanceof Anthropic.RateLimitError && waits > 0) {
+        const s = Number(err.headers?.get('retry-after'))
+        const ms = Number.isFinite(s) && s > 0 ? s * 1000 : 15000
         console.warn(`[scene/text] limite de débit ${gen.model}, nouvel essai dans ${Math.ceil(ms / 1000)} s`)
         await new Promise(resolve => setTimeout(resolve, Math.min(ms + 500, 30000)))
         return ask(msgs, waits - 1)
       }
       // « Connection error. » ne dit rien : la vraie cause est dans `cause`.
-      if (err instanceof OpenAI.APIConnectionError) {
-        console.error('[scene/text] OpenAI injoignable :', err.cause ?? err)
+      if (err instanceof Anthropic.APIConnectionError) {
+        console.error('[scene/text] Claude injoignable :', err.cause ?? err)
       }
       throw createError({
         statusCode: 502,
@@ -163,8 +138,13 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const choice = completion.choices[0]
-    const raw = choice?.message?.content
+    const raw = completion.content
+      .map(block => block.type === 'text' ? block.text : '')
+      .join('')
+    if (completion.stop_reason === 'refusal') {
+      console.error('[scene/text] refus du modèle :', completion.stop_details)
+      throw createError({ statusCode: 502, statusMessage: `${gen.model} a refusé la scène` })
+    }
     if (!raw) {
       throw createError({ statusCode: 502, statusMessage: `${gen.model} n'a rien renvoyé` })
     }
@@ -173,17 +153,17 @@ export default defineEventHandler(async (event) => {
     // échoue plus bas, sur un message qui accuse le modèle à tort. On le dit ici,
     // pendant qu'on sait encore pourquoi — c'est `max_tokens` qu'il faut lever,
     // ou le schéma qu'il faut alléger.
-    if (choice.finish_reason === 'length') {
+    if (completion.stop_reason === 'max_tokens') {
       console.error(
         `[scene/text] réponse tronquée à max_tokens=${gen.max_tokens}`,
-        `(${completion.usage?.completion_tokens ?? '?'} tokens produits)`)
+        `(${completion.usage.output_tokens} tokens produits)`)
       throw createError({
         statusCode: 502,
         statusMessage: `Réponse tronquée : la scène dépasse le plafond de ${gen.max_tokens} tokens`,
       })
     }
 
-    return raw
+    return bareJson(raw)
   }
 
   function parseScene(raw: string): GeneratedScene {

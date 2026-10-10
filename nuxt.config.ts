@@ -163,6 +163,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    /** Le texte : scènes et tours. */
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    /** Les images seulement. */
     openaiApiKey: process.env.OPENAI_API_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     nuxtSecret: process.env.NUXT_SECRET,

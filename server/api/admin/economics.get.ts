@@ -13,7 +13,10 @@ import { ScriptRuntime, loadUserFixture } from '~/utils/script-runtime'
  * dur (3 500 jetons par scène) avaient triplé sans que la page le voie.
  */
 
-/** Approximation de gpt-4o sur du français. Aucun appel, aucun tokenizer. */
+/**
+ * Approximation sur du français. Aucun appel, aucun tokenizer.
+ * Tient pour gpt-4o ; Claude compte un peu plus de jetons, donc la page sous-estime.
+ */
 const CHARS_PER_TOKEN = 4
 const tokens = (...parts: string[]) => Math.round(parts.join('').length / CHARS_PER_TOKEN)
 
