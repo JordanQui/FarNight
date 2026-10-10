@@ -430,10 +430,11 @@ const videoModel = ref<'fast' | 'standard'>('fast')
 
 async function animate() {
   const d = draft.value
-  if (!d?.motion.trim()) return say('Décris d’abord ce qui bouge', true)
+  if (!d?.subject.trim()) return say('Décris d’abord la scène', true)
+  if (!d.motion.trim()) return say('Décris d’abord ce qui bouge', true)
   flushSave()
   const post = await run('video', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/video`, {
-    method: 'POST', body: { motion: d.motion, model: videoModel.value }, timeout: 600_000,
+    method: 'POST', body: { subject: d.subject, motion: d.motion, model: videoModel.value }, timeout: 600_000,
   }))
   if (post) {
     adopt(post)
@@ -487,7 +488,7 @@ async function adoptIdea(idea: PostIdea) {
 const grid = computed(() => {
   const feed = posts.value.filter(p => p.kind !== 'story')
   const planned = feed
-    .filter(p => p.status !== 'publie' && p.status !== 'idee' && (p.renders[p.format] || p.source))
+    .filter(p => p.status !== 'publie' && p.status !== 'idee' && (p.renders[p.format] || p.source || p.video))
     .sort((a, b) => (b.scheduled_for ?? '9999').localeCompare(a.scheduled_for ?? '9999'))
   const live = feed
     .filter(p => p.status === 'publie')
@@ -501,7 +502,7 @@ const BUSY_LABEL: Record<string, string> = {
   ideas: 'Claude cherche des idées…',
   export: 'Export du format…',
   upload: 'Import de l’image…',
-  video: 'Veo anime l’image — compte deux à six minutes…',
+  video: 'Veo tourne le Reel — compte deux à six minutes…',
   create: 'Création du post…',
   delete: 'Suppression…',
 }
@@ -528,8 +529,8 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
           <h1 class="neon-text font-display uppercase text-2xl sm:text-3xl tracking-[0.05em]">Atelier Instagram</h1>
           <div class="neon-rule w-32" />
           <p class="text-ink-100 text-sm leading-relaxed max-w-3xl">
-            Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la, anime-la si
-            c’est un Reel, fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
+            Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la ; un Reel n’a
+            pas d’image, Veo le tourne d’après le texte. Fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
           </p>
           <nav class="flex gap-2">
             <button
@@ -619,8 +620,8 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
               </label>
             </section>
 
-            <!-- Image -->
-            <section class="space-y-4 border-t border-steel-600 pt-6">
+            <!-- Image : un Reel n'en a pas, Veo tourne en texte seul -->
+            <section v-if="draft.kind !== 'reel'" class="space-y-4 border-t border-steel-600 pt-6">
               <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">1 · L’image</h2>
               <label class="block space-y-1">
                 <span :class="label">Sujet, en anglais — le style et la palette sont ajoutés tout seuls</span>
@@ -653,7 +654,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
             </section>
 
             <!-- Cadrage -->
-            <section v-if="draft.source" class="space-y-4 border-t border-steel-600 pt-6">
+            <section v-if="draft.source && draft.kind !== 'reel'" class="space-y-4 border-t border-steel-600 pt-6">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">2 · Le cadrage</h2>
                 <span class="text-ink-300 text-[11px]">Source {{ sourceSize || '…' }} — glisse l’aperçu pour recadrer</span>
@@ -739,10 +740,14 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
             </section>
 
             <!-- Reel -->
-            <section v-if="draft.kind === 'reel' && draft.source" class="space-y-4 border-t border-steel-600 pt-6">
-              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">3 · L’animation</h2>
+            <section v-if="draft.kind === 'reel'" class="space-y-4 border-t border-steel-600 pt-6">
+              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">1 · La vidéo</h2>
               <label class="block space-y-1">
-                <span :class="label">Ce qui bouge, en anglais — Veo anime {{ draft.renders['9x16'] ? 'le 9:16 exporté' : 'l’image source' }}</span>
+                <span :class="label">La scène, en anglais — le style et la palette sont ajoutés tout seuls</span>
+                <textarea v-model="draft.subject" rows="4" :class="input" @input="scheduleSave" />
+              </label>
+              <label class="block space-y-1">
+                <span :class="label">Ce qui bouge, en anglais — Veo tourne en texte seul, sans image</span>
                 <textarea
                   v-model="draft.motion" rows="3" :class="input"
                   placeholder="Ce qui bouge dans l’image, et comment la caméra se déplace"
@@ -754,8 +759,8 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                   <option value="fast">Veo 3.1 Fast — environ 1 $</option>
                   <option value="standard">Veo 3.1 — environ 3,20 $</option>
                 </select>
-                <button :class="button" :disabled="!!busy || !draft.motion.trim()" @click="animate">
-                  {{ draft.videos.length ? 'Animer une variante' : 'Animer en Reel' }}
+                <button :class="button" :disabled="!!busy || !draft.subject.trim() || !draft.motion.trim()" @click="animate">
+                  {{ draft.videos.length ? 'Tourner une variante' : 'Tourner le Reel' }}
                 </button>
               </div>
               <div v-if="draft.videos.length" class="flex gap-3 overflow-x-auto pb-1">
@@ -775,7 +780,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
 
             <!-- Légende -->
             <section v-if="draft.kind !== 'story'" class="space-y-4 border-t border-steel-600 pt-6">
-              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">{{ draft.kind === 'reel' ? 4 : 3 }} · La légende</h2>
+              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">{{ draft.kind === 'reel' ? 2 : 3 }} · La légende</h2>
               <div class="flex flex-wrap gap-2">
                 <input
                   v-model="captionDirection" :class="[input, 'flex-1 min-w-[200px]']"
@@ -830,7 +835,8 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
           </p>
           <div class="mx-auto grid max-w-xl grid-cols-3 gap-0.5 bg-ink-800">
             <button v-for="p in grid" :key="p.id" class="relative aspect-[3/4] overflow-hidden bg-ink-900" @click="open(p.id)">
-              <img :src="thumbOf(p)" :alt="p.alt || p.title" class="h-full w-full object-cover">
+              <video v-if="p.kind === 'reel' && p.video" :src="fileUrl(p.video)" muted playsinline preload="metadata" class="h-full w-full object-cover" />
+              <img v-else :src="thumbOf(p)" :alt="p.alt || p.title" class="h-full w-full object-cover">
               <span
                 v-if="p.status !== 'publie'"
                 class="absolute left-1 top-1 bg-ink-900/85 px-1.5 text-[9px] uppercase tracking-[0.12em] text-neon-300"

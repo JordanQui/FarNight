@@ -44,13 +44,15 @@ export function buildImagePrompt(subject: string): string {
 }
 
 /**
- * Veo part de l'image déjà peinte : le style est dans l'image, le prompt ne
- * dit que ce qui bouge, et rappelle de ne rien inventer d'autre.
+ * Un Reel n'a pas d'image : Veo tourne en texte seul, depuis le sujet et le
+ * mouvement, et reçoit le même style que gpt-image pour garder la DA.
  */
-export function buildVideoPrompt(motion: string): string {
-  return `${motion.trim()}
+export function buildVideoPrompt(subject: string, motion: string): string {
+  return `Vertical 9:16 animated shot. ${subject.trim()}
 
-Keep the exact look of the starting image: flat cel-shaded shapes, hard edges, no gradients, the same three colors (${D} shadow, ${S} surfaces, ${A} neon light). Slow, deliberate, film-noir movement. No text, no lettering, no logo appears at any time.
+${motion.trim()} Slow, deliberate, film-noir movement.
+
+${IG_STYLE}
 Sound: rain, the low hum of neon and a distant city. No dialogue, no music.`
 }
 

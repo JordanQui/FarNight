@@ -37,7 +37,8 @@ export default defineEventHandler(async (event) => {
   const content: Anthropic.ContentBlockParam[] = []
   const story = post.kind === 'story'
   // Le 9:16 d'une story porte déjà son texte : Claude relirait l'ancienne accroche.
-  const imagePath = story ? post.source : post.renders[post.format] ?? post.source
+  // Un Reel n'a pas d'image : Claude écrit d'après la scène et le mouvement.
+  const imagePath = post.kind === 'reel' ? null : story ? post.source : post.renders[post.format] ?? post.source
   if (imagePath) {
     const mime = mimeOf(imagePath)
     if (mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/webp') {
@@ -56,8 +57,8 @@ export default defineEventHandler(async (event) => {
     type: 'text',
     text: `${IG_BRIEF}
 
-LE POST : « ${post.title} »${post.kind === 'reel' ? ' — un Reel : l’image ci-jointe est la première image d’une vidéo de 8 secondes' + (post.motion ? ` où ${post.motion}` : '') : ''}
-${post.subject ? `Ce que montre l'image (consigne donnée au peintre, en anglais) : ${post.subject}` : ''}
+LE POST : « ${post.title} »${post.kind === 'reel' ? ' — un Reel, une vidéo de 8 secondes' + (post.motion ? ` où ${post.motion}` : '') : ''}
+${post.subject ? `Ce que montre ${post.kind === 'reel' ? 'la vidéo (consigne donnée à Veo' : 'l\'image (consigne donnée au peintre'}, en anglais) : ${post.subject}` : ''}
 ${post.notes ? `Notes de l'auteur : ${post.notes}` : ''}
 ${body?.direction ? `Consigne pour cette légende : ${body.direction}` : ''}
 ${others ? `\n${story ? 'Accroches des stories déjà écrites' : 'Premières lignes des légendes déjà écrites'} — ne les répète pas, varie l'accroche :\n${others}` : ''}
