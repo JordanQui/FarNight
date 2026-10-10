@@ -13,9 +13,56 @@ import { readSceneImage, storeSceneImage, forgetSceneImage } from '~/utils/scene
  * un JSON de 4 000 à 6 000 jetons avec le plan de la nuit. Une scène refusée
  * par la validation vaut une reprise qui le réécrit en entier — le double. À
  * 90 s, le navigateur abandonnait une scène que le serveur allait livrer, et
- * qu'il avait déjà payée.
+ * qu'il avait déjà payée. Depuis que la réponse arrive en flux, on attend
+ * autant que la fonction a le droit de durer (`maxDuration`, 300 s).
  */
-const SCENE_TEXT_TIMEOUT_MS = 240_000
+const SCENE_TEXT_TIMEOUT_MS = 300_000
+
+/** Une erreur qui a la forme d'une `FetchError` : le `catch` la lit pareil. */
+const sceneError = (statusCode: number, data: { statusMessage?: string } | null) =>
+  Object.assign(new Error(data?.statusMessage ?? `${statusCode}`), { statusCode, data })
+
+/**
+ * /api/scene/text répond en NDJSON : des battements tant que la scène s'écrit,
+ * puis une ligne avec la scène — ou avec l'erreur. Les refus d'avant la
+ * génération (quota, ville fermée, dossier manquant) restent des réponses en
+ * erreur ordinaires. La position scellée qui accompagne la scène est rendue au
+ * serveur, qui en fait le cookie de reprise.
+ */
+async function fetchSceneText(body: unknown, signal: AbortSignal): Promise<SceneTextResponse> {
+  const res = await fetch('/api/scene/text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
+  if (!res.ok || !res.body) {
+    throw sceneError(res.status, await res.json().catch(() => null))
+  }
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buffer = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += value
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line.trim()) continue
+      const msg = JSON.parse(line)
+      if (msg.t === 'error') throw sceneError(msg.statusCode, msg)
+      if (msg.t === 'scene') {
+        await $fetch('/api/scene/position', { method: 'POST', body: { ticket: msg.ticket } })
+          .catch(err => console.warn('[scene] position non retenue :', err))
+        return msg.scene as SceneTextResponse
+      }
+    }
+  }
+  // Le flux s'est fermé sans scène : la fonction a été coupée à `maxDuration`.
+  // C'est un délai dépassé, et le `catch` le dit comme tel.
+  throw new DOMException('Flux de scène interrompu', 'TimeoutError')
+}
 
 /**
  * Orchestre le pipeline découplé.
@@ -519,19 +566,15 @@ export function useScene() {
     }
 
     try {
-      const res = await $fetch<SceneTextResponse>('/api/scene/text', {
-        method: 'POST',
+      const res = await fetchSceneText({
+        sceneId,
         // `user ?? profil restauré` : sur une reprise, l'appelant n'a encore
         // rien en main — c'est `restoreCarry` juste au-dessus qui vient de
         // remettre le profil en place.
-        body: {
-          sceneId,
-          user: user ?? playerStore.profile ?? undefined,
-          journal: playerStore.journal,
-          carried: carried(),
-        },
-        signal: AbortSignal.timeout(SCENE_TEXT_TIMEOUT_MS),
-      })
+        user: user ?? playerStore.profile ?? undefined,
+        journal: playerStore.journal,
+        carried: carried(),
+      }, AbortSignal.timeout(SCENE_TEXT_TIMEOUT_MS))
       resealGeneratedKeyItem(res)
       scene.value = res
       // L'habillage prend les couleurs de la scène, si elle le demande.

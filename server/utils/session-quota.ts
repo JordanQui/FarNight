@@ -200,28 +200,40 @@ export function revokeAccess(event: H3Event): void {
 }
 
 /**
- * Retient la scène servie.
+ * La scène servie, scellée, prête à devenir le cookie de position.
  *
- * Écrit à chaque scène rendue : c'est le seul moment où le serveur sait avec
+ * Écrite à chaque scène rendue : c'est le seul moment où le serveur sait avec
  * certitude où en est le joueur — le reste vient du navigateur, qui se
- * falsifie.
+ * falsifie. Elle voyage dans le flux de /api/scene/text, dont les en-têtes sont
+ * déjà partis quand la scène est prête ; le client la rend à
+ * /api/scene/position, qui la pose.
  *
- * @param windowDays aligné sur la fenêtre payante : la reprise doit tenir
- * aussi longtemps que le droit d'accès qui l'autorise.
  * @param gameOver le texte de fermeture écrit pour CETTE scène. Rangé ici parce
  * que c'est le seul endroit où le serveur le voit passer : quand la nuit se
  * refermera, il n'aura plus que ce cookie pour savoir quoi afficher.
  */
-export function rememberPosition(
-  event: H3Event, sceneId: string, index: number, windowDays: number, gameOver?: string,
-): PositionPass {
+export function positionTicket(sceneId: string, index: number, gameOver?: string): string {
   const secret = requireSecret(useRuntimeConfig().nuxtSecret, 'NUXT_SECRET')
   const position: PositionPass = { scene_id: sceneId, index, at: Date.now() }
   // Tronqué comme l'adieu : un cookie plafonne autour de 4 ko, et un texte
   // trop lourd ferait jeter la position tout entière, donc la reprise avec.
   if (gameOver) position.game_over = gameOver.slice(0, 700)
+  return seal(position, secret)
+}
 
-  setCookie(event, POSITION_COOKIE, seal(position, secret), {
+/**
+ * Retient la scène servie, depuis son ticket.
+ *
+ * @param windowDays aligné sur la fenêtre payante : la reprise doit tenir
+ * aussi longtemps que le droit d'accès qui l'autorise.
+ * @returns null si le ticket est falsifié ou illisible : rien n'est posé.
+ */
+export function rememberPosition(event: H3Event, ticket: string, windowDays: number): PositionPass | null {
+  const secret = requireSecret(useRuntimeConfig().nuxtSecret, 'NUXT_SECRET')
+  const position = unseal<PositionPass>(ticket, secret)
+  if (!position?.scene_id || typeof position.index !== 'number') return null
+
+  setCookie(event, POSITION_COOKIE, ticket, {
     httpOnly: true,
     sameSite: 'lax',
     secure: !import.meta.dev,

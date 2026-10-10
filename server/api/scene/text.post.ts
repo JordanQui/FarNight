@@ -7,7 +7,7 @@ import { ensureFrequencyTarget } from '~/utils/frequency-text'
 import { interpolate } from '~/utils/prompt-builder'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import {
-  assertNotLocked, consumeQuota, lockOut, rememberPosition, forgetPosition, revokeAccess,
+  assertNotLocked, consumeQuota, lockOut, positionTicket, forgetPosition, revokeAccess,
 } from '~/server/utils/session-quota'
 import { scriptFingerprint } from '~/server/utils/script-fingerprint'
 import { requestLang } from '~/server/utils/lang'
@@ -68,16 +68,15 @@ export default defineEventHandler(async (event) => {
   const user = body.user ?? await loadUserFixture()
 
   /**
-   * Retient la scène servie, pour que le joueur puisse y revenir.
+   * Scelle la scène servie, pour que le joueur puisse y revenir.
    *
    * Ici et nulle part ailleurs : c'est le seul endroit où le serveur constate
    * qu'une scène a bien été rendue. La reprise ne doit désigner que des scènes
    * réellement traversées — sinon le bouton « Continuer » enverrait construire
    * une scène dont la précédente n'a jamais eu lieu.
    */
-  const remember = (gameOver?: string) => rememberPosition(
-    event, scene.id, runtime.script.progression.order.indexOf(scene.id),
-    limits.paid.window_days,
+  const ticket = (gameOver?: string) => positionTicket(
+    scene.id, runtime.script.progression.order.indexOf(scene.id),
     // Le texte de fermeture PART AVEC LA POSITION : quand la nuit se refermera,
     // le serveur n'aura plus que ce cookie pour savoir quoi afficher, et le
     // client n'aura plus la scène s'il a rechargé entre-temps.
@@ -106,7 +105,9 @@ export default defineEventHandler(async (event) => {
   async function ask(msgs: Anthropic.MessageParam[], waits = 2): Promise<string> {
     let completion
     try {
-      completion = await claude.messages.create({
+      // En flux, puis réassemblé : une scène entière se compte en minutes, et
+      // une requête qui ne renvoie rien aussi longtemps se fait couper en route.
+      completion = await claude.messages.stream({
         model: gen.model,
         max_tokens: gen.max_tokens,
         // Pas de raisonnement : il se facture comme de la sortie, et une scène
@@ -116,7 +117,7 @@ export default defineEventHandler(async (event) => {
         // le {{language}} du script et qui y colle la directive de sortie.
         system: scene.systemPrompt,
         messages: msgs,
-      })
+      }).finalMessage()
     } catch (err) {
       // Limite de débit par minute : une scène pèse lourd dans le plafond du
       // palier, et l'API dit combien attendre — souvent plus que les deux
@@ -177,13 +178,13 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const raw = await ask(messages)
-  let generated = parseScene(raw)
-
+  // L'épilogue répond d'un bloc : il est court, et il pose ses cookies — le
+  // verrou, l'oubli de la position, la fin de l'accès — qu'un flux déjà
+  // ouvert ne pourrait plus envoyer.
   if (isEnding) {
+    const ending = parseScene(await ask(messages)) as unknown as GeneratedEnding
     try {
       const journal = body.journal ?? []
-      const ending = generated as unknown as GeneratedEnding
       const assembled = {
         ...scene.assembleEnding(ending, journal[journal.length - 1]?.place_name ?? ''),
         script_fingerprint: scriptFingerprint(runtime.script),
@@ -211,40 +212,24 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  /**
-   * Une scène refusée par la validation vaut UNE reprise, et une seule.
-   *
-   * Le modèle manque parfois une contrainte — le plus souvent un personnage
-   * qu'il déclare dans `npcs` sans jamais le nommer dans le texte, ce qui le
-   * rend inatteignable. Jusqu'ici la scène partait en 502 : le joueur venait de
-   * remplir son dossier d'admission et tombait sur une panne, avec son quota
-   * déjà consommé.
-   *
-   * On lui renvoie donc sa propre réponse et le motif du refus, plutôt que de
-   * relancer une génération à l'aveugle : il corrige le point visé et garde le
-   * reste. Le coût d'une reprise est celui d'une génération — de l'ordre de
-   * trois centimes — et il n'est payé que sur un échec.
-   */
-  scene.dropUnreachable(generated)
-  scene.ensurePuzzleObjects(generated)
-  scene.bindOffering(generated)
-  scene.alignPlanIds(generated)
-  scene.weldAugmentationName(generated)
-  if (scene.id === 'a1s2' || scene.id === 'a3s2') ensureFrequencyTarget(generated)
-  scene.pinPlayerPalette(generated, user)
+  return streamScene(event, async () => {
+    const raw = await ask(messages)
+    let generated = parseScene(raw)
 
-  try {
-    scene.assertValid(generated)
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err)
-    console.warn('[scene/text] scène refusée, une reprise demandée :', reason)
-
-    const repaired = await ask([
-      ...messages,
-      { role: 'assistant', content: raw },
-      { role: 'user', content: interpolate(gen.repair_prompt, { reason }) },
-    ])
-    generated = parseScene(repaired)
+    /**
+     * Une scène refusée par la validation vaut UNE reprise, et une seule.
+     *
+     * Le modèle manque parfois une contrainte — le plus souvent un personnage
+     * qu'il déclare dans `npcs` sans jamais le nommer dans le texte, ce qui le
+     * rend inatteignable. Jusqu'ici la scène partait en 502 : le joueur venait de
+     * remplir son dossier d'admission et tombait sur une panne, avec son quota
+     * déjà consommé.
+     *
+     * On lui renvoie donc sa propre réponse et le motif du refus, plutôt que de
+     * relancer une génération à l'aveugle : il corrige le point visé et garde le
+     * reste. Le coût d'une reprise est celui d'une génération — de l'ordre de
+     * trois centimes — et il n'est payé que sur un échec.
+     */
     scene.dropUnreachable(generated)
     scene.ensurePuzzleObjects(generated)
     scene.bindOffering(generated)
@@ -255,24 +240,89 @@ export default defineEventHandler(async (event) => {
 
     try {
       scene.assertValid(generated)
-    } catch (again) {
-      console.error('[scene/text] scène invalide après reprise :',
-        again instanceof Error ? again.message : again)
-      throw createError({
-        statusCode: 502,
-        statusMessage: again instanceof Error ? again.message : 'Scène invalide',
-      })
-    }
-  }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      console.warn('[scene/text] scène refusée, une reprise demandée :', reason)
 
-  const assembled = {
-    ...scene.assembleText(generated, resolveTheme(user, runtime.script), body.carried ?? [], body.journal ?? []),
-    // La quête voyage avec chaque scène : c'est de là que le journal la reprend.
-    night: generated.night ?? plan,
-    // Permet au client de jeter une scène gardée en session dès que le script
-    // a changé — sans quoi un déploiement reste invisible pour lui.
-    script_fingerprint: scriptFingerprint(runtime.script),
-  }
-  remember(assembled.game_over)
-  return assembled
+      const repaired = await ask([
+        ...messages,
+        { role: 'assistant', content: raw },
+        { role: 'user', content: interpolate(gen.repair_prompt, { reason }) },
+      ])
+      generated = parseScene(repaired)
+      scene.dropUnreachable(generated)
+      scene.ensurePuzzleObjects(generated)
+      scene.bindOffering(generated)
+      scene.alignPlanIds(generated)
+      scene.weldAugmentationName(generated)
+      if (scene.id === 'a1s2' || scene.id === 'a3s2') ensureFrequencyTarget(generated)
+      scene.pinPlayerPalette(generated, user)
+
+      try {
+        scene.assertValid(generated)
+      } catch (again) {
+        console.error('[scene/text] scène invalide après reprise :',
+          again instanceof Error ? again.message : again)
+        throw createError({
+          statusCode: 502,
+          statusMessage: again instanceof Error ? again.message : 'Scène invalide',
+        })
+      }
+    }
+
+    const assembled = {
+      ...scene.assembleText(generated, resolveTheme(user, runtime.script), body.carried ?? [], body.journal ?? []),
+      // La quête voyage avec chaque scène : c'est de là que le journal la reprend.
+      night: generated.night ?? plan,
+      // Permet au client de jeter une scène gardée en session dès que le script
+      // a changé — sans quoi un déploiement reste invisible pour lui.
+      script_fingerprint: scriptFingerprint(runtime.script),
+    }
+    return { scene: assembled, ticket: ticket(assembled.game_over) }
+  })
 })
+
+/**
+ * Répond en NDJSON pendant que la scène s'écrit.
+ *
+ * Une scène prend plusieurs minutes, reprise comprise. Une requête muette aussi
+ * longtemps se fait couper — Safari n'en dit que « Load failed », et l'erreur
+ * du serveur n'arrive jamais. Un battement toutes les dix secondes garde la
+ * connexion vivante ; la dernière ligne porte la scène, ou l'erreur avec ses
+ * `statusCode`, `statusMessage` et `data`, comme une réponse en erreur.
+ *
+ * Les en-têtes partent avec le premier battement : ce qui doit poser un cookie
+ * passe avant, ou voyage dans la scène (la position, en ticket).
+ */
+function streamScene(
+  event: H3Event,
+  build: () => Promise<{ scene: SceneTextResponse, ticket: string }>,
+) {
+  setResponseHeader(event, 'Content-Type', 'application/x-ndjson; charset=utf-8')
+  setResponseHeader(event, 'Cache-Control', 'no-cache')
+  setResponseHeader(event, 'X-Accel-Buffering', 'no')
+
+  const encoder = new TextEncoder()
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (line: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`))
+      send({ t: 'wait' })
+      const beat = setInterval(() => send({ t: 'wait' }), 10_000)
+      try {
+        send({ t: 'scene', ...await build() })
+      } catch (err) {
+        const e = err as { statusCode?: number, statusMessage?: string, message?: string, data?: unknown }
+        send({
+          t: 'error',
+          statusCode: e.statusCode ?? 500,
+          statusMessage: e.statusMessage ?? e.message ?? 'Scène impossible',
+          data: e.data,
+        })
+      } finally {
+        clearInterval(beat)
+        controller.close()
+      }
+    },
+  })
+  return sendStream(event, body)
+}
