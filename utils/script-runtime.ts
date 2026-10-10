@@ -147,7 +147,6 @@ export function describeUser(
   const missing = [
     !hometown && 'ville d\'origine',
     !current_location && 'ville actuelle',
-    !user.trajectory.turning_points.length && 'tournant de vie',
     !marks?.moment && 'moment auquel il tient',
     !marks?.fear_film && 'film qui lui a fait peur',
     !marks?.animal && !read && 'animal préféré',

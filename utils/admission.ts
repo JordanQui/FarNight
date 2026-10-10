@@ -18,8 +18,8 @@
  *   identity.agreement ......... accord des participes dans toute la narration
  *   origin.hometown ............ ville d'origine
  *   origin.current_location .... ville actuelle
- *   trajectory.turning_points .. LE tournant de vie — une seule ligne depuis le
- *                                2026-09-21, deux c'était trop
+ *   trajectory.turning_points .. le déménagement, déduit des deux villes — la
+ *                                question de la bascule a été retirée
  *   touchstones ................ un moment auquel il tient, le film qui lui a
  *                                fait le plus peur, son animal préféré
  *   anthem ..................... un morceau, tenu en registre — jamais ses paroles
@@ -95,8 +95,6 @@ export interface AdmissionForm {
   anthemTitle: string
   /** Son artiste. Facultatif : le titre seul porte déjà genre et époque. */
   anthemArtist: string
-  /** Une ligne libre, facultative. Il y en eut deux : c'était trop. */
-  turningPoint: string
   /** Quatre traces personnelles, que la scène remettra en décor. */
   keepsake: string
   refuge: string
@@ -124,7 +122,6 @@ export function emptyAdmissionForm(lang: LangCode = DEFAULT_LANG): AdmissionForm
     animal: '',
     anthemTitle: '',
     anthemArtist: '',
-    turningPoint: '',
     keepsake: '',
     refuge: '',
     ally: '',
@@ -187,12 +184,11 @@ const clean = (s: string) => s.trim().replace(/\s+/g, ' ')
 /**
  * Ce qui a fait bifurquer le joueur.
  *
- * Sa ligne passe en premier — c'est lui qui parle. Le
- * déménagement est DÉDUIT : sans lui, un dossier rempli à la va-vite ne
- * donnerait aucune trajectoire au modèle.
+ * Le formulaire ne le demande plus : seul reste le déménagement, DÉDUIT des
+ * deux villes.
  */
 function turningPoints(form: AdmissionForm): string[] {
-  const points = [clean(form.turningPoint)].filter(Boolean)
+  const points: string[] = []
 
   const hometown = clean(form.hometown)
   const city = clean(form.currentCity)

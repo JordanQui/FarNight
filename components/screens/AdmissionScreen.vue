@@ -51,8 +51,8 @@ function chooseLang(code: LangCode) {
   setLang(code)
 }
 
-/** Les six étapes, titres et légendes pris au pack de langue. */
-const STEPS = computed(() => [1, 2, 3, 4, 5, 6].map(n => ({
+/** Les cinq étapes, titres et légendes pris au pack de langue. La 4e (bascule) a été retirée. */
+const STEPS = computed(() => [1, 2, 3, 5, 6].map(n => ({
   title: t(`admission.step${n}_title`),
   legend: t(`admission.step${n}_legend`),
 })))
@@ -111,7 +111,7 @@ const canAdvance = computed(() => step.value > 0 || hasIdentity.value)
 /**
  * Le dossier a été rempli jusqu'au bout une fois — dans cette visite ou dans
  * une précédente. Revenir corriger une réponse ne doit plus obliger à refaire
- * les six étapes : « Lancer l'aventure » reste à portée sur chacune.
+ * les cinq étapes : « Lancer l'aventure » reste à portée sur chacune.
  */
 const reachedEnd = ref(false)
 watch(step, (n) => { if (n === STEPS.value.length - 1) reachedEnd.value = true })
@@ -181,17 +181,12 @@ onMounted(() => {
   const kept = rememberedAdmission()
   if (kept) {
     // Champ par champ, et seulement ceux qui existent encore : un dossier gardé
-    // d'avant le 2026-09-21 porte des passions et deux bascules. Les passions
-    // se perdent — elles ne répondaient pas aux mêmes questions —, la première
-    // bascule reste.
+    // plus ancien porte des passions et une bascule, qui se perdent.
     const empty = emptyAdmissionForm(lang.value)
-    const old = kept.form as Partial<AdmissionForm> & { turningPoints?: string[] }
+    const old = kept.form as Partial<AdmissionForm>
     const known = Object.fromEntries(
       Object.keys(empty).filter(k => k in old).map(k => [k, old[k as keyof AdmissionForm]]))
-    Object.assign(form, empty, known, {
-      language: lang.value,
-      turningPoint: old.turningPoint ?? old.turningPoints?.[0] ?? '',
-    })
+    Object.assign(form, empty, known, { language: lang.value })
     step.value = Math.min(Math.max(kept.step ?? 0, 0), STEPS.value.length - 1)
     if (step.value === STEPS.value.length - 1) reachedEnd.value = true
   }
@@ -428,24 +423,13 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             <span class="field-hint">{{ t('admission.anthem_hint') }}</span>
           </div>
 
-          <!-- 4. LA BASCULE — une seule : deux, c'était trop -->
-          <div v-else-if="step === 3" class="relative space-y-5">
-            <p class="text-ink-200/70 text-[12px] leading-relaxed">
-              {{ t('admission.turning_intro') }}
-            </p>
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.turning1') }}</span>
-              <input v-model="form.turningPoint" type="text" class="field">
-            </label>
-          </div>
-
           <!--
-            5. EMPREINTES — les quatre seuls champs qui ne racontent pas un
+            4. EMPREINTES — les quatre seuls champs qui ne racontent pas un
             état civil. Ils reviennent en décor : l'objet sur une table, le
             refuge en façade, le prénom dans la bouche d'un inconnu, et ce qu'il
             ne supporte pas juste en travers de son chemin.
           -->
-          <div v-else-if="step === 4" class="relative space-y-5">
+          <div v-else-if="step === 3" class="relative space-y-5">
             <label class="block space-y-2">
               <span class="field-label">{{ t('admission.keepsake') }}</span>
               <input v-model="form.keepsake" type="text" class="field">
@@ -467,7 +451,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
           </div>
 
           <!--
-            6. NUITS — la seule étape qui ne consigne pas un état civil.
+            5. NUITS — la seule étape qui ne consigne pas un état civil.
             La question est posée en CONDITIONNEL : « quel dormeur êtes-vous »
             n'appelle rien de la part de qui dort bien, alors que des nuits sans
             sommeil, tout le monde en a. Et les réponses se passent DEHORS —
