@@ -2233,8 +2233,8 @@ ${lines}`)
         })}`
       : agreed
 
-    const themed = ctx.theme?.sign
-      ? `${withItem}\n\n${interpolate(this.script.zodiac.turn_instruction, { tension: ctx.theme.sign.tension })}`
+    const themed = ctx.theme?.sign && !this.isStart
+      ?`${withItem}\n\n${interpolate(this.script.zodiac.turn_instruction, { tension: ctx.theme.sign.tension })}`
       : withItem
 
     // La langue ferme le prompt système : c'est la dernière consigne lue, et

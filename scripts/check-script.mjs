@@ -275,11 +275,9 @@ if (JSON.stringify(script).includes('night_goal') && !JSON.stringify(script).inc
 if (script.defaults.quest?.structure?.errand || outSchema.quest?.errand) {
   errors.push('"errand" est encore demandé : il a été remplacé par night.goal')
 }
-if (!opening?.narrative?.structure?.some(x => x.includes('night.goal'))) {
-  errors.push(`"${script.progression.start_scene}" : la structure du texte ne fait pas dire ce que le joueur est sorti chercher`)
-}
-if (!opening?.narrative?.opening?.includes('night.goal')) {
-  errors.push(`"${script.progression.start_scene}" : l'ouverture ne renvoie pas à night.goal`)
+// À l'auberge, l'intro ne parle que de la fête : seul le barman dit le but.
+if (opening?.narrative?.opening?.includes('night.goal')) {
+  errors.push(`"${script.progression.start_scene}" : l'ouverture renvoie à night.goal`)
 }
 if (!script.defaults.turn?.system_prompt_template?.includes('{{quest_night_goal}}')) {
   errors.push('defaults.turn.system_prompt_template ne donne pas le but de la nuit aux tours')
