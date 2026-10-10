@@ -100,10 +100,10 @@ export function settleFormat(post: InstagramPost): void {
 }
 
 /**
- * Les posts faits à la main avant l'atelier : les carrés de
- * instagram/images/posts/ et les 9:16 de instagram/images/stories/. Ils
- * entrent tels quels, fichiers compris : rien n'est déplacé ni recopié, et le
- * fichier exporté sert aussi de source au recadrage.
+ * Les quatre premiers posts, faits à la main avant l'atelier, chacun en
+ * publication (instagram/images/posts/) et en story (instagram/images/stories/).
+ * Les autres images de ces dossiers n'entrent pas. Les fichiers restent où ils
+ * sont, et le fichier exporté sert aussi de source au recadrage.
  */
 const SEED_DIR = 'instagram/images'
 
@@ -115,18 +115,18 @@ async function seed(): Promise<InstagramPost[]> {
     ['4-insomnie', 'Insomnie', 'Inside a tiny bare apartment at three in the morning, a figure sitting awake on the edge of a narrow bed, seen from behind as a black silhouette, facing a tall window; outside, a wall of giant lit advertising screens and neon tubes on the facing tower floods the room with hard-edged shafts of neon light that cut the floor and the walls. The city never sleeps. Melancholic, quiet, lonely.'],
   ]
   const known = new Map(first.map(([file, title, subject]) => [file, { title, subject }]))
-  // « 10-le-cinema-de-minuit » → « Le cinema de minuit » ; le titre se corrige dans la page.
-  const titleOf = (file: string) => known.get(file)?.title
-    ?? file.replace(/^\d+-/, '').replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())
+  const titleOf = (file: string) => known.get(file)!.title
   const filesIn = async (dir: string) => existsSync(communicationPath(`${SEED_DIR}/${dir}`))
-    ? (await readdir(communicationPath(`${SEED_DIR}/${dir}`))).filter(f => /\.(jpe?g|png|webp)$/i.test(f)).sort((a, b) => parseInt(a) - parseInt(b))
+    ? (await readdir(communicationPath(`${SEED_DIR}/${dir}`)))
+        .filter(f => known.has(f.replace(/\.\w+$/, '')))
+        .sort((a, b) => parseInt(a) - parseInt(b))
     : []
 
   const posts = (await filesIn('posts')).map((name) => {
     const file = name.replace(/\.\w+$/, '')
     const path = `${SEED_DIR}/posts/${name}`
     return newPost({
-      id: file, title: titleOf(file), subject: known.get(file)?.subject ?? '', status: 'pret',
+      id: file, title: titleOf(file), subject: known.get(file)!.subject, status: 'pret',
       format: '1x1', sources: [path], source: path, renders: { '1x1': path },
     })
   })
@@ -134,7 +134,7 @@ async function seed(): Promise<InstagramPost[]> {
     const file = name.replace(/\.\w+$/, '')
     const path = `${SEED_DIR}/stories/${name}`
     return newPost({
-      id: `${file}-story`, title: `${titleOf(file)} — story`, subject: known.get(file)?.subject ?? '', status: 'pret',
+      id: `${file}-story`, title: `${titleOf(file)} — story`, subject: known.get(file)!.subject, status: 'pret',
       kind: 'story', format: '9x16', sources: [path], source: path, renders: { '9x16': path },
     })
   })
