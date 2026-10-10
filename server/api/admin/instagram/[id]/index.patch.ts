@@ -3,7 +3,7 @@ import type { InstagramPost } from '~/types/instagram'
 /** Les champs que la page a le droit de changer à la main. */
 const EDITABLE = [
   'title', 'subject', 'notes', 'status', 'scheduled_for', 'published_at',
-  'caption', 'hashtags', 'alt', 'source', 'framing', 'motion', 'video', 'kind', 'format',
+  'caption', 'hashtags', 'alt', 'overlay', 'source', 'framing', 'motion', 'video', 'kind', 'format',
 ] as const
 
 export default defineEventHandler(async (event) => {

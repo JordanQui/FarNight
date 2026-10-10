@@ -121,7 +121,7 @@ async function save() {
       body: {
         title: d.title, subject: d.subject, notes: d.notes, status: d.status,
         scheduled_for: d.scheduled_for || null, published_at: d.published_at || null,
-        caption: d.caption, alt: d.alt, framing: d.framing, motion: d.motion, video: d.video,
+        caption: d.caption, alt: d.alt, overlay: d.overlay, framing: d.framing, motion: d.motion, video: d.video,
         kind: d.kind, format: d.format,
         hashtags: hashtagText.value.split(/[\s,]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
       },
@@ -291,10 +291,93 @@ function paint(id: FormatId) {
   const { src, dst } = place(img.naturalWidth, img.naturalHeight, canvas.width, canvas.height, framing)
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(img, src.x, src.y, src.w, src.h, dst.x, dst.y, dst.w, dst.h)
+  if (id === '9x16' && draft.value?.kind === 'story') paintOverlay(ctx, canvas.width, canvas.height)
 }
 const paintAll = () => FORMATS.forEach(f => paint(f.id))
 
-watch([sourceImage, () => draft.value?.framing], () => nextTick(paintAll), { deep: true })
+watch([sourceImage, () => draft.value?.framing, () => draft.value?.overlay], () => nextTick(paintAll), { deep: true })
+
+/**
+ * L'accroche d'une story, dessinée sur le canvas même de l'aperçu : ce qu'on
+ * voit est ce qui part. Elle reste entre les zones qu'Instagram recouvre — la
+ * barre du profil en haut, la réponse en bas — sur un aplat d'encre, sans
+ * dégradé, dans la police et le néon du jeu.
+ */
+const SAFE_TOP = 250 / 1920
+const SAFE_BOTTOM = 340 / 1920
+const DISPLAY_FONT = 'Futura, "Avenir Next", "Century Gothic", "Trebuchet MS", system-ui, sans-serif'
+
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const lines: string[] = []
+  let line = ''
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line)
+      line = word
+    } else line = next
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function paintOverlay(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const { hook, cta, position } = draft.value!.overlay
+  if (!hook.trim() && !cta.trim()) return
+  const pad = w * 0.09
+  const maxWidth = w - pad * 2
+
+  // L'accroche rétrécit jusqu'à tenir en trois lignes.
+  let hookSize = w * 0.085
+  let hookLines: string[] = []
+  ctx.letterSpacing = '0.04em'
+  for (; hookSize > w * 0.05; hookSize *= 0.92) {
+    ctx.font = `600 ${hookSize}px ${DISPLAY_FONT}`
+    hookLines = wrap(ctx, hook.trim().toUpperCase(), maxWidth)
+    if (hookLines.length <= 3) break
+  }
+  const ctaSize = w * 0.042
+  ctx.font = `400 ${ctaSize}px ${DISPLAY_FONT}`
+  const ctaLines = wrap(ctx, cta.trim(), maxWidth)
+
+  const hookLead = hookSize * 1.12
+  const ctaLead = ctaSize * 1.35
+  const gap = hookLines.length && ctaLines.length ? hookSize * 0.55 : 0
+  const blockH = hookLines.length * hookLead + gap + ctaLines.length * ctaLead
+  const top = h * SAFE_TOP + pad * 0.6
+  const bottom = h * (1 - SAFE_BOTTOM) - pad * 0.6
+  const y0 = position === 'top' ? top : position === 'center' ? (h - blockH) / 2 : bottom - blockH
+
+  ctx.globalAlpha = 0.8
+  ctx.fillStyle = background.value
+  ctx.fillRect(0, y0 - pad * 0.5, w, blockH + pad)
+  ctx.globalAlpha = 1
+
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  let y = y0
+  ctx.font = `600 ${hookSize}px ${DISPLAY_FONT}`
+  ctx.fillStyle = data.value?.palette.accent ?? '#ff2e88'
+  for (const line of hookLines) {
+    ctx.fillText(line, w / 2, y)
+    y += hookLead
+  }
+  y += gap
+  ctx.letterSpacing = '0.08em'
+  ctx.font = `400 ${ctaSize}px ${DISPLAY_FONT}`
+  ctx.fillStyle = '#e9ecf1'
+  for (const line of ctaLines) {
+    ctx.fillText(line, w / 2, y)
+    y += ctaLead
+  }
+  ctx.letterSpacing = '0px'
+}
+
+function setOverlay(patch: Partial<InstagramPost['overlay']>) {
+  if (!draft.value) return
+  draft.value.overlay = { ...draft.value.overlay, ...patch }
+  scheduleSave()
+}
 
 function setFraming(id: FormatId, patch: Partial<Framing>) {
   if (!draft.value) return
@@ -337,7 +420,7 @@ async function exportRenders() {
   }))
   if (post) {
     adopt(post)
-    say('Le format est exporté')
+    say(`Exporté dans instagram/dropzone/${d.id}-${d.format}.jpg`)
   }
 }
 
@@ -620,11 +703,38 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                   >Télécharger le {{ f.id.replace('x', ':') }} exporté</a>
                 </div>
               </div>
+              <div v-if="draft.kind === 'story'" class="space-y-3 max-w-md">
+                <span :class="label">Le texte de la story — incrusté à l’export</span>
+                <div class="flex flex-wrap gap-2">
+                  <input
+                    v-model="captionDirection" :class="[input, 'flex-1 min-w-[200px]']"
+                    placeholder="Consigne facultative pour Claude"
+                  >
+                  <button :class="button" :disabled="!!busy" @click="writeCaption">
+                    {{ draft.overlay.hook ? 'Réécrire avec Claude' : 'Écrire avec Claude' }}
+                  </button>
+                </div>
+                <label class="block space-y-1">
+                  <span :class="label">Accroche</span>
+                  <input :value="draft.overlay.hook" :class="input" @input="setOverlay({ hook: ($event.target as HTMLInputElement).value })">
+                </label>
+                <label class="block space-y-1">
+                  <span :class="label">Appel — au-dessus du sticker lien</span>
+                  <input :value="draft.overlay.cta" :class="input" @input="setOverlay({ cta: ($event.target as HTMLInputElement).value })">
+                </label>
+                <div class="flex gap-1 text-[10px] uppercase tracking-[0.12em]">
+                  <button
+                    v-for="[pos, name] in ([['top', 'Haut'], ['center', 'Centre'], ['bottom', 'Bas']] as const)" :key="pos"
+                    :class="[draft.overlay.position === pos ? 'border-neon-500 text-neon-300' : 'border-steel-600/60 text-ink-300', 'flex-1 border py-1']"
+                    @click="setOverlay({ position: pos })"
+                  >{{ name }}</button>
+                </div>
+              </div>
               <button :class="button" :disabled="!!busy || !sourceImage" @click="exportRenders">
                 Exporter
               </button>
               <p v-if="draft.kind === 'story'" class="text-ink-200 text-sm">
-                Une story n’a pas de légende : télécharge le 9:16 exporté et publie-le en story.
+                Télécharge le 9:16 exporté, publie-le en story, puis ajoute le sticker lien vers le jeu juste sous le texte.
               </p>
             </section>
 

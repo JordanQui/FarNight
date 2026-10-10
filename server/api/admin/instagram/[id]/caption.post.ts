@@ -10,6 +10,21 @@ import { ScriptRuntime } from '~/utils/script-runtime'
  * peint. Les légendes déjà écrites l'accompagnent, pour qu'il ne se répète pas.
  */
 interface Reply { caption: string; hashtags: string[]; alt: string }
+/** Une story n'a pas de légende : Claude écrit le texte incrusté sur l'image. */
+interface StoryReply { hook: string; cta: string }
+
+const CAPTION_ASK = `Écris pour Instagram, en français :
+- "caption" : une légende de 3 à 6 lignes courtes. La première ligne est une accroche qui donne envie d'ouvrir (elle seule s'affiche avant « … plus »). Le ton est celui d'un film noir : sobre, évocateur, à la deuxième personne si ça sert. Termine par un appel à jouer qui renvoie au lien en bio. Deux emoji au plus, aucun hashtag dans la légende.
+- "hashtags" : 10 à 15 hashtags sans le #, du plus précis au plus large, mêlant français et anglais (jeu narratif, cyberpunk, art, indé…).
+- "alt" : le texte alternatif de l'image, une ou deux phrases factuelles qui décrivent ce qu'on voit, pour un lecteur d'écran.
+
+Réponds uniquement en JSON : {"caption": "...", "hashtags": ["..."], "alt": "..."}`
+
+const STORY_ASK = `C'est une story : elle n'a pas de légende, le texte est incrusté sur l'image et se lit en deux secondes. Écris-le, en français :
+- "hook" : l'accroche, 8 mots au plus, qui arrête le pouce et intrigue. Ton film noir, sobre, à la deuxième personne si ça sert. Elle ne décrit pas l'image, elle lui donne un sens. Ni emoji, ni hashtag.
+- "cta" : une ligne d'appel de 5 mots au plus, qui invite à toucher le sticker lien posé sous le texte pour jouer.
+
+Réponds uniquement en JSON : {"hook": "...", "cta": "..."}`
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
@@ -20,7 +35,9 @@ export default defineEventHandler(async (event) => {
   if (!post) throw createError({ statusCode: 404, statusMessage: `Post inconnu : ${id}` })
 
   const content: Anthropic.ContentBlockParam[] = []
-  const imagePath = post.renders[post.format] ?? post.source
+  const story = post.kind === 'story'
+  // Le 9:16 d'une story porte déjà son texte : Claude relirait l'ancienne accroche.
+  const imagePath = story ? post.source : post.renders[post.format] ?? post.source
   if (imagePath) {
     const mime = mimeOf(imagePath)
     if (mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/webp') {
@@ -30,9 +47,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const others = posts
-    .filter(p => p.id !== id && p.caption)
+    .filter(p => p.id !== id && (story ? p.overlay.hook : p.caption))
     .slice(0, 8)
-    .map(p => `— ${p.caption.split('\n')[0]}`)
+    .map(p => `— ${story ? p.overlay.hook : p.caption.split('\n')[0]}`)
     .join('\n')
 
   content.push({
@@ -43,14 +60,9 @@ LE POST : « ${post.title} »${post.kind === 'reel' ? ' — un Reel : l’image 
 ${post.subject ? `Ce que montre l'image (consigne donnée au peintre, en anglais) : ${post.subject}` : ''}
 ${post.notes ? `Notes de l'auteur : ${post.notes}` : ''}
 ${body?.direction ? `Consigne pour cette légende : ${body.direction}` : ''}
-${others ? `\nPremières lignes des légendes déjà écrites — ne les répète pas, varie l'accroche :\n${others}` : ''}
+${others ? `\n${story ? 'Accroches des stories déjà écrites' : 'Premières lignes des légendes déjà écrites'} — ne les répète pas, varie l'accroche :\n${others}` : ''}
 
-Écris pour Instagram, en français :
-- "caption" : une légende de 3 à 6 lignes courtes. La première ligne est une accroche qui donne envie d'ouvrir (elle seule s'affiche avant « … plus »). Le ton est celui d'un film noir : sobre, évocateur, à la deuxième personne si ça sert. Termine par un appel à jouer qui renvoie au lien en bio. Deux emoji au plus, aucun hashtag dans la légende.
-- "hashtags" : 10 à 15 hashtags sans le #, du plus précis au plus large, mêlant français et anglais (jeu narratif, cyberpunk, art, indé…).
-- "alt" : le texte alternatif de l'image, une ou deux phrases factuelles qui décrivent ce qu'on voit, pour un lecteur d'écran.
-
-Réponds uniquement en JSON : {"caption": "...", "hashtags": ["..."], "alt": "..."}`,
+${story ? STORY_ASK : CAPTION_ASK}`,
   })
 
   const config = useRuntimeConfig()
@@ -62,6 +74,14 @@ Réponds uniquement en JSON : {"caption": "...", "hashtags": ["..."], "alt": "..
     messages: [{ role: 'user', content }],
   })
   const text = message.content.map(b => (b.type === 'text' ? b.text : '')).join('')
+
+  if (story) {
+    const reply = parseJsonReply<StoryReply>(text)
+    return updatePost(id, (p) => {
+      p.overlay = { ...p.overlay, hook: String(reply.hook ?? '').trim(), cta: String(reply.cta ?? '').trim() }
+      if (p.status === 'brouillon' && Object.keys(p.renders).length) p.status = 'pret'
+    })
+  }
   const reply = parseJsonReply<Reply>(text)
 
   return updatePost(id, (p) => {

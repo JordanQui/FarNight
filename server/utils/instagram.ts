@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import type { InstagramPost } from '~/types/instagram'
 import { DEFAULT_FRAMING, FORMATS, formatsFor, type FormatId } from '~/utils/instagram-crop'
@@ -79,6 +79,7 @@ export function newPost(fields: Partial<InstagramPost> & Pick<InstagramPost, 'id
     caption: '',
     hashtags: [],
     alt: '',
+    overlay: { hook: '', cta: '', position: 'bottom' },
     sources: [],
     source: null,
     framing: blankFraming(),
@@ -99,33 +100,45 @@ export function settleFormat(post: InstagramPost): void {
 }
 
 /**
- * Les quatre premiers posts, faits à la main avant l'atelier, chacun en
- * publication et en story. Ils entrent tels quels, fichiers compris : rien
- * n'est déplacé ni recopié.
+ * Les posts faits à la main avant l'atelier : les carrés de
+ * instagram/images/posts/ et les 9:16 de instagram/images/stories/. Ils
+ * entrent tels quels, fichiers compris : rien n'est déplacé ni recopié, et le
+ * fichier exporté sert aussi de source au recadrage.
  */
-function seed(): InstagramPost[] {
+const SEED_DIR = 'instagram/images'
+
+async function seed(): Promise<InstagramPost[]> {
   const first: [string, string, string][] = [
     ['1-la-ville', 'La ville', 'View down a rain-soaked canyon of colossal stepped towers at night, endless verticals vanishing upward, a narrow footbridge crossing the void in the middle ground with one lone figure in a long coat walking across it, neon tubes running down the tower edges, a flying car silhouette between buildings, rain in straight hard streaks, the street far below glowing.'],
     ['2-l-oeil', 'L’œil', 'Close-up bust portrait in profile three-quarter view of an anonymous city dweller with a hard angular jaw, collar turned up, half the face swallowed by solid black shadow, one bionic eye implant glowing as a solid neon disc with concentric geometric rings, thin cable implants at the temple suggested by flat shapes, rain streaks on the window glass behind, flat city lights behind as geometric blocks.'],
     ['3-le-sas', 'Le sas', 'A massive armored blast door at the end of a wet concrete corridor, its frame built of stepped concentric layers, closed, a single card reader beside it glowing as a solid neon slot, a gloved hand in the foreground raising a blank access card toward it, pools of neon light on the wet floor, heavy pipes and cable bundles on the walls, deep perspective.'],
     ['4-insomnie', 'Insomnie', 'Inside a tiny bare apartment at three in the morning, a figure sitting awake on the edge of a narrow bed, seen from behind as a black silhouette, facing a tall window; outside, a wall of giant lit advertising screens and neon tubes on the facing tower floods the room with hard-edged shafts of neon light that cut the floor and the walls. The city never sleeps. Melancholic, quiet, lonely.'],
   ]
-  return first.flatMap(([file, title, subject]) => {
-    const source = `sources/${file}.png`
-    const shared = { subject, status: 'pret' as const, sources: [source], source }
-    return [
-      newPost({
-        ...shared, id: file, title,
-        renders: { '1x1': `posts-carres/${file}.jpg`, '4x5': `posts-4x5/${file}.jpg` },
-      }),
-      newPost({
-        ...shared, id: `${file}-story`, title: `${title} — story`, kind: 'story', format: '9x16',
-        // Les stories d'origine montraient l'image entière, en bandes noires.
-        framing: { ...blankFraming(), '9x16': { ...DEFAULT_FRAMING, mode: 'fit' } },
-        renders: { '9x16': `stories-9x16/${file}.jpg` },
-      }),
-    ]
+  const known = new Map(first.map(([file, title, subject]) => [file, { title, subject }]))
+  // « 10-le-cinema-de-minuit » → « Le cinema de minuit » ; le titre se corrige dans la page.
+  const titleOf = (file: string) => known.get(file)?.title
+    ?? file.replace(/^\d+-/, '').replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())
+  const filesIn = async (dir: string) => existsSync(communicationPath(`${SEED_DIR}/${dir}`))
+    ? (await readdir(communicationPath(`${SEED_DIR}/${dir}`))).filter(f => /\.(jpe?g|png|webp)$/i.test(f)).sort((a, b) => parseInt(a) - parseInt(b))
+    : []
+
+  const posts = (await filesIn('posts')).map((name) => {
+    const file = name.replace(/\.\w+$/, '')
+    const path = `${SEED_DIR}/posts/${name}`
+    return newPost({
+      id: file, title: titleOf(file), subject: known.get(file)?.subject ?? '', status: 'pret',
+      format: '1x1', sources: [path], source: path, renders: { '1x1': path },
+    })
   })
+  const stories = (await filesIn('stories')).map((name) => {
+    const file = name.replace(/\.\w+$/, '')
+    const path = `${SEED_DIR}/stories/${name}`
+    return newPost({
+      id: `${file}-story`, title: `${titleOf(file)} — story`, subject: known.get(file)?.subject ?? '', status: 'pret',
+      kind: 'story', format: '9x16', sources: [path], source: path, renders: { '9x16': path },
+    })
+  })
+  return [...posts, ...stories]
 }
 
 export async function loadPosts(): Promise<InstagramPost[]> {

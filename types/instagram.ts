@@ -29,6 +29,8 @@ export interface InstagramPost {
   hashtags: string[]
   /** Texte alternatif, à coller dans les paramètres avancés d'Instagram. */
   alt: string
+  /** Le texte incrusté sur une story, à la place de la légende qu'elle n'a pas. */
+  overlay: StoryOverlay
   /** Toutes les images sources essayées, chemins relatifs à `communication/`. */
   sources: string[]
   /** Celle qui sert aux déclinaisons. */
@@ -47,6 +49,17 @@ export interface InstagramPost {
   video: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * L'accroche d'une story : dessinée sur le 9:16 à l'export, hors des zones
+ * que l'interface d'Instagram recouvre en haut et en bas.
+ */
+export interface StoryOverlay {
+  hook: string
+  /** L'appel qui renvoie au sticker lien, ajouté à la main dans l'app. */
+  cta: string
+  position: 'top' | 'center' | 'bottom'
 }
 
 /** Une proposition de post, rendue par Claude. */
