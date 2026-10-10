@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   if (!post) throw createError({ statusCode: 404, statusMessage: `Post inconnu : ${id}` })
 
   const content: Anthropic.ContentBlockParam[] = []
-  const imagePath = post.renders['4x5'] ?? post.source
+  const imagePath = post.renders[post.format] ?? post.source
   if (imagePath) {
     const mime = mimeOf(imagePath)
     if (mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/webp') {
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     type: 'text',
     text: `${IG_BRIEF}
 
-LE POST : « ${post.title} »
+LE POST : « ${post.title} »${post.kind === 'reel' ? ' — un Reel : l’image ci-jointe est la première image d’une vidéo de 8 secondes' + (post.motion ? ` où ${post.motion}` : '') : ''}
 ${post.subject ? `Ce que montre l'image (consigne donnée au peintre, en anglais) : ${post.subject}` : ''}
 ${post.notes ? `Notes de l'auteur : ${post.notes}` : ''}
 ${body?.direction ? `Consigne pour cette légende : ${body.direction}` : ''}

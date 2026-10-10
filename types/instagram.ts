@@ -3,9 +3,18 @@ import type { FormatId, Framing } from '~/utils/instagram-crop'
 /** Où en est un post, de l'idée à la mise en ligne. */
 export type PostStatus = 'idee' | 'brouillon' | 'pret' | 'publie'
 
+/** Ce qu'on publie : chaque post est l'un des trois, jamais tous à la fois. */
+export type PostKind = 'publication' | 'story' | 'reel'
+
 export interface InstagramPost {
   id: string
   title: string
+  kind: PostKind
+  /**
+   * Le seul format exporté : carré ou 4:5 pour une publication, 9:16 pour
+   * une story ou un Reel (voir formatsFor).
+   */
+  format: FormatId
   /**
    * Le sujet de l'image, en anglais : ce que gpt-image doit peindre. Le style
    * Dark Deco et la palette sont ajoutés côté serveur, jamais recopiés ici.
@@ -27,6 +36,15 @@ export interface InstagramPost {
   framing: Record<FormatId, Framing>
   /** Les fichiers exportés, chemins relatifs à `communication/`. */
   renders: Partial<Record<FormatId, string>>
+  /**
+   * Ce qui bouge quand Veo anime l'image, en anglais. Vide : le post reste
+   * une image fixe.
+   */
+  motion: string
+  /** Toutes les vidéos essayées, chemins relatifs à `communication/`. */
+  videos: string[]
+  /** Celle qui part en Reel. */
+  video: string | null
   created_at: string
   updated_at: string
 }

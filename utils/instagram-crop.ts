@@ -22,6 +22,11 @@ export const FORMATS: readonly Format[] = [
   { id: '9x16', label: 'Story / Reel', width: 1080, height: 1920 },
 ]
 
+/** Les formats permis pour chaque type de post ; le premier est celui par défaut. */
+export function formatsFor(kind: 'publication' | 'story' | 'reel'): FormatId[] {
+  return kind === 'publication' ? ['4x5', '1x1'] : ['9x16']
+}
+
 /**
  * `crop` remplit le cadre et coupe ce qui dépasse ; `fit` montre l'image
  * entière et comble le reste avec la couleur de fond — ce que les premières

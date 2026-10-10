@@ -2,13 +2,15 @@
 /**
  * L'atelier Instagram.
  *
- * Un post y passe de l'idée à la mise en ligne : un sujet, une image peinte
- * dans le style du jeu (server/utils/instagram.ts), ses trois déclinaisons
- * recadrées ici même, une légende écrite par Claude d'après l'image. Tout est
- * écrit dans communication/instagram/, versionné avec le reste.
+ * Un post y passe de l'idée à la mise en ligne. Il est une publication, une
+ * story ou un Reel, jamais les trois : un sujet, une image peinte dans le
+ * style du jeu (server/utils/instagram.ts), recadrée ici même dans le seul
+ * format de son type, animée par Veo s'il est un Reel, une légende écrite par
+ * Claude d'après l'image. Tout est écrit dans communication/instagram/,
+ * versionné avec le reste.
  */
-import type { InstagramPost, PostIdea, PostStatus } from '~/types/instagram'
-import { FORMATS, place, type FormatId, type Framing } from '~/utils/instagram-crop'
+import type { InstagramPost, PostIdea, PostKind, PostStatus } from '~/types/instagram'
+import { FORMATS, formatsFor, place, type FormatId, type Framing } from '~/utils/instagram-crop'
 
 // Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
@@ -22,32 +24,32 @@ const STATUS: Record<PostStatus, { label: string; tone: string }> = {
   idee: { label: 'Idée', tone: 'border-steel-600/60 text-steel-400' },
   brouillon: { label: 'Brouillon', tone: 'border-ink-400/60 text-ink-200' },
   pret: { label: 'Prêt', tone: 'border-neon-600/60 text-neon-300' },
-  publie: { label: 'Publié', tone: 'border-ink-600 text-ink-400' },
+  publie: { label: 'Publié', tone: 'border-ink-600 text-ink-300' },
 }
 const STATUSES = Object.keys(STATUS) as PostStatus[]
 
+const KIND: Record<PostKind, string> = { publication: 'Publication', story: 'Story', reel: 'Reel' }
+const KINDS = Object.keys(KIND) as PostKind[]
+
 type Tab = 'posts' | 'grille' | 'idees'
 const tab = ref<Tab>('posts')
-const filter = ref<PostStatus | 'tous'>('tous')
 const selectedId = ref<string | null>(null)
 const notice = ref<{ text: string; error?: boolean } | null>(null)
 const busy = ref<string | null>(null)
 
 const visible = computed(() => {
-  const list = filter.value === 'tous' ? posts.value : posts.value.filter(p => p.status === filter.value)
   // Les dates prévues d'abord, la plus proche en tête ; le reste par fraîcheur.
-  return [...list].sort((a, b) => {
+  return [...posts.value].sort((a, b) => {
     if (a.scheduled_for && b.scheduled_for) return a.scheduled_for.localeCompare(b.scheduled_for)
     if (a.scheduled_for) return -1
     if (b.scheduled_for) return 1
     return b.updated_at.localeCompare(a.updated_at)
   })
 })
-const countOf = (s: PostStatus) => posts.value.filter(p => p.status === s).length
 
 const fileUrl = (path: string | null | undefined, version = '') =>
   path ? `/api/admin/instagram/file?path=${encodeURIComponent(path)}&v=${encodeURIComponent(version)}` : ''
-const thumbOf = (p: InstagramPost) => fileUrl(p.renders['4x5'] ?? p.renders['1x1'] ?? p.source, p.updated_at)
+const thumbOf = (p: InstagramPost) => fileUrl(p.renders[p.format] ?? p.source, p.updated_at)
 
 function say(text: string, isError = false) {
   notice.value = { text, error: isError }
@@ -119,7 +121,8 @@ async function save() {
       body: {
         title: d.title, subject: d.subject, notes: d.notes, status: d.status,
         scheduled_for: d.scheduled_for || null, published_at: d.published_at || null,
-        caption: d.caption, alt: d.alt, framing: d.framing,
+        caption: d.caption, alt: d.alt, framing: d.framing, motion: d.motion, video: d.video,
+        kind: d.kind, format: d.format,
         hashtags: hashtagText.value.split(/[\s,]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
       },
     })
@@ -154,7 +157,7 @@ async function copy(text: string, what: string) {
   }
 }
 
-async function createPost(fields: { title: string; subject?: string; notes?: string }) {
+async function createPost(fields: { title: string; subject?: string; notes?: string; kind?: PostKind }) {
   const post = await run('create', () => $fetch<InstagramPost>('/api/admin/instagram', { method: 'POST', body: fields }))
   if (post) {
     adopt(post)
@@ -164,9 +167,24 @@ async function createPost(fields: { title: string; subject?: string; notes?: str
 }
 
 const newTitle = ref('')
+const newKind = ref<PostKind>('publication')
 async function quickCreate() {
   if (!newTitle.value.trim()) return
-  if (await createPost({ title: newTitle.value })) newTitle.value = ''
+  if (await createPost({ title: newTitle.value, kind: newKind.value })) newTitle.value = ''
+}
+
+/** Changer de type ramène le format dans ceux que ce type permet. */
+function setKind(kind: PostKind) {
+  const d = draft.value
+  if (!d) return
+  d.kind = kind
+  if (!formatsFor(kind).includes(d.format)) d.format = formatsFor(kind)[0]!
+  scheduleSave()
+}
+function setFormat(format: FormatId) {
+  if (!draft.value) return
+  draft.value.format = format
+  scheduleSave()
 }
 
 async function remove() {
@@ -188,14 +206,14 @@ function markPublished() {
 
 /* ───────────── L'image source ───────────── */
 
-const quality = ref<'low' | 'medium' | 'high'>('high')
+const quality = 'high'
 
 async function generate() {
   const d = draft.value
   if (!d?.subject.trim()) return say('Décris d’abord le sujet de l’image', true)
   flushSave()
   const post = await run('image', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/image`, {
-    method: 'POST', body: { subject: d.subject, quality: quality.value }, timeout: 600_000,
+    method: 'POST', body: { subject: d.subject, quality }, timeout: 600_000,
   }))
   if (post) {
     adopt(post)
@@ -225,6 +243,9 @@ function pickSource(path: string) {
 }
 
 /* ───────────── Les déclinaisons ───────────── */
+
+/** Le seul cadre affiché : celui du format du post. */
+const shownFormats = computed(() => FORMATS.filter(f => f.id === draft.value?.format))
 
 /** Hors réactivité : Vue rappelle ces refs à chaque rendu, sans que rien n'en dépende. */
 const canvases: Partial<Record<FormatId, HTMLCanvasElement>> = {}
@@ -316,8 +337,31 @@ async function exportRenders() {
   }))
   if (post) {
     adopt(post)
-    say('Les trois formats sont exportés')
+    say('Le format est exporté')
   }
+}
+
+/* ───────────── Le Reel ───────────── */
+
+const videoModel = ref<'fast' | 'standard'>('fast')
+
+async function animate() {
+  const d = draft.value
+  if (!d?.motion.trim()) return say('Décris d’abord ce qui bouge', true)
+  flushSave()
+  const post = await run('video', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/video`, {
+    method: 'POST', body: { motion: d.motion, model: videoModel.value }, timeout: 600_000,
+  }))
+  if (post) {
+    adopt(post)
+    say('Nouveau Reel animé')
+  }
+}
+
+function pickVideo(path: string) {
+  if (!draft.value) return
+  draft.value.video = path
+  scheduleSave()
 }
 
 /* ───────────── La légende ───────────── */
@@ -345,7 +389,7 @@ async function proposeIdeas() {
   if (reply) ideas.value = reply.ideas
 }
 async function adoptIdea(idea: PostIdea) {
-  if (await createPost({ title: idea.title, subject: idea.subject, notes: idea.angle })) {
+  if (await createPost({ title: idea.title, subject: idea.subject, notes: idea.angle, kind: newKind.value })) {
     ideas.value = ideas.value.filter(i => i !== idea)
   }
 }
@@ -354,13 +398,15 @@ async function adoptIdea(idea: PostIdea) {
 
 /**
  * Le profil tel qu'il sera : les posts prévus au-dessus, du plus lointain au
- * plus proche, puis ceux déjà en ligne, du plus récent au plus ancien.
+ * plus proche, puis ceux déjà en ligne, du plus récent au plus ancien. Les
+ * stories n'y paraissent pas.
  */
 const grid = computed(() => {
-  const planned = posts.value
-    .filter(p => p.status !== 'publie' && p.status !== 'idee' && (p.renders['4x5'] || p.source))
+  const feed = posts.value.filter(p => p.kind !== 'story')
+  const planned = feed
+    .filter(p => p.status !== 'publie' && p.status !== 'idee' && (p.renders[p.format] || p.source))
     .sort((a, b) => (b.scheduled_for ?? '9999').localeCompare(a.scheduled_for ?? '9999'))
-  const live = posts.value
+  const live = feed
     .filter(p => p.status === 'publie')
     .sort((a, b) => (b.published_at ?? '').localeCompare(a.published_at ?? ''))
   return [...planned, ...live]
@@ -370,20 +416,22 @@ const BUSY_LABEL: Record<string, string> = {
   image: 'Peinture en cours — compte une à deux minutes…',
   caption: 'Claude regarde l’image et écrit…',
   ideas: 'Claude cherche des idées…',
-  export: 'Export des trois formats…',
+  export: 'Export du format…',
   upload: 'Import de l’image…',
+  video: 'Veo anime l’image — compte deux à six minutes…',
   create: 'Création du post…',
   delete: 'Suppression…',
 }
 
-const input = 'w-full bg-ink-900/70 border border-steel-600/60 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-400 focus:border-neon-500 focus:outline-none'
-const button = 'border border-neon-600/60 px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-neon-300 hover:bg-neon-500/10 disabled:opacity-40 disabled:cursor-not-allowed'
-const ghost = 'border border-steel-600/60 px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-ink-200 hover:border-ink-300 disabled:opacity-40 disabled:cursor-not-allowed'
-const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-400'
+// [color-scheme:dark] : sans lui, les listes et les dates natives restent blanches.
+const input = 'w-full bg-ink-800 [color-scheme:dark] border border-steel-500 px-3 py-2 text-sm text-parchment placeholder:text-ink-300 focus:border-neon-500 focus:outline-none'
+const button = 'border border-neon-500 bg-neon-500/10 px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-neon-200 hover:bg-neon-500/25 disabled:opacity-40 disabled:cursor-not-allowed'
+const ghost = 'border border-steel-500 px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-ink-100 hover:border-ink-200 disabled:opacity-40 disabled:cursor-not-allowed'
+const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
 </script>
 
 <template>
-  <div class="min-h-[100dvh] px-4 py-8 sm:px-8">
+  <div class="ig-atelier min-h-[100dvh] px-4 py-8 sm:px-8">
     <div class="mx-auto w-full max-w-6xl space-y-8">
 
       <div v-if="error" class="border border-neon-600/40 p-6 space-y-2">
@@ -396,10 +444,9 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
           <p class="font-display text-[10px] uppercase tracking-[0.4em] text-neon-400/80">Communication</p>
           <h1 class="neon-text font-display uppercase text-2xl sm:text-3xl tracking-[0.05em]">Atelier Instagram</h1>
           <div class="neon-rule w-32" />
-          <p class="text-ink-200/85 text-sm leading-relaxed max-w-3xl">
-            Un sujet, une image peinte dans le style du jeu, ses trois formats recadrés d’un geste, une légende
-            écrite par Claude d’après l’image. Tout s’enregistre dans
-            <code class="text-neon-300">communication/instagram/</code>.
+          <p class="text-ink-100 text-sm leading-relaxed max-w-3xl">
+            Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la, anime-la si
+            c’est un Reel, fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
           </p>
           <nav class="flex gap-2">
             <button
@@ -414,26 +461,24 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
         <!-- ─────────────── Posts ─────────────── -->
         <section v-if="tab === 'posts'" class="grid gap-6 lg:grid-cols-[300px_1fr]">
           <aside class="space-y-4">
-            <form class="flex gap-2" @submit.prevent="quickCreate">
-              <input v-model="newTitle" :class="input" placeholder="Nouveau post — un titre">
-              <button :class="button" :disabled="!newTitle.trim() || !!busy">+</button>
+            <form class="space-y-2" @submit.prevent="quickCreate">
+              <div class="flex gap-1">
+                <button
+                  v-for="k in KINDS" :key="k" type="button"
+                  :class="[newKind === k ? 'border-neon-500 text-neon-200 bg-neon-500/10' : 'border-steel-500 text-ink-100', 'flex-1 border py-1.5 text-[11px] uppercase tracking-[0.14em]']"
+                  @click="newKind = k"
+                >{{ KIND[k] }}</button>
+              </div>
+              <div class="flex gap-2">
+                <input v-model="newTitle" :class="input" :placeholder="`Nouvelle ${KIND[newKind].toLowerCase()} — un titre`">
+                <button :class="button" :disabled="!newTitle.trim() || !!busy">+</button>
+              </div>
             </form>
-            <div class="flex flex-wrap gap-1.5 text-[10px] uppercase tracking-[0.14em]">
-              <button
-                :class="[filter === 'tous' ? 'border-neon-500 text-neon-300' : 'border-steel-600/60 text-ink-300', 'border px-2 py-0.5']"
-                @click="filter = 'tous'"
-              >Tous {{ posts.length }}</button>
-              <button
-                v-for="s in STATUSES" :key="s"
-                :class="[filter === s ? 'border-neon-500 text-neon-300' : 'border-steel-600/60 text-ink-300', 'border px-2 py-0.5']"
-                @click="filter = s"
-              >{{ STATUS[s].label }} {{ countOf(s) }}</button>
-            </div>
             <ul class="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
               <li v-for="p in visible" :key="p.id">
                 <button
                   class="flex w-full items-center gap-3 border p-2 text-left hover:border-neon-600/60"
-                  :class="selectedId === p.id ? 'border-neon-500 bg-neon-500/5' : 'border-steel-700'"
+                  :class="selectedId === p.id ? 'border-neon-500 bg-neon-500/5' : 'border-steel-600'"
                   @click="open(p.id)"
                 >
                   <img v-if="thumbOf(p)" :src="thumbOf(p)" alt="" class="h-14 w-11 shrink-0 object-cover bg-ink-800">
@@ -441,18 +486,19 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                   <span class="min-w-0 space-y-1">
                     <span class="block truncate text-sm text-ink-100">{{ p.title }}</span>
                     <span class="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em]">
+                      <span class="text-ink-100">{{ KIND[p.kind] }}</span>
                       <span :class="[STATUS[p.status].tone, 'border px-1.5']">{{ STATUS[p.status].label }}</span>
                       <span v-if="p.scheduled_for && p.status !== 'publie'" class="text-ink-300">{{ p.scheduled_for }}</span>
-                      <span v-else-if="p.published_at" class="text-ink-400">{{ p.published_at }}</span>
+                      <span v-else-if="p.published_at" class="text-ink-300">{{ p.published_at }}</span>
                     </span>
                   </span>
                 </button>
               </li>
-              <li v-if="!visible.length" class="text-ink-400 text-xs py-4">Aucun post ici.</li>
+              <li v-if="!visible.length" class="text-ink-300 text-xs py-4">Aucun post ici.</li>
             </ul>
           </aside>
 
-          <div v-if="!draft" class="border border-dashed border-steel-700 p-10 text-center text-ink-400 text-sm">
+          <div v-if="!draft" class="border border-dashed border-steel-600 p-10 text-center text-ink-300 text-sm">
             Choisis un post à gauche, crée-en un, ou va chercher des idées.
           </div>
 
@@ -461,12 +507,18 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
             <section class="space-y-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <input v-model="draft.title" :class="[input, 'font-display text-lg uppercase tracking-[0.06em] max-w-md']" @input="scheduleSave">
-                <span class="text-[10px] uppercase tracking-[0.16em] text-ink-400 pt-3">
+                <span class="text-[10px] uppercase tracking-[0.16em] text-ink-300 pt-3">
                   {{ saveState === 'saved' ? 'Enregistré' : saveState === 'saving' ? 'Enregistrement…' : 'Modifié' }}
                   · {{ draft.id }}
                 </span>
               </div>
               <div class="grid gap-3 sm:grid-cols-3">
+                <label class="space-y-1">
+                  <span :class="label">Type</span>
+                  <select :value="draft.kind" :class="input" @change="setKind(($event.target as HTMLSelectElement).value as PostKind)">
+                    <option v-for="k in KINDS" :key="k" :value="k">{{ KIND[k] }}</option>
+                  </select>
+                </label>
                 <label class="space-y-1">
                   <span :class="label">Statut</span>
                   <select v-model="draft.status" :class="input" @change="scheduleSave">
@@ -477,10 +529,6 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                   <span :class="label">Publication prévue</span>
                   <input v-model="draft.scheduled_for" type="date" :class="input" @change="scheduleSave">
                 </label>
-                <label class="space-y-1">
-                  <span :class="label">Publié le</span>
-                  <input v-model="draft.published_at" type="date" :class="input" @change="scheduleSave">
-                </label>
               </div>
               <label class="block space-y-1">
                 <span :class="label">Notes — l’angle, ce que le post doit raconter</span>
@@ -489,7 +537,7 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
             </section>
 
             <!-- Image -->
-            <section class="space-y-4 border-t border-steel-700 pt-6">
+            <section class="space-y-4 border-t border-steel-600 pt-6">
               <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">1 · L’image</h2>
               <label class="block space-y-1">
                 <span :class="label">Sujet, en anglais — le style et la palette sont ajoutés tout seuls</span>
@@ -500,11 +548,6 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                 />
               </label>
               <div class="flex flex-wrap items-center gap-2">
-                <select v-model="quality" :class="[input, 'w-auto']">
-                  <option value="low">Qualité basse — essai</option>
-                  <option value="medium">Qualité moyenne</option>
-                  <option value="high">Qualité haute — final</option>
-                </select>
                 <button :class="button" :disabled="!!busy || !draft.subject.trim()" @click="generate">
                   {{ draft.sources.length ? 'Peindre une variante' : 'Peindre l’image' }}
                 </button>
@@ -521,27 +564,34 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                   :title="s"
                   @click="pickSource(s)"
                 >
-                  <img :src="fileUrl(s)" alt="" class="h-28 w-auto bg-ink-800">
+                  <img :src="fileUrl(s)" alt="" class="ig-variant h-28 w-auto bg-ink-800">
                 </button>
               </div>
             </section>
 
-            <!-- Formats -->
-            <section v-if="draft.source" class="space-y-4 border-t border-steel-700 pt-6">
+            <!-- Cadrage -->
+            <section v-if="draft.source" class="space-y-4 border-t border-steel-600 pt-6">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">2 · Les formats</h2>
-                <span class="text-ink-400 text-[11px]">Source {{ sourceSize || '…' }} — glisse l’aperçu pour recadrer</span>
+                <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">2 · Le cadrage</h2>
+                <span class="text-ink-300 text-[11px]">Source {{ sourceSize || '…' }} — glisse l’aperçu pour recadrer</span>
               </div>
-              <div class="grid gap-5 sm:grid-cols-3 items-start">
-                <div v-for="f in FORMATS" :key="f.id" class="space-y-2">
+              <div v-if="draft.kind === 'publication'" class="flex gap-1 max-w-xs">
+                <button
+                  v-for="id in formatsFor('publication')" :key="id"
+                  :class="[draft.format === id ? 'border-neon-500 text-neon-200 bg-neon-500/10' : 'border-steel-500 text-ink-100', 'flex-1 border py-1.5 text-[11px] uppercase tracking-[0.14em]']"
+                  @click="setFormat(id)"
+                >{{ id === '1x1' ? 'Carré' : 'Portrait 4:5' }}</button>
+              </div>
+              <div class="max-w-xs">
+                <div v-for="f in shownFormats" :key="f.id" class="space-y-2">
                   <p class="flex justify-between text-[10px] uppercase tracking-[0.16em]">
                     <span class="text-ink-100">{{ f.label }}</span>
-                    <span class="text-ink-400">{{ f.width }}×{{ f.height }}</span>
+                    <span class="text-ink-300">{{ f.width }}×{{ f.height }}</span>
                   </p>
                   <canvas
                     :ref="bindCanvas(f.id)"
                     :width="f.width" :height="f.height"
-                    class="w-full border border-steel-700 cursor-grab active:cursor-grabbing touch-none"
+                    class="w-full border border-steel-600 cursor-grab active:cursor-grabbing touch-none"
                     @pointerdown="dragStart(f.id, $event)"
                     @pointermove="dragMove"
                     @pointerup="dragEnd"
@@ -571,13 +621,51 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                 </div>
               </div>
               <button :class="button" :disabled="!!busy || !sourceImage" @click="exportRenders">
-                Exporter les trois formats
+                Exporter
               </button>
+              <p v-if="draft.kind === 'story'" class="text-ink-200 text-sm">
+                Une story n’a pas de légende : télécharge le 9:16 exporté et publie-le en story.
+              </p>
+            </section>
+
+            <!-- Reel -->
+            <section v-if="draft.kind === 'reel' && draft.source" class="space-y-4 border-t border-steel-600 pt-6">
+              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">3 · L’animation</h2>
+              <label class="block space-y-1">
+                <span :class="label">Ce qui bouge, en anglais — Veo anime {{ draft.renders['9x16'] ? 'le 9:16 exporté' : 'l’image source' }}</span>
+                <textarea
+                  v-model="draft.motion" rows="3" :class="input"
+                  placeholder="Ce qui bouge dans l’image, et comment la caméra se déplace"
+                  @input="scheduleSave"
+                />
+              </label>
+              <div class="flex flex-wrap items-center gap-2">
+                <select v-model="videoModel" :class="[input, 'w-auto']">
+                  <option value="fast">Veo 3.1 Fast — environ 1 $</option>
+                  <option value="standard">Veo 3.1 — environ 3,20 $</option>
+                </select>
+                <button :class="button" :disabled="!!busy || !draft.motion.trim()" @click="animate">
+                  {{ draft.videos.length ? 'Animer une variante' : 'Animer en Reel' }}
+                </button>
+              </div>
+              <div v-if="draft.videos.length" class="flex gap-3 overflow-x-auto pb-1">
+                <div v-for="v in draft.videos" :key="v" class="shrink-0 space-y-1">
+                  <video
+                    :src="fileUrl(v)" controls loop playsinline preload="metadata"
+                    class="ig-variant border-2" :class="draft.video === v ? 'border-neon-500' : 'border-transparent'"
+                  />
+                  <div class="flex gap-2 text-[11px]">
+                    <button v-if="draft.video !== v" class="text-ink-100 hover:text-neon-300" @click="pickVideo(v)">Choisir</button>
+                    <span v-else class="text-neon-300">Choisie</span>
+                    <a :href="fileUrl(v)" :download="`${draft.id}-reel.mp4`" class="text-neon-300 hover:underline underline-offset-4">Télécharger</a>
+                  </div>
+                </div>
+              </div>
             </section>
 
             <!-- Légende -->
-            <section class="space-y-4 border-t border-steel-700 pt-6">
-              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">3 · La légende</h2>
+            <section v-if="draft.kind !== 'story'" class="space-y-4 border-t border-steel-600 pt-6">
+              <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">{{ draft.kind === 'reel' ? 4 : 3 }} · La légende</h2>
               <div class="flex flex-wrap gap-2">
                 <input
                   v-model="captionDirection" :class="[input, 'flex-1 min-w-[200px]']"
@@ -615,7 +703,7 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
               </div>
             </section>
 
-            <footer class="flex flex-wrap justify-between gap-2 border-t border-steel-700 pt-6">
+            <footer class="flex flex-wrap justify-between gap-2 border-t border-steel-600 pt-6">
               <button v-if="draft.status !== 'publie'" :class="button" @click="markPublished">Marquer comme publié</button>
               <span v-else />
               <button class="text-xs uppercase tracking-[0.14em] text-red-400/80 hover:text-red-300" :disabled="!!busy" @click="remove">
@@ -637,9 +725,13 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
                 v-if="p.status !== 'publie'"
                 class="absolute left-1 top-1 bg-ink-900/85 px-1.5 text-[9px] uppercase tracking-[0.12em] text-neon-300"
               >{{ p.scheduled_for ?? STATUS[p.status].label }}</span>
+              <span
+                v-if="p.kind === 'reel'"
+                class="absolute right-1 top-1 bg-ink-900/85 px-1.5 text-[9px] uppercase tracking-[0.12em] text-neon-300"
+              >Reel</span>
             </button>
           </div>
-          <p v-if="!grid.length" class="text-ink-400 text-sm">Rien à montrer : aucun post n’a encore d’image.</p>
+          <p v-if="!grid.length" class="text-ink-300 text-sm">Rien à montrer : aucun post n’a encore d’image.</p>
         </section>
 
         <!-- ─────────────── Idées ─────────────── -->
@@ -655,14 +747,14 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
             <button :class="button" :disabled="!!busy" @click="proposeIdeas">Proposer</button>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
-            <div v-for="idea in ideas" :key="idea.title + idea.subject" class="border border-steel-700 p-4 space-y-2">
+            <div v-for="idea in ideas" :key="idea.title + idea.subject" class="border border-steel-600 p-4 space-y-2">
               <p class="font-display uppercase tracking-[0.08em] text-ink-100">{{ idea.title }}</p>
               <p class="text-ink-200 text-sm">{{ idea.angle }}</p>
-              <p class="text-ink-400 text-xs italic">{{ idea.subject }}</p>
+              <p class="text-ink-300 text-xs italic">{{ idea.subject }}</p>
               <button :class="button" :disabled="!!busy" @click="adoptIdea(idea)">Créer le post</button>
             </div>
           </div>
-          <p v-if="!ideas.length" class="text-ink-400 text-sm">
+          <p v-if="!ideas.length" class="text-ink-300 text-sm">
             Claude part du jeu et des posts déjà faits, et propose des sujets prêts à peindre.
           </p>
         </section>
@@ -678,3 +770,21 @@ const label = 'font-display text-[10px] uppercase tracking-[0.22em] text-steel-4
     </div>
   </div>
 </template>
+
+<style>
+/*
+ * Filet de sécurité : si Tailwind n'a pas (encore) généré les classes de la
+ * page, les champs restaient blancs à texte gris et les bordures claires.
+ * :where() ramène tout à une spécificité nulle, les utilitaires gagnent dès
+ * qu'ils existent.
+ */
+:where(.ig-atelier) :where(*) { border-color: rgb(var(--steel-500)); }
+:where(.ig-atelier) :where(input:not([type=range], [type=file]), textarea, select) {
+  background-color: rgb(var(--ink-800));
+  color: #e9ecf1;
+  color-scheme: dark;
+}
+:where(.ig-atelier) :where(input, textarea)::placeholder { color: rgb(var(--ink-300)); }
+/* Les variantes peintes : des vignettes, pas l'image en 1024×1536. */
+.ig-variant { height: 7rem; width: auto; }
+</style>

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import type { InstagramPost } from '~/types/instagram'
-import { DEFAULT_FRAMING, FORMATS, type FormatId } from '~/utils/instagram-crop'
+import { DEFAULT_FRAMING, FORMATS, formatsFor, type FormatId } from '~/utils/instagram-crop'
 
 /**
  * L'atelier Instagram : où vivent les posts, et comment on les peint.
@@ -43,6 +43,17 @@ export function buildImagePrompt(subject: string): string {
   return `${IG_COMPOSITION}\n${subject.trim()}\n\n${IG_STYLE}`
 }
 
+/**
+ * Veo part de l'image déjà peinte : le style est dans l'image, le prompt ne
+ * dit que ce qui bouge, et rappelle de ne rien inventer d'autre.
+ */
+export function buildVideoPrompt(motion: string): string {
+  return `${motion.trim()}
+
+Keep the exact look of the starting image: flat cel-shaded shapes, hard edges, no gradients, the same three colors (${D} shadow, ${S} surfaces, ${A} neon light). Slow, deliberate, film-noir movement. No text, no lettering, no logo appears at any time.
+Sound: rain, the low hum of neon and a distant city. No dialogue, no music.`
+}
+
 /** Ce que Claude doit savoir du jeu pour en parler. */
 export const IG_BRIEF = `LE JEU : « La Nuit du Bout du Monde », jeu de rôle textuel conçu par Jordan Quiqueret, qui se joue dans le navigateur.
 Une nuit dans une mégapole cyberpunk battue par la pluie, écrite pour un seul joueur. On remplit un formulaire d'admission au bureau des admissions ; la ville, ses habitants et sa quête naissent de ces réponses, illustrés scène après scène. On joue en tapant ce qu'on veut faire, comme dans les jeux d'aventure textuels des années 80.
@@ -58,6 +69,8 @@ function blankFraming() {
 export function newPost(fields: Partial<InstagramPost> & Pick<InstagramPost, 'id' | 'title'>): InstagramPost {
   const at = now()
   return {
+    kind: 'publication',
+    format: '4x5',
     subject: '',
     notes: '',
     status: 'idee',
@@ -70,15 +83,25 @@ export function newPost(fields: Partial<InstagramPost> & Pick<InstagramPost, 'id
     source: null,
     framing: blankFraming(),
     renders: {},
+    motion: '',
+    videos: [],
+    video: null,
     created_at: at,
     updated_at: at,
     ...fields,
   }
 }
 
+/** Un format qui ne va pas avec le type du post est remplacé par celui par défaut. */
+export function settleFormat(post: InstagramPost): void {
+  const allowed = formatsFor(post.kind)
+  if (!allowed.includes(post.format)) post.format = allowed[0]!
+}
+
 /**
- * Les quatre premiers posts, faits à la main avant l'atelier. Ils entrent tels
- * quels, fichiers compris : rien n'est déplacé ni recopié.
+ * Les quatre premiers posts, faits à la main avant l'atelier, chacun en
+ * publication et en story. Ils entrent tels quels, fichiers compris : rien
+ * n'est déplacé ni recopié.
  */
 function seed(): InstagramPost[] {
   const first: [string, string, string][] = [
@@ -87,23 +110,21 @@ function seed(): InstagramPost[] {
     ['3-le-sas', 'Le sas', 'A massive armored blast door at the end of a wet concrete corridor, its frame built of stepped concentric layers, closed, a single card reader beside it glowing as a solid neon slot, a gloved hand in the foreground raising a blank access card toward it, pools of neon light on the wet floor, heavy pipes and cable bundles on the walls, deep perspective.'],
     ['4-insomnie', 'Insomnie', 'Inside a tiny bare apartment at three in the morning, a figure sitting awake on the edge of a narrow bed, seen from behind as a black silhouette, facing a tall window; outside, a wall of giant lit advertising screens and neon tubes on the facing tower floods the room with hard-edged shafts of neon light that cut the floor and the walls. The city never sleeps. Melancholic, quiet, lonely.'],
   ]
-  return first.map(([file, title, subject]) => {
+  return first.flatMap(([file, title, subject]) => {
     const source = `sources/${file}.png`
-    return newPost({
-      id: file,
-      title,
-      subject,
-      status: 'pret',
-      sources: [source],
-      source,
-      // Les stories d'origine montraient l'image entière, en bandes noires.
-      framing: { ...blankFraming(), '9x16': { ...DEFAULT_FRAMING, mode: 'fit' } },
-      renders: {
-        '1x1': `posts-carres/${file}.jpg`,
-        '4x5': `posts-4x5/${file}.jpg`,
-        '9x16': `stories-9x16/${file}.jpg`,
-      },
-    })
+    const shared = { subject, status: 'pret' as const, sources: [source], source }
+    return [
+      newPost({
+        ...shared, id: file, title,
+        renders: { '1x1': `posts-carres/${file}.jpg`, '4x5': `posts-4x5/${file}.jpg` },
+      }),
+      newPost({
+        ...shared, id: `${file}-story`, title: `${title} — story`, kind: 'story', format: '9x16',
+        // Les stories d'origine montraient l'image entière, en bandes noires.
+        framing: { ...blankFraming(), '9x16': { ...DEFAULT_FRAMING, mode: 'fit' } },
+        renders: { '9x16': `stories-9x16/${file}.jpg` },
+      }),
+    ]
   })
 }
 
@@ -153,7 +174,7 @@ export function communicationPath(rel: string): string {
   return abs
 }
 
-const MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }
+const MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.mp4': 'video/mp4' }
 export const mimeOf = (path: string) => MIME[extname(path).toLowerCase()] ?? 'application/octet-stream'
 
 /** Écrit un data URI d'image ; rend le chemin relatif. */

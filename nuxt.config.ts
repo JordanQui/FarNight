@@ -167,6 +167,8 @@ export default defineNuxtConfig({
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     /** Les images seulement. */
     openaiApiKey: process.env.OPENAI_API_KEY,
+    /** Les vidéos Veo de l'atelier Instagram, en local seulement. */
+    geminiApiKey: process.env.GEMINI_API_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     nuxtSecret: process.env.NUXT_SECRET,
 
