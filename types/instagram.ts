@@ -27,8 +27,6 @@ export interface InstagramPost {
   published_at: string | null
   caption: string
   hashtags: string[]
-  /** Texte alternatif, à coller dans les paramètres avancés d'Instagram. */
-  alt: string
   /** Le texte incrusté sur une story, à la place de la légende qu'elle n'a pas. */
   overlay: StoryOverlay
   /** Toutes les images sources essayées, chemins relatifs à `communication/`. */
@@ -76,11 +74,4 @@ export interface ReelRef {
   path: string
   /** Ce qu'on a demandé de peindre ; vide pour une image importée. */
   subject: string
-}
-
-/** Une proposition de post, rendue par Claude. */
-export interface PostIdea {
-  title: string
-  subject: string
-  angle: string
 }

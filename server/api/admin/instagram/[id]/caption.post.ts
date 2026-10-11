@@ -3,22 +3,21 @@ import { readFile } from 'node:fs/promises'
 import { ScriptRuntime } from '~/utils/script-runtime'
 
 /**
- * La légende, le texte alternatif et les hashtags, écrits par Claude.
+ * La légende et les hashtags, écrits par Claude.
  *
  * Claude VOIT l'image (le 4:5 s'il existe, sinon la source) : une légende
  * écrite d'après le seul sujet décrirait ce qu'on a demandé, pas ce qui a été
  * peint. Les légendes déjà écrites l'accompagnent, pour qu'il ne se répète pas.
  */
-interface Reply { caption: string; hashtags: string[]; alt: string }
+interface Reply { caption: string; hashtags: string[] }
 /** Une story n'a pas de légende : Claude écrit le texte incrusté sur l'image. */
 interface StoryReply { hook: string; cta: string }
 
 const CAPTION_ASK = `Écris pour Instagram, en français :
 - "caption" : une légende de 3 à 6 lignes courtes. La première ligne est une accroche qui donne envie d'ouvrir (elle seule s'affiche avant « … plus »). Le ton est celui d'un film noir : sobre, évocateur, à la deuxième personne si ça sert. Termine par un appel à jouer qui renvoie au lien en bio. Deux emoji au plus, aucun hashtag dans la légende.
 - "hashtags" : 10 à 15 hashtags sans le #, du plus précis au plus large, mêlant français et anglais (jeu narratif, cyberpunk, art, indé…).
-- "alt" : le texte alternatif de l'image, une ou deux phrases factuelles qui décrivent ce qu'on voit, pour un lecteur d'écran.
 
-Réponds uniquement en JSON : {"caption": "...", "hashtags": ["..."], "alt": "..."}`
+Réponds uniquement en JSON : {"caption": "...", "hashtags": ["..."]}`
 
 const STORY_ASK = `C'est une story : elle n'a pas de légende, le texte est incrusté sur l'image et se lit en deux secondes. Écris-le, en français :
 - "hook" : l'accroche, 8 mots au plus, qui arrête le pouce et intrigue. Ton film noir, sobre, à la deuxième personne si ça sert. Elle ne décrit pas l'image, elle lui donne un sens. Ni emoji, ni hashtag.
@@ -86,8 +85,8 @@ ${story ? STORY_ASK : CAPTION_ASK}`,
 
   return updatePost(id, (p) => {
     p.caption = String(reply.caption ?? '').trim()
-    p.hashtags = (reply.hashtags ?? []).map(h => String(h).replace(/^#/, '').trim()).filter(Boolean)
-    p.alt = String(reply.alt ?? '').trim()
+    const written = (reply.hashtags ?? []).map(h => String(h).replace(/^#/, '').trim()).filter(Boolean)
+    p.hashtags = [...new Set([...IG_DEFAULT_HASHTAGS, ...written])]
     if (p.status === 'brouillon' && Object.keys(p.renders).length) p.status = 'pret'
   })
 })

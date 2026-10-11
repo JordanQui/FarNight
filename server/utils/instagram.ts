@@ -101,6 +101,9 @@ Une nuit dans une mégapole cyberpunk battue par la pluie, écrite pour un seul 
 Direction artistique : Dark Deco (Batman, la série animée des années 90) croisé avec Flashback (1992) — tours à gradins, néon rose magenta, ombres noires, pluie. Ton : film noir, mélancolique, intrigant, jamais criard.
 Le lien vers le jeu est dans la bio du compte.`
 
+/** Toujours en tête : on n'ajoute plus que ceux du texte. */
+export const IG_DEFAULT_HASHTAGS = ['textgame', 'divination', 'ecodata']
+
 const now = () => new Date().toISOString()
 
 function blankFraming() {
@@ -118,8 +121,7 @@ export function newPost(fields: Partial<InstagramPost> & Pick<InstagramPost, 'id
     scheduled_for: null,
     published_at: null,
     caption: '',
-    hashtags: [],
-    alt: '',
+    hashtags: [...IG_DEFAULT_HASHTAGS],
     overlay: { hook: '', cta: '', position: 'bottom' },
     sources: [],
     source: null,

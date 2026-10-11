@@ -9,8 +9,9 @@
  * Claude d'après l'image. Tout est écrit dans communication/instagram/,
  * versionné avec le reste.
  */
-import type { InstagramPost, PostIdea, PostKind, PostStatus } from '~/types/instagram'
+import type { InstagramPost, PostKind, PostStatus } from '~/types/instagram'
 import { FORMATS, formatsFor, place, type FormatId, type Framing } from '~/utils/instagram-crop'
+import { postPdf } from '~/utils/instagram-pdf'
 
 // Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
@@ -31,8 +32,6 @@ const STATUSES = Object.keys(STATUS) as PostStatus[]
 const KIND: Record<PostKind, string> = { publication: 'Publication', story: 'Story', reel: 'Reel' }
 const KINDS = Object.keys(KIND) as PostKind[]
 
-type Tab = 'posts' | 'grille' | 'idees'
-const tab = ref<Tab>('posts')
 const selectedId = ref<string | null>(null)
 const notice = ref<{ text: string; error?: boolean } | null>(null)
 const busy = ref<string | null>(null)
@@ -93,7 +92,6 @@ function loadDraft(post: InstagramPost) {
 function open(id: string) {
   flushSave()
   selectedId.value = id
-  tab.value = 'posts'
   const post = posts.value.find(p => p.id === id)
   if (post) loadDraft(post)
 }
@@ -121,7 +119,7 @@ async function save() {
       body: {
         title: d.title, subject: d.subject, notes: d.notes, status: d.status,
         scheduled_for: d.scheduled_for || null, published_at: d.published_at || null,
-        caption: d.caption, alt: d.alt, overlay: d.overlay, framing: d.framing, motion: d.motion, video: d.video,
+        caption: d.caption, overlay: d.overlay, framing: d.framing, motion: d.motion, video: d.video,
         kind: d.kind, format: d.format,
         hashtags: hashtagText.value.split(/[\s,]+/).map(h => h.replace(/^#/, '')).filter(Boolean),
       },
@@ -509,45 +507,51 @@ async function writeCaption() {
   if (post) adopt(post)
 }
 
-/* ───────────── Les idées ───────────── */
+/* ───────────── Le PDF ───────────── */
 
-const ideaDirection = ref('')
-const ideaCount = ref(6)
-const ideas = ref<PostIdea[]>([])
-async function proposeIdeas() {
-  const reply = await run('ideas', () => $fetch<{ ideas: PostIdea[] }>('/api/admin/instagram/ideas', {
-    method: 'POST', body: { direction: ideaDirection.value, count: ideaCount.value }, timeout: 180_000,
-  }))
-  if (reply) ideas.value = reply.ideas
-}
-async function adoptIdea(idea: PostIdea) {
-  if (await createPost({ title: idea.title, subject: idea.subject, notes: idea.angle, kind: newKind.value })) {
-    ideas.value = ideas.value.filter(i => i !== idea)
+/** L'image telle qu'elle part : le format recadré (la story avec son texte), l'image de départ d'un Reel. */
+function pdfCanvas(): HTMLCanvasElement | null {
+  const d = draft.value
+  const img = sourceImage.value
+  if (!d || !img) return null
+  if (d.kind !== 'reel' && canvases[d.format]) {
+    paint(d.format)
+    return canvases[d.format]!
   }
+  const canvas = document.createElement('canvas')
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  canvas.getContext('2d')!.drawImage(img, 0, 0)
+  return canvas
 }
 
-/* ───────────── La grille du profil ───────────── */
-
-/**
- * Le profil tel qu'il sera : les posts prévus au-dessus, du plus lointain au
- * plus proche, puis ceux déjà en ligne, du plus récent au plus ancien. Les
- * stories n'y paraissent pas.
- */
-const grid = computed(() => {
-  const feed = posts.value.filter(p => p.kind !== 'story')
-  const planned = feed
-    .filter(p => p.status !== 'publie' && p.status !== 'idee' && (p.renders[p.format] || p.source || p.video))
-    .sort((a, b) => (b.scheduled_for ?? '9999').localeCompare(a.scheduled_for ?? '9999'))
-  const live = feed
-    .filter(p => p.status === 'publie')
-    .sort((a, b) => (b.published_at ?? '').localeCompare(a.published_at ?? ''))
-  return [...planned, ...live]
-})
+async function exportPdf() {
+  const d = draft.value
+  const canvas = pdfCanvas()
+  if (!d || !canvas) return say('Il faut d’abord une image', true)
+  const jpeg = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+  if (!jpeg) return say('Image illisible pour le PDF', true)
+  const blocks = d.kind === 'story'
+    ? [{ label: 'Accroche', text: d.overlay.hook }, { label: 'Appel', text: d.overlay.cta }]
+    : [{ label: 'Légende', text: fullCaption.value }]
+  const blob = postPdf({
+    title: d.title,
+    meta: [KIND[d.kind], d.format.replace('x', ':'), d.scheduled_for && `prévu le ${d.scheduled_for}`].filter(Boolean).join(' · '),
+    jpeg: new Uint8Array(await jpeg.arrayBuffer()),
+    width: canvas.width,
+    height: canvas.height,
+    blocks: blocks.filter(b => b.text.trim()),
+  })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${d.id}.pdf`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
 
 const BUSY_LABEL: Record<string, string> = {
   image: 'Peinture en cours — compte une à deux minutes…',
   caption: 'Claude regarde l’image et écrit…',
-  ideas: 'Claude cherche des idées…',
   export: 'Export du format…',
   ref: 'Peinture de la référence — compte une à deux minutes…',
   variant: 'Suppression de la variante…',
@@ -582,18 +586,10 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
             Choisis le type — publication, story ou Reel — puis décris l’image, peins-la, recadre-la ; pour un Reel,
             choisis l’image que Veo anime. Fais écrire la légende. Télécharge, copie, publie depuis l’app Instagram.
           </p>
-          <nav class="flex gap-2">
-            <button
-              v-for="[id, name] in ([['posts', 'Posts'], ['grille', 'Grille du profil'], ['idees', 'Idées']] as const)"
-              :key="id"
-              :class="[tab === id ? 'border-neon-500 text-neon-300' : 'border-steel-600/60 text-ink-300', 'border px-3 py-1.5 text-xs uppercase tracking-[0.16em]']"
-              @click="tab = id"
-            >{{ name }}</button>
-          </nav>
         </header>
 
         <!-- ─────────────── Posts ─────────────── -->
-        <section v-if="tab === 'posts'" class="grid gap-6 lg:grid-cols-[300px_1fr]">
+        <section class="grid gap-6 lg:grid-cols-[300px_1fr]">
           <aside class="space-y-4">
             <form class="space-y-2" @submit.prevent="quickCreate">
               <div class="flex gap-1">
@@ -633,7 +629,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
           </aside>
 
           <div v-if="!draft" class="border border-dashed border-steel-600 p-10 text-center text-ink-300 text-sm">
-            Choisis un post à gauche, crée-en un, ou va chercher des idées.
+            Choisis un post à gauche, ou crée-en un.
           </div>
 
           <article v-else class="space-y-8 min-w-0">
@@ -922,75 +918,23 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                 </span>
                 <textarea v-model="hashtagText" rows="2" :class="input" @input="scheduleSave" />
               </label>
-              <label class="block space-y-1">
-                <span :class="label">Texte alternatif — Paramètres avancés › Accessibilité</span>
-                <textarea v-model="draft.alt" rows="2" :class="input" @input="scheduleSave" />
-              </label>
               <div class="flex flex-wrap gap-2">
                 <button :class="button" :disabled="!fullCaption" @click="copy(fullCaption, 'Légende et hashtags')">
                   Copier légende + hashtags
-                </button>
-                <button :class="ghost" :disabled="!draft.alt" @click="copy(draft.alt, 'Texte alternatif')">
-                  Copier le texte alternatif
                 </button>
               </div>
             </section>
 
             <footer class="flex flex-wrap justify-between gap-2 border-t border-steel-600 pt-6">
-              <button v-if="draft.status !== 'publie'" :class="button" @click="markPublished">Marquer comme publié</button>
-              <span v-else />
+              <div class="flex flex-wrap gap-2">
+                <button :class="ghost" :disabled="!!busy || !sourceImage" @click="exportPdf">Exporter en PDF</button>
+                <button v-if="draft.status !== 'publie'" :class="button" @click="markPublished">Marquer comme publié</button>
+              </div>
               <button class="text-xs uppercase tracking-[0.14em] text-red-400/80 hover:text-red-300" :disabled="!!busy" @click="remove">
                 Supprimer le post
               </button>
             </footer>
           </article>
-        </section>
-
-        <!-- ─────────────── Grille ─────────────── -->
-        <section v-else-if="tab === 'grille'" class="space-y-4">
-          <p class="text-ink-300 text-sm max-w-2xl">
-            Le profil tel qu’il apparaîtra : les posts à venir en haut, puis ceux en ligne. Un clic ouvre le post.
-          </p>
-          <div class="mx-auto grid max-w-xl grid-cols-3 gap-0.5 bg-ink-800">
-            <button v-for="p in grid" :key="p.id" class="relative aspect-[3/4] overflow-hidden bg-ink-900" @click="open(p.id)">
-              <video v-if="p.kind === 'reel' && p.video" :src="fileUrl(p.video)" muted playsinline preload="metadata" class="h-full w-full object-cover" />
-              <img v-else :src="thumbOf(p)" :alt="p.alt || p.title" class="h-full w-full object-cover">
-              <span
-                v-if="p.status !== 'publie'"
-                class="absolute left-1 top-1 bg-ink-900/85 px-1.5 text-[9px] uppercase tracking-[0.12em] text-neon-300"
-              >{{ p.scheduled_for ?? STATUS[p.status].label }}</span>
-              <span
-                v-if="p.kind === 'reel'"
-                class="absolute right-1 top-1 bg-ink-900/85 px-1.5 text-[9px] uppercase tracking-[0.12em] text-neon-300"
-              >Reel</span>
-            </button>
-          </div>
-          <p v-if="!grid.length" class="text-ink-300 text-sm">Rien à montrer : aucun post n’a encore d’image.</p>
-        </section>
-
-        <!-- ─────────────── Idées ─────────────── -->
-        <section v-else class="space-y-5">
-          <div class="flex flex-wrap gap-2">
-            <input
-              v-model="ideaDirection" :class="[input, 'flex-1 min-w-[220px]']"
-              placeholder="Une piste ? Les personnages, l’attente avant la sortie, les objets…"
-            >
-            <select v-model.number="ideaCount" :class="[input, 'w-auto']">
-              <option v-for="n in [3, 6, 9, 12]" :key="n" :value="n">{{ n }} idées</option>
-            </select>
-            <button :class="button" :disabled="!!busy" @click="proposeIdeas">Proposer</button>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div v-for="idea in ideas" :key="idea.title + idea.subject" class="border border-steel-600 p-4 space-y-2">
-              <p class="font-display uppercase tracking-[0.08em] text-ink-100">{{ idea.title }}</p>
-              <p class="text-ink-200 text-sm">{{ idea.angle }}</p>
-              <p class="text-ink-300 text-xs italic">{{ idea.subject }}</p>
-              <button :class="button" :disabled="!!busy" @click="adoptIdea(idea)">Créer le post</button>
-            </div>
-          </div>
-          <p v-if="!ideas.length" class="text-ink-300 text-sm">
-            Claude part du jeu et des posts déjà faits, et propose des sujets prêts à peindre.
-          </p>
         </section>
       </template>
     </div>
