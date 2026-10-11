@@ -1,3 +1,4 @@
+import OpenAI from 'openai'
 import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
@@ -44,14 +45,54 @@ export function buildImagePrompt(subject: string): string {
 }
 
 /**
+ * Une référence de Reel n'est pas un décor : un seul sujet, entier et lisible,
+ * pour que Claude puisse le décrire sans rien deviner.
+ */
+const REF_COMPOSITION = 'Reference image: one single subject, whole and clearly readable, centered against a plain dark background, nothing else in the frame.'
+
+export function buildRefPrompt(subject: string): string {
+  return `${REF_COMPOSITION}\n${subject.trim()}\n\n${IG_STYLE}`
+}
+
+/**
+ * Peint un prompt avec gpt-image, en portrait 2:3 ; rend le PNG en base64.
+ * Pas de cache, à l'inverse de server/utils/image-gen.ts : relancer le même
+ * sujet, c'est justement vouloir une autre image.
+ */
+const IMAGE_MODELS = ['gpt-image-2', 'gpt-image-1']
+export async function paintImage(prompt: string, quality: 'low' | 'medium' | 'high'): Promise<string> {
+  const openai = new OpenAI({ apiKey: requireSecret(useRuntimeConfig().openaiApiKey, 'OPENAI_API_KEY') })
+  let lastError: unknown
+  for (const model of IMAGE_MODELS) {
+    try {
+      const response = await openai.images.generate({
+        model, prompt, n: 1, size: '1024x1536', quality, output_format: 'png',
+      })
+      const b64 = response.data?.[0]?.b64_json
+      if (b64) return b64
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw createError({
+    statusCode: 502,
+    statusMessage: lastError instanceof Error ? lastError.message : 'Aucune image rendue',
+  })
+}
+
+/** Le nom d'une référence tel qu'on le tape après @ : sans accent, en minuscules. */
+export const refName = (raw: string) => raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30)
+
+/**
  * Veo part de l'image déjà peinte : le style est dans l'image, le prompt ne
  * dit que ce qui bouge, et rappelle de ne rien inventer d'autre.
  */
-export function buildVideoPrompt(motion: string): string {
+export function buildVideoPrompt(motion: string, sound: boolean): string {
   return `${motion.trim()}
 
-Keep the exact look of the starting image: flat cel-shaded shapes, hard edges, no gradients, the same three colors (${D} shadow, ${S} surfaces, ${A} neon light). Slow, deliberate, film-noir movement. No text, no lettering, no logo appears at any time.
-Sound: rain, the low hum of neon and a distant city. No dialogue, no music.`
+Keep the exact look of the starting image: flat cel-shaded shapes, hard edges, no gradients, the same three colors (${D} shadow, ${S} surfaces, ${A} neon light). Slow, deliberate, film-noir movement. No text, no lettering, no logo appears at any time.${sound ? `
+Sound: rain, the low hum of neon and a distant city. No dialogue, no music.` : ''}`
 }
 
 /** Ce que Claude doit savoir du jeu pour en parler. */
@@ -87,6 +128,7 @@ export function newPost(fields: Partial<InstagramPost> & Pick<InstagramPost, 'id
     motion: '',
     videos: [],
     video: null,
+    refs: [],
     created_at: at,
     updated_at: at,
     ...fields,

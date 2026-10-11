@@ -427,6 +427,8 @@ async function exportRenders() {
 /* ───────────── Le Reel ───────────── */
 
 const videoModel = ref<'fast' | 'standard'>('fast')
+/** Décoché : la vidéo sort muette. */
+const videoSound = ref(false)
 
 async function animate() {
   const d = draft.value
@@ -434,7 +436,7 @@ async function animate() {
   if (!d.motion.trim()) return say('Décris d’abord ce qui bouge', true)
   flushSave()
   const post = await run('video', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/video`, {
-    method: 'POST', body: { motion: d.motion, model: videoModel.value }, timeout: 600_000,
+    method: 'POST', body: { motion: d.motion, model: videoModel.value, sound: videoSound.value }, timeout: 600_000,
   }))
   if (post) {
     adopt(post)
@@ -442,10 +444,56 @@ async function animate() {
   }
 }
 
+/** Le pool de références : peintes ou importées, citées par @nom dans « Ce qui bouge ». */
+const refNameInput = ref('')
+const refSubject = ref('')
+
+async function addRef(image?: string) {
+  const d = draft.value
+  if (!d || !refNameInput.value.trim()) return say('Donne d’abord un nom à la référence', true)
+  flushSave()
+  const post = await run(image ? 'upload' : 'ref', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/ref`, {
+    method: 'POST', body: { name: refNameInput.value, subject: refSubject.value, image }, timeout: 600_000,
+  }))
+  if (post) {
+    adopt(post)
+    refNameInput.value = ''
+    refSubject.value = ''
+  }
+}
+
+function uploadRef(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => addRef(reader.result as string)
+  reader.readAsDataURL(file)
+  ;(event.target as HTMLInputElement).value = ''
+}
+
+/** Un clic sur une référence la cite à la fin de « Ce qui bouge ». */
+function citeRef(name: string) {
+  const d = draft.value
+  if (!d) return
+  d.motion = `${d.motion.trimEnd()}${d.motion.trim() ? ' ' : ''}@${name} `
+  scheduleSave()
+}
+
 function pickVideo(path: string) {
   if (!draft.value) return
   draft.value.video = path
   scheduleSave()
+}
+
+/** Retire une image ou une vidéo du pool ; les fichiers d'avant l'atelier restent sur le disque. */
+async function removeVariant(path: string) {
+  const d = draft.value
+  if (!d || !confirm('Supprimer cette variante ?')) return
+  flushSave()
+  const post = await run('variant', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/variant`, {
+    method: 'DELETE', body: { path },
+  }))
+  if (post) adopt(post)
 }
 
 /* ───────────── La légende ───────────── */
@@ -501,6 +549,8 @@ const BUSY_LABEL: Record<string, string> = {
   caption: 'Claude regarde l’image et écrit…',
   ideas: 'Claude cherche des idées…',
   export: 'Export du format…',
+  ref: 'Peinture de la référence — compte une à deux minutes…',
+  variant: 'Suppression de la variante…',
   upload: 'Import de l’image…',
   video: 'Veo anime l’image — compte deux à six minutes…',
   create: 'Création du post…',
@@ -641,15 +691,20 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                 </label>
               </div>
               <div v-if="draft.sources.length" class="flex gap-2 overflow-x-auto pb-1">
-                <button
-                  v-for="s in draft.sources" :key="s"
-                  class="shrink-0 border-2"
-                  :class="draft.source === s ? 'border-neon-500' : 'border-transparent opacity-60 hover:opacity-100'"
-                  :title="s"
-                  @click="pickSource(s)"
-                >
-                  <img :src="fileUrl(s)" alt="" class="ig-variant h-28 w-auto bg-ink-800">
-                </button>
+                <div v-for="s in draft.sources" :key="s" class="relative shrink-0">
+                  <button
+                    class="border-2"
+                    :class="draft.source === s ? 'border-neon-500' : 'border-transparent opacity-60 hover:opacity-100'"
+                    :title="s"
+                    @click="pickSource(s)"
+                  >
+                    <img :src="fileUrl(s)" alt="" class="ig-variant h-28 w-auto bg-ink-800">
+                  </button>
+                  <button
+                    class="absolute right-1 top-1 bg-ink-900/85 px-1.5 text-xs text-ink-100 hover:text-red-300"
+                    title="Supprimer cette variante" :disabled="!!busy" @click="removeVariant(s)"
+                  >✕</button>
+                </div>
               </div>
             </section>
 
@@ -751,22 +806,64 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                   </label>
                 </div>
                 <div v-if="draft.sources.length" class="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    v-for="s in draft.sources" :key="s"
-                    class="shrink-0 border-2"
-                    :class="draft.source === s ? 'border-neon-500' : 'border-transparent opacity-60 hover:opacity-100'"
-                    :title="s"
-                    @click="pickSource(s)"
+                  <div v-for="s in draft.sources" :key="s" class="relative shrink-0">
+                    <button
+                      class="border-2"
+                      :class="draft.source === s ? 'border-neon-500' : 'border-transparent opacity-60 hover:opacity-100'"
+                      :title="s"
+                      @click="pickSource(s)"
+                    >
+                      <img :src="fileUrl(s)" alt="" class="ig-variant h-40 w-auto bg-ink-800">
+                    </button>
+                    <button
+                      class="absolute right-1 top-1 bg-ink-900/85 px-1.5 text-xs text-ink-100 hover:text-red-300"
+                      title="Supprimer cette image" :disabled="!!busy" @click="removeVariant(s)"
+                    >✕</button>
+                  </div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <span :class="label">Les références · {{ draft.refs.length }} — Veo ne les voit pas, Claude les décrit quand « Ce qui bouge » cite leur @nom</span>
+                <div v-if="draft.refs.length" class="flex gap-2 overflow-x-auto pb-1">
+                  <div v-for="r in draft.refs" :key="r.path" class="relative shrink-0 space-y-1">
+                    <button class="block border-2 border-transparent hover:border-neon-600/60" :title="r.subject || r.path" @click="citeRef(r.name)">
+                      <img :src="fileUrl(r.path)" alt="" class="ig-variant h-28 w-auto bg-ink-800">
+                    </button>
+                    <span class="block text-[11px] text-neon-300">@{{ r.name }}</span>
+                    <button
+                      class="absolute right-1 top-1 bg-ink-900/85 px-1.5 text-xs text-ink-100 hover:text-red-300"
+                      title="Supprimer cette référence" :disabled="!!busy" @click="removeVariant(r.path)"
+                    >✕</button>
+                  </div>
+                </div>
+                <p v-else class="border border-dashed border-steel-600 p-4 text-ink-300 text-xs">
+                  Le pool est vide. Chaque référence ajoutée vient s’y ranger, autant qu’il en faut ; un clic sur l’une d’elles la cite dans « Ce qui bouge ».
+                </p>
+                <span class="block text-[10px] uppercase tracking-[0.16em] text-ink-200 pt-1">
+                  {{ draft.refs.length ? 'Ajouter une autre référence' : 'Ajouter une référence' }}
+                </span>
+                <div class="flex flex-wrap gap-2">
+                  <input v-model="refNameInput" :class="[input, 'w-40']" placeholder="nom">
+                  <input
+                    v-model="refSubject" :class="[input, 'flex-1 min-w-[200px]']"
+                    placeholder="Ce que la référence montre — le style et la palette sont ajoutés tout seuls"
                   >
-                    <img :src="fileUrl(s)" alt="" class="ig-variant h-40 w-auto bg-ink-800">
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button :class="button" :disabled="!!busy || !refNameInput.trim() || !refSubject.trim()" @click="addRef()">
+                    Peindre la référence
                   </button>
+                  <label :class="[ghost, 'cursor-pointer']" :aria-disabled="!refNameInput.trim()">
+                    Importer une image
+                    <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" :disabled="!!busy || !refNameInput.trim()" @change="uploadRef">
+                  </label>
                 </div>
               </div>
               <label class="block space-y-1">
-                <span :class="label">Ce qui bouge, en anglais</span>
+                <span :class="label">Ce qui bouge, en français — Claude en fait le prompt anglais de Veo</span>
                 <textarea
                   v-model="draft.motion" rows="3" :class="input"
-                  placeholder="Ce qui bouge dans l’image, et comment la caméra se déplace"
+                  placeholder="Ce qui bouge dans l’image, et comment la caméra se déplace — une référence se cite par son @nom"
                   @input="scheduleSave"
                 />
               </label>
@@ -775,6 +872,10 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                   <option value="fast">Veo 3.1 Fast — environ 1 $</option>
                   <option value="standard">Veo 3.1 — environ 3,20 $</option>
                 </select>
+                <label class="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-ink-100 cursor-pointer">
+                  <input v-model="videoSound" type="checkbox" class="accent-neon-500">
+                  Avec le son
+                </label>
                 <button :class="button" :disabled="!!busy || !draft.source || !draft.motion.trim()" @click="animate">
                   {{ draft.videos.length ? 'Tourner une variante' : 'Tourner le Reel' }}
                 </button>
@@ -789,6 +890,7 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                     <button v-if="draft.video !== v" class="text-ink-100 hover:text-neon-300" @click="pickVideo(v)">Choisir</button>
                     <span v-else class="text-neon-300">Choisie</span>
                     <a :href="fileUrl(v)" :download="`${draft.id}-reel.mp4`" class="text-neon-300 hover:underline underline-offset-4">Télécharger</a>
+                    <button class="ml-auto text-red-400/80 hover:text-red-300" :disabled="!!busy" @click="removeVariant(v)">Supprimer</button>
                   </div>
                 </div>
               </div>

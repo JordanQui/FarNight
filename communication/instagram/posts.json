@@ -16,8 +16,11 @@
         "cta": "",
         "position": "bottom"
       },
-      "sources": [],
-      "source": null,
+      "sources": [
+        "instagram/loremipsum/source-1791675479680.jpg",
+        "instagram/loremipsum/source-1791678728067.jpg"
+      ],
+      "source": "instagram/loremipsum/source-1791678728067.jpg",
       "framing": {
         "1x1": {
           "mode": "crop",
@@ -39,11 +42,20 @@
         }
       },
       "renders": {},
-      "motion": "",
-      "videos": [],
-      "video": null,
+      "motion": "une ou deux @voiture passer de gauche a droite rapidement avec une trainé de fumée. on avance dans le cadre légérement",
+      "videos": [
+        "instagram/loremipsum/video-1791678996261.mp4"
+      ],
+      "video": "instagram/loremipsum/video-1791678996261.mp4",
+      "refs": [
+        {
+          "name": "voiture",
+          "path": "instagram/loremipsum/ref-voiture-1791678842053.jpg",
+          "subject": ""
+        }
+      ],
       "created_at": "2026-10-10T23:31:36.527Z",
-      "updated_at": "2026-10-10T23:31:41.967Z",
+      "updated_at": "2026-10-11T00:36:36.534Z",
       "id": "loremipsum",
       "title": "loremipsum"
     },
@@ -93,6 +105,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.172Z",
       "updated_at": "2026-10-10T23:11:01.172Z",
       "id": "1-la-ville",
@@ -144,6 +157,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.176Z",
       "updated_at": "2026-10-10T23:11:01.176Z",
       "id": "2-l-oeil",
@@ -195,6 +209,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.177Z",
       "updated_at": "2026-10-10T23:11:01.177Z",
       "id": "3-le-sas",
@@ -246,6 +261,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.177Z",
       "updated_at": "2026-10-10T23:11:01.177Z",
       "id": "4-insomnie",
@@ -297,6 +313,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.177Z",
       "updated_at": "2026-10-10T23:11:01.177Z",
       "id": "1-la-ville-story",
@@ -348,6 +365,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.178Z",
       "updated_at": "2026-10-10T23:11:01.178Z",
       "id": "2-l-oeil-story",
@@ -399,6 +417,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.178Z",
       "updated_at": "2026-10-10T23:11:01.178Z",
       "id": "3-le-sas-story",
@@ -450,6 +469,7 @@
       "motion": "",
       "videos": [],
       "video": null,
+      "refs": [],
       "created_at": "2026-10-10T23:11:01.178Z",
       "updated_at": "2026-10-10T23:11:01.178Z",
       "id": "4-insomnie-story",
