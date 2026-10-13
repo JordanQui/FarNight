@@ -352,20 +352,24 @@ function acceptAndEnroll() {
     <!-- Balayage cathodique, tout au-dessus -->
     <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
 
-    <!-- Avertissement données -->
+    <!--
+      Avertissement données. Plus haut que l'écran d'un téléphone : plafonné à
+      la hauteur VISIBLE (dvh, encoches déduites), le titre en tête, les boutons
+      au pied, et seuls les quatre points défilent, dans le cadre.
+    -->
     <Transition name="modal">
       <div
         v-if="showDisclaimer"
-        class="fixed inset-0 z-50 flex items-center justify-center px-6"
+        class="disclaimer-frame fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6"
         @click.self="showDisclaimer = false"
       >
         <div class="absolute inset-0 bg-ink-900/92" />
 
-        <div class="relative z-10 w-full max-w-sm bg-ink-900 border border-neon-600/50 p-7 space-y-7"
+        <div class="disclaimer-card relative z-10 w-full max-w-sm flex flex-col bg-ink-900 border border-neon-600/50"
              style="box-shadow: 0 0 0 1px rgb(var(--neon-500) / 0.12), 0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgb(var(--neon-500) / 0.12)">
           <span class="absolute inset-[5px] border border-neon-500/15 pointer-events-none" />
 
-          <div class="space-y-3 text-center">
+          <div class="shrink-0 space-y-3 text-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
             <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
               {{ t('login.disclaimer_eyebrow') }}
             </p>
@@ -375,23 +379,27 @@ function acceptAndEnroll() {
             <div class="neon-rule w-24 mx-auto" />
           </div>
 
-          <ul class="space-y-5 text-left">
-            <li
-              v-for="(point, i) in disclaimerPoints"
-              :key="i"
-              class="flex items-start gap-3.5"
-            >
-              <!-- Chevron angulaire, pas un losange de grimoire -->
-              <svg viewBox="0 0 8 10" class="w-2 h-2.5 mt-1 shrink-0 fill-neon-500" aria-hidden="true">
-                <path d="M0 0 L5 5 L0 10 L3 10 L8 5 L3 0 Z" />
-              </svg>
-              <span class="text-ink-200/80 text-[13px] leading-relaxed">{{ point }}</span>
-            </li>
-          </ul>
+          <div class="relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7">
+            <ul class="space-y-5 text-left">
+              <li
+                v-for="(point, i) in disclaimerPoints"
+                :key="i"
+                class="flex items-start gap-3.5"
+              >
+                <!-- Chevron angulaire, pas un losange de grimoire -->
+                <svg viewBox="0 0 8 10" class="w-2 h-2.5 mt-1 shrink-0 fill-neon-500" aria-hidden="true">
+                  <path d="M0 0 L5 5 L0 10 L3 10 L8 5 L3 0 Z" />
+                </svg>
+                <span class="text-ink-200/80 text-[13px] leading-relaxed">{{ point }}</span>
+              </li>
+            </ul>
+            <!-- Le texte continue : un fondu au pied le dit. -->
+            <div class="sticky bottom-0 h-6 sm:h-7 bg-gradient-to-t from-ink-900 to-transparent pointer-events-none" />
+          </div>
 
-          <div class="h-px bg-neon-600/30" />
+          <div class="shrink-0 h-px mx-5 sm:mx-7 bg-neon-600/30" />
 
-          <div class="space-y-4 flex flex-col items-center">
+          <div class="shrink-0 space-y-4 flex flex-col items-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
             <GlowButton class="w-full" @click="acceptAndEnroll">{{ t('common.continue') }}</GlowButton>
             <button
               class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400 hover:text-ink-200 transition-colors"
@@ -407,6 +415,15 @@ function acceptAndEnroll() {
 </template>
 
 <style scoped>
+.disclaimer-frame {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.disclaimer-card {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
 /*
   Le menu de langue : la même sobriété que le reste de l'accueil — pas de
   cadre, un filet sous le mot, et le chevron dessiné plutôt que celui du
