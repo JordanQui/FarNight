@@ -148,7 +148,7 @@ onMounted(async () => {
         <button
           type="button"
           class="text-steel-400 hover:text-neon-300 text-[10px] uppercase tracking-[0.28em] font-display underline underline-offset-4"
-          @click="invite.open = !invite.open; paymentStore.reset()"
+          @click="invite.open = !invite.open; paymentStore.errorMessage = null"
         >
           {{ t('puzzle.eyebrow_code') }}
         </button>
