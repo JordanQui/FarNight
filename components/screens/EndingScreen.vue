@@ -21,6 +21,8 @@ const interfacePalette = useInterfacePalette()
 const ending = ref<EndingResponse | null>(null)
 const image = ref<string | null>(null)
 const error = ref<string | null>(null)
+/** L'image est arrivée, ou a échoué : la page peut s'afficher. */
+const drawn = ref(false)
 
 onMounted(async () => {
   try {
@@ -48,7 +50,7 @@ onMounted(async () => {
     return
   }
 
-  // L'image ne bloque pas la lecture : le texte est déjà là.
+  // Le texte attend son image : la page ne s'affiche qu'avec son fond.
   try {
     const res = await $fetch<{ image: string }>('/api/scene/image', {
       method: 'POST',
@@ -63,6 +65,7 @@ onMounted(async () => {
   } catch {
     // Sans image, le texte tient debout tout seul sur le fond de la palette.
   }
+  drawn.value = true
 })
 
 /**
@@ -115,7 +118,7 @@ async function downloadImage() {
       <p v-if="error" class="text-neon-300 font-mono text-sm">{{ error }}</p>
       <!-- Réduit aux balises <h2> <p> <em> <strong> par le serveur. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <article v-if="ending" class="prose" v-html="ending.ending_html" />
+      <article v-if="ending && drawn" class="prose" v-html="ending.ending_html" />
       <p v-else-if="!error" class="text-ink-200/70 font-mono text-sm animate-pulse">
         {{ t('game.dawn') }}
       </p>
