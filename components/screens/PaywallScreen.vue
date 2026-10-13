@@ -6,11 +6,14 @@ import { usePaymentStore } from '~/stores/payment'
 import { usePlayerStore } from '~/stores/player'
 import type { ScenePaywall } from '~/types/scene'
 
-const { initPayments, fetchPaymentIntent, submitPayment } = usePaywall()
+const { initPayments, fetchPaymentIntent, submitPayment, submitInvite } = usePaywall()
 const paymentStore = usePaymentStore()
 const playerStore = usePlayerStore()
 
 const isInitializing = ref(true)
+
+// Nuit offerte : l'e-mail et le code qu'on en a tiré, à la place de la carte.
+const invite = reactive({ open: false, email: '', code: '' })
 
 /**
  * Textes de repli, quand aucune scène n'est chargée — cas du visiteur qui a
@@ -124,7 +127,7 @@ onMounted(async () => {
         </div>
         <div id="card-container" />
 
-        <p v-if="paymentStore.errorMessage" class="text-red-400/80 text-xs text-center">
+        <p v-if="paymentStore.errorMessage && !invite.open" class="text-red-400/80 text-xs text-center">
           {{ paymentStore.errorMessage }}
         </p>
       </div>
@@ -138,6 +141,44 @@ onMounted(async () => {
         >
           {{ paywall?.cta ?? t('common.continue') }}
         </GlowButton>
+      </div>
+
+      <!-- Nuit offerte : un code tiré de l'e-mail remplace le paiement. -->
+      <div class="text-center space-y-4">
+        <button
+          type="button"
+          class="text-steel-400 hover:text-neon-300 text-[10px] uppercase tracking-[0.28em] font-display underline underline-offset-4"
+          @click="invite.open = !invite.open; paymentStore.reset()"
+        >
+          {{ t('puzzle.eyebrow_code') }}
+        </button>
+
+        <form v-if="invite.open" class="space-y-3" @submit.prevent="submitInvite(invite.email, invite.code)">
+          <input
+            v-model="invite.email"
+            type="email"
+            placeholder="@"
+            autocomplete="email"
+            required
+            class="w-full bg-ink-800/50 border-0 border-b border-steel-600 focus:border-neon-400 px-3 py-2 text-ink-100 text-[13px] outline-none"
+          >
+          <input
+            v-model="invite.code"
+            type="text"
+            :placeholder="t('puzzle.eyebrow_code')"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            required
+            class="w-full bg-ink-800/50 border-0 border-b border-steel-600 focus:border-neon-400 px-3 py-2 text-ink-100 text-[13px] uppercase tracking-[0.2em] outline-none"
+          >
+          <p v-if="paymentStore.errorMessage" class="text-red-400/80 text-xs">
+            {{ paymentStore.errorMessage }}
+          </p>
+          <GlowButton type="submit" :loading="paymentStore.status === 'processing'" class="w-full">
+            {{ t('common.continue') }}
+          </GlowButton>
+        </form>
       </div>
 
       <p v-if="playerStore.place" class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display text-center">

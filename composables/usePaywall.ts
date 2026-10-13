@@ -172,8 +172,28 @@ export function usePaywall() {
     }
   }
 
+  /**
+   * Le code d'invitation tient lieu de paiement : même accès, même écran
+   * ensuite. Faux, on le dit sans rien déclencher d'autre.
+   */
+  async function submitInvite(email: string, code: string) {
+    paymentStore.setProcessing()
+    try {
+      const granted = await $fetch<{ expiresAt?: number }>('/api/payment/invite', {
+        method: 'POST',
+        body: { email, code },
+      })
+      paymentStore.setSuccess(granted?.expiresAt ?? null)
+      gameStore.setScreen('payment_success')
+      return true
+    } catch {
+      paymentStore.setError(t('puzzle.refused'))
+      return false
+    }
+  }
+
   // Les prédicats de sortie — « il en parle », « il est trop tôt », « l'objet
   // manque » — vivent désormais dans les qualités du deck : ils s'y lisent
   // dans l'ordre où ils se jouent. Ne reste ici que l'ouverture elle-même.
-  return { objectiveMet, openExit, initPayments, fetchPaymentIntent, submitPayment }
+  return { objectiveMet, openExit, initPayments, fetchPaymentIntent, submitPayment, submitInvite }
 }
