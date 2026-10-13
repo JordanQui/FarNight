@@ -62,6 +62,7 @@ onMounted(() => {
       <span>{{ t('game.facing', { name: facing.name }) }}</span>
       <span class="text-neon-600/70">&#215;</span>
     </button>
+    <!-- Chrome ignore autocomplete="off" et propose les adresses du joueur ; une valeur inconnue, il ne la remplit pas. -->
     <input
       ref="inputRef"
       v-model="input"
@@ -72,7 +73,7 @@ onMounted(() => {
       class="command-prompt flex-1 text-base sm:text-sm placeholder-ink-500 disabled:opacity-40"
       :placeholder="facing ? t('game.replying_to', { name: facing.name }) : t('game.input_ph')"
       enterkeyhint="send"
-      autocomplete="off"
+      autocomplete="game-command"
       autocorrect="off"
       spellcheck="false"
       @keydown="onKeydown"
