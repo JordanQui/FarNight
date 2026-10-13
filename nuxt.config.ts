@@ -129,6 +129,8 @@ export default defineNuxtConfig({
         { name: 'description', content: SEO_DESCRIPTION },
         { name: 'author', content: CREATOR },
         { name: 'robots', content: 'index, follow, max-image-preview:large' },
+        // Opposition à la fouille de textes et de données (TDMRep, art. L122-5-3 CPI).
+        { name: 'tdm-reservation', content: '1' },
 
         // Partage : l'image et l'adresse absolues sont posées dans app.vue,
         // qui seul connaît le domaine servi.
@@ -155,6 +157,7 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
+        { rel: 'license', href: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
       ],
       // Stripe.js dès l'arrivée : Radar juge un paiement sur la navigation qui
       // l'a précédé, et bloquait comme « trop risqué » un client vu au seul paywall.

@@ -58,6 +58,9 @@ const jsonLd = {
       creator: { '@id': `${origin}/#concepteur` },
       author: { '@id': `${origin}/#concepteur` },
       publisher: { '@id': `${origin}/#concepteur` },
+      copyrightHolder: { '@id': `${origin}/#concepteur` },
+      copyrightYear: 2026,
+      license: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
       offers: {
         '@type': 'Offer',
         price: price.amount.toFixed(2),

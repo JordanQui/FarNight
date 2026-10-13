@@ -132,7 +132,7 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div class="text-center">
+      <div class="text-center space-y-3">
         <GlowButton
           :loading="paymentStore.status === 'processing'"
           :disabled="isInitializing"
@@ -141,6 +141,11 @@ onMounted(async () => {
         >
           {{ paywall?.cta ?? t('common.continue') }}
         </GlowButton>
+        <!-- Contenu numérique livré tout de suite : la renonciation doit précéder le paiement (L221-28 13°). -->
+        <p class="text-steel-400 text-[11px] leading-relaxed">
+          {{ t('paywall.withdrawal') }}
+          <a href="/mentions-legales#vente" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-neon-300">{{ t('legal.link') }}</a>
+        </p>
       </div>
 
       <!-- Nuit offerte : un code tiré de l'e-mail remplace le paiement. -->

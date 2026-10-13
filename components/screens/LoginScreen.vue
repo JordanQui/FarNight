@@ -335,6 +335,14 @@ function acceptAndEnroll() {
           <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
         </select>
       </label>
+
+      <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
+      <NuxtLink
+        to="/mentions-legales"
+        class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/70 hover:text-steel-400 transition-colors"
+      >
+        © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
+      </NuxtLink>
     </div>
 
     <!-- Test uniquement : vide cookies, mémoire locale et image gardée -->
