@@ -110,17 +110,23 @@ const canAdvance = computed(() => step.value > 0 || hasIdentity.value)
 
 /**
  * Le dossier a été rempli jusqu'au bout une fois — dans cette visite ou dans
- * une précédente. Revenir corriger une réponse ne doit plus obliger à refaire
- * les cinq étapes : « Lancer l'aventure » reste à portée sur chacune.
+ * une précédente. Il ne décide plus de « Lancer l'aventure » : seule la
+ * réponse de la commission, vue une fois, s'épargne ensuite.
  */
 const reachedEnd = ref(false)
 watch(step, (n) => { if (n === STEPS.value.length - 1) reachedEnd.value = true })
 
-const canLaunch = computed(() => reachedEnd.value && hasIdentity.value)
+/**
+ * Le prénom et la date suffisent, dès la première étape : le but, la tension et
+ * les six lieux n'en demandent pas plus. Le reste du dossier approfondit, il
+ * n'ouvre rien.
+ */
+const canLaunch = computed(() => hasIdentity.value)
 
-/** Déposer le dossier et partir tout de suite, sans repasser par la réponse de la commission. */
+/** Partir tout de suite. La réponse de la commission ne s'épargne qu'à qui l'a déjà lue. */
 function launch() {
   if (!canLaunch.value) return
+  if (!reachedEnd.value) return submit()
   playerStore.setProfile(profileFromAdmission(form))
   enterCity()
 }
