@@ -478,10 +478,10 @@ export interface SceneScript {
   /**
    * Le second objet, à déchiffrer pour approfondir la quête.
    *
-   * Propre à l'auberge pour l'instant : les scènes suivantes s'en passent, et
-   * le bloc du prompt disparaît quand il n'est pas déclaré.
+   * Hérité de `defaults` par toutes les scènes ; `null` le retire, et le bloc
+   * du prompt disparaît avec (l'auberge : un seul objet à déchiffrer).
    */
-  sealed_object?: { instruction: string }
+  sealed_object?: { instruction: string } | null
   /** Ce qu'il faut accomplir pour passer à la scène suivante. */
   objective: {
     note?: string

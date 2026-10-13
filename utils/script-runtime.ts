@@ -2661,8 +2661,9 @@ export class ScriptRuntime {
       palette_derivation: { ...d.palette_derivation, ...raw.palette_derivation },
       // `structure` vient des defaults, `instruction` de la scène.
       quest: { ...d.quest, ...raw.quest },
-      // Toutes les scènes en ont un ; l'auberge garde sa propre formulation.
-      sealed_object: raw.sealed_object ?? d.sealed_object,
+      // Toutes les scènes en ont un, sauf celle qui le déclare `null` :
+      // l'auberge n'a qu'un objet à déchiffrer.
+      sealed_object: raw.sealed_object === null ? undefined : raw.sealed_object ?? d.sealed_object,
       narrative: { ...d.narrative, ...raw.narrative },
       turn: { ...d.turn, ...raw.turn },
       generation: { ...d.generation, ...raw.generation },
