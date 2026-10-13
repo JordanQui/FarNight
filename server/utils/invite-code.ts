@@ -6,7 +6,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * Une nuit offerte sans base de données : le code est la signature de
  * l'adresse, tronquée. Le serveur la recalcule et compare, il n'a rien à
  * retenir. Seul qui détient NUXT_SECRET peut en fabriquer un — c'est
- * `scripts/invite-code.mjs`, d'où ce module sans import Nuxt.
+ * la page /admin/encrypt.
  *
  * L'alphabet écarte I, O, 0 et 1 : le code se recopie à la main.
  */
