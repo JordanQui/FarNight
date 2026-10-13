@@ -37,33 +37,37 @@ const RANGE_DEG = 22
  * geste naturel est de relever le bord opposé pour le faire descendre dans le
  * texte, et presque tout le débattement sert à ça.
  *
- * ALLONGÉ, l'appareil est TENU DEBOUT au-dessus de soi, en position de
- * lecture, et l'oeil se range AU MILIEU. Posé à plat, il est aux trois quarts
- * — voir `POSTURE_FLAT_Y` ; pour monter, on bascule au-delà de la verticale.
+ * ALLONGÉ, c'est la même hauteur, relevée de `POSTURE_LIFT_PX`.
  */
 const POSTURE_NEUTRAL_Y: Record<string, number> = {
   assis: 0.15,
-  allonge: 0.5,
+  allonge: 0.15,
 }
 
 /**
- * La butée haute de l'oeil, par posture.
- *
- * Allongé, elle est JUSTE AU-DESSUS DE L'ÉCRAN, à -5 % : l'oeil peut sortir
- * des noms du haut sans en accrocher un au passage.
+ * La butée haute de l'oeil, par posture. Une valeur négative la place juste
+ * au-dessus de l'écran.
  */
 const POSTURE_TOP_Y: Record<string, number> = {
   assis: 0,
-  allonge: -0.05,
+  allonge: 0,
 }
 
 /**
- * Allongé, la hauteur de l'oeil appareil POSÉ SUR UNE SURFACE, écran vers le
- * ciel — c'est l'état au chargement. Entre le plat et la position de lecture,
- * l'oeil va de là au milieu, sur un quart de tour : lent, donc stable.
+ * Relèvement de l'oeil, en pixels, par posture.
+ *
+ * ALLONGÉ SE VISE EXACTEMENT COMME ASSIS — même origine, même amplitude, mêmes
+ * gains — et l'oeil y est simplement 400 px plus haut (réglé par le user le
+ * 2026-10-13). Les modèles propres à l'allongé (repos à 180°, puis tenu debout
+ * à 90°) donnaient un geste différent d'assis, et c'est cette différence qui
+ * gênait.
+ *
+ * En pixels et non en fraction d'écran, pour être le même sur tout appareil.
+ * Le relèvement s'applique AVANT la butée : le bas de l'écran reste atteignable.
  */
-const POSTURE_FLAT_Y: Record<string, number | undefined> = {
-  allonge: 0.75,
+const POSTURE_LIFT_PX: Record<string, number> = {
+  assis: 0,
+  allonge: 400,
 }
 
 /**
@@ -74,58 +78,34 @@ const POSTURE_FLAT_Y: Record<string, number | undefined> = {
  * donnaient pas la même visée, et le joueur n'avait aucun moyen de savoir
  * laquelle il venait d'obtenir.
  *
- * Assis, le repos est le téléphone POSÉ À PLAT, écran vers le ciel : 0°.
- * Allongé, c'est le téléphone TENU DEBOUT au-dessus de soi : 90°. C'est
- * l'attitude où le bras se repose vraiment, et l'oeil doit alors être au milieu
- * de l'écran — voir `POSTURE_NEUTRAL_Y`.
- *
- * LE 180° D'AVANT ÉTAIT UNE ERREUR DE MODÈLE : il décrivait l'appareil tenu à
- * plat au-dessus du visage, écran vers le bas, attitude que personne ne tient.
- * Comme la hauteur de l'oeil suit sin(bêta), la moindre inclinaison depuis 180°
- * la faisait plonger — l'oeil traversait tout l'écran en trente degrés, et il
- * fallait le remonter de 400 pixels pour qu'il soit à peu près quelque part. À
- * 90°, l'origine est là où la main se trouve, et les 400 pixels de rattrapage
- * n'ont plus lieu d'être.
+ * Le repos est le téléphone POSÉ À PLAT, écran vers le ciel : 0°, dans les
+ * deux postures — allongé ne diffère que par `POSTURE_LIFT_PX`.
  *
  * Le sens de l'inclinaison, lui, est porté par le vecteur vertical, qui n'a pas
- * besoin qu'on lui dise de quel côté on est. Et 90° est la singularité d'Euler :
- * elle ne pose aucun problème ici parce qu'on ne compare jamais des angles, mais
- * seulement des vecteurs — voir `upVector`.
+ * besoin qu'on lui dise de quel côté on est — voir `upVector`.
  */
 const REST_BETA_DEG: Record<string, number> = {
   assis: 0,
-  allonge: 90,
+  allonge: 0,
 }
 
 /**
- * Ce que la posture change d'autre : l'amplitude disponible.
- *
- * Allongé, le bras porte l'appareil au-dessus du visage et ne peut plus
- * l'incliner beaucoup : il faut donc que moins de degrés suffisent à traverser
- * l'écran. C'est de l'ergonomie, pas de la géométrie — et la même valeur sert
- * aux deux axes, parce que la verticale se lit pareil dans les deux.
+ * L'amplitude, par posture : moins de 1, moins de degrés suffisent à traverser
+ * l'écran. La même valeur sert aux deux axes, parce que la verticale se lit
+ * pareil dans les deux.
  */
 const POSTURE_RANGE_SCALE: Record<string, number> = {
   assis: 1,
-  allonge: 0.7,
+  allonge: 1,
 }
 
 /**
- * Ce que vaut la MONTÉE de l'oeil, relativement à sa descente.
- *
- * Un poignet ne parcourt pas le même angle dans les deux sens. Allongé, le bras
- * est replié au-dessus du visage : ramener le haut de l'appareil vers soi — ce
- * qui fait remonter l'oeil — ne coûte presque rien, alors que le pousser au
- * loin demande d'ouvrir le coude. À gain égal, l'oeil décollait donc vers le
- * haut au moindre relâchement de la main, et la moitié supérieure de l'écran se
- * traversait sans le vouloir.
- *
- * Assis, l'appareil est posé et l'oeil se repose déjà tout en haut : il n'a
- * nulle part où monter, et le réglage y est sans effet.
+ * Ce que vaut la MONTÉE de l'oeil, relativement à sa descente : un poignet ne
+ * parcourt pas forcément le même angle dans les deux sens.
  */
 const POSTURE_RISE_SCALE: Record<string, number> = {
   assis: 1,
-  allonge: 0.75,
+  allonge: 1,
 }
 
 /**
@@ -201,11 +181,10 @@ export function useGyroEye() {
       up,
       REST_BETA_DEG[posture] ?? 0,
       RANGE_DEG * (POSTURE_RANGE_SCALE[posture] ?? 1),
-      POSTURE_NEUTRAL_Y[posture] ?? 0.15,
+      (POSTURE_NEUTRAL_Y[posture] ?? 0.15) - (POSTURE_LIFT_PX[posture] ?? 0) / window.innerHeight,
       POSTURE_RISE_SCALE[posture] ?? 1,
       undefined,
       POSTURE_TOP_Y[posture] ?? 0,
-      POSTURE_FLAT_Y[posture],
     )
     // La première mesure place l'oeil d'un coup : sinon, au chargement, il
     // glisse depuis son repos jusqu'à l'attitude réelle.
