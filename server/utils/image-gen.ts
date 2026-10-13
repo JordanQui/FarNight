@@ -61,7 +61,9 @@ export async function generateImage(
   let lastError: unknown
 
   for (const model of models) {
-    const key = cacheKey(model, prompt, artDirection.image_size)
+    // gpt-image-1 ne connaît pas le 16:9 : le repli prend son format paysage.
+    const size = model.startsWith('gpt-image-1') ? '1536x1024' : artDirection.image_size
+    const key = cacheKey(model, prompt, size)
     const cached = imageCache.get(key)
     if (cached) return { ...cached, elapsed_ms: 0 }
 
@@ -71,7 +73,7 @@ export async function generateImage(
         model,
         prompt,
         n: 1,
-        size: artDirection.image_size as '1024x1024',
+        size: size as '1024x1024',
         quality: artDirection.image_quality as 'low',
         output_format: artDirection.image_format as 'webp',
       })

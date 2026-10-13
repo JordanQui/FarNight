@@ -1124,15 +1124,17 @@ ${lines}`)
   buildImagePrompt(input: { place_name: string; palette: ScenePalette; decor: DecorElement[] }): string {
     const ad = this.scene.art_direction
 
+    // L'élément des 10 % est le focal que la génération de la scène vient d'écrire.
+    const focal = input.decor.find(d => d.slot_id === 'focal')?.visual?.trim()
     const decorLine = input.decor
-      .filter(d => d.visual && d.slot_id !== 'ambiance_sonore')
+      .filter(d => d.visual && d.slot_id !== 'ambiance_sonore' && d.slot_id !== 'focal')
       .map(d => d.visual)
       .join('; ')
 
     return interpolate(ad.image_prompt_template, {
       setting: this.scene.image_setting,
       scene_name: input.place_name,
-      focal_element: this.scene.focal_element,
+      focal_element: focal || this.scene.focal_element,
       dominant_hex: input.palette.dominant.hex,
       dominant_name: input.palette.dominant.name,
       secondary_hex: input.palette.secondary.hex,

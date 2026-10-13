@@ -323,7 +323,7 @@
     "login.demo_loading": "Ouverture du sas",
     "login.disclaimer_eyebrow": "Avant de commencer",
     "login.disclaimer_title": "Vos données, votre histoire",
-    "login.disclaimer_1": "Le formulaire d'admission sert uniquement à générer votre aventure personnalisée — personnages, lieux, quête. Aucun compte, aucun réseau social, aucun tiers.",
+    "login.disclaimer_1": "Le formulaire d'admission sert uniquement à générer votre aventure personnalisée — personnages, lieux, quête. Aucun compte, aucun réseau social, aucun tiers. Vous ne voulez pas partager vos données ? C'est le moment de rigoler : inventez, la nuit suivra.",
     "login.disclaimer_2": "Vos réponses ne sont enregistrées sur aucun serveur : nous ne les stockons, ne les partageons et ne les revendons pas.",
     "login.disclaimer_3": "Elles restent sur cet appareil, dans votre navigateur, le temps de votre aventure — {{days}} jours — pour que vous puissiez la reprendre où vous l'avez laissée.",
     "login.disclaimer_4": "Effacer vos réponses depuis le formulaire, ou effacer les données du site, les fait disparaître.",

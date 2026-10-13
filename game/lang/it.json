@@ -313,7 +313,7 @@
     "login.demo_loading": "Apertura della paratia",
     "login.disclaimer_eyebrow": "Prima di cominciare",
     "login.disclaimer_title": "I tuoi dati, la tua storia",
-    "login.disclaimer_1": "Il modulo di ammissione serve unicamente a generare la tua avventura personalizzata — personaggi, luoghi, missione. Nessun account, nessun social, nessun terzo.",
+    "login.disclaimer_1": "Il modulo di ammissione serve unicamente a generare la tua avventura personalizzata — personaggi, luoghi, missione. Nessun account, nessun social, nessun terzo. Non vuoi condividere i tuoi dati? È il momento di divertirti: inventa, la notte ti terrà il gioco.",
     "login.disclaimer_2": "Le tue risposte non vengono registrate su alcun server: non le conserviamo, non le condividiamo e non le rivendiamo.",
     "login.disclaimer_3": "Restano su questo apparecchio, nel tuo browser, per la durata della tua avventura — {{days}} giorni — così puoi riprenderla da dove l'hai lasciata.",
     "login.disclaimer_4": "Cancellare le risposte dal modulo, o cancellare i dati del sito, le elimina.",
