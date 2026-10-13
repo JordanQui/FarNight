@@ -781,7 +781,7 @@ ${this.describeTouchstones(user)}
 ${story}
 
 LA QUÊTE DE LA NUIT
-${this.describeNight(theme, journal)}
+${this.describeNight(theme, journal, user.identity.last_name)}
 ${this.describeReading(journal)}
 
 ${this.describeCarried(carried)}
@@ -916,11 +916,11 @@ ${list(o.posture)}`
    * journal et chaque scène se bâtit sur le sien. Une scène qui en inventerait
    * un autre défait tout ce qui précède.
    */
-  private describeNight(theme: PlayerTheme | null, journal: JournalEntry[]): string {
+  private describeNight(theme: PlayerTheme | null, journal: JournalEntry[], lastName?: string): string {
     const n = this.script.defaults.night
 
     if (this.isStart) {
-      return `${n.instruction}\n\n${this.describeCalculus(theme)}\n\n${n.reading}\n\n${interpolate(n.plan, { slots: this.describeSlots(theme) })}\n\n${n.derives}`
+      return `${n.instruction}\n\n${this.describeCalculus(theme, lastName)}\n\n${n.reading}\n\n${interpolate(n.plan, { slots: this.describeSlots(theme) })}\n\n${n.derives}`
     }
 
     // Sans plan — un saut direct à une scène, un vieux journal — il ne reste
@@ -973,14 +973,14 @@ ${list(o.posture)}`
   }
 
   /**
-   * L'aventure de la nuit, calculée depuis le signe et les nombres.
+   * L'aventure de la nuit, calculée depuis le signe, les nombres et le sens du nom.
    *
    * Le modèle choisissait le but dans tout le dossier, et il prenait le plus
    * émouvant : la personne qui compte. La nuit devenait celle d'un autre
    * (« offrir à Vadim une place sous les projecteurs »). Les ingrédients sont
    * donc posés ligne à ligne, et les empreintes n'en font pas partie.
    */
-  private describeCalculus(theme: PlayerTheme | null): string {
+  private describeCalculus(theme: PlayerTheme | null, lastName?: string): string {
     const c = this.script.defaults.night.calculus
     const lines = [
       theme?.sign ? `  - Ce que sa vie lui refuse : ${theme.sign.tension}` : '',
@@ -988,6 +988,9 @@ ${list(o.posture)}`
       theme?.numbers.destiny ? `  - La forme qu'elle prend : ${theme.numbers.destiny}` : '',
       theme?.numbers.terrain ? `  - Ce qui lui barre la route : ${theme.numbers.terrain}` : '',
       theme?.numbers.heritage ? `  - Ce que son nom traîne, à démentir en route : ${theme.numbers.heritage}` : '',
+      // Le nom tel qu'il est écrit : son sens, c'est le modèle qui le lit,
+      // comme on répond à qui demande ce que veut dire son nom.
+      lastName ? `  - Son nom de famille, à lire pour ce qu'il désignait à l'origine : ${lastName}` : '',
     ].filter(Boolean)
     return lines.length ? interpolate(c.instruction, { lines: lines.join('\n') }) : c.fallback
   }

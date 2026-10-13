@@ -141,8 +141,6 @@ onUnmounted(() => { if (interval) clearInterval(interval) })
         <GlowButton class="w-full" @click="build">{{ t('common.retry') }}</GlowButton>
       </div>
     </div>
-
-    <LoadingDisclaimer />
   </div>
 </template>
 

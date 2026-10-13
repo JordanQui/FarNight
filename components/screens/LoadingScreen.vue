@@ -19,7 +19,5 @@ defineProps<{ message?: string }>()
     <p class="font-display text-[11px] uppercase tracking-[0.32em] text-neon-400/85 text-center">
       {{ message ?? t('game.loading_default') }}
     </p>
-
-    <LoadingDisclaimer />
   </div>
 </template>
