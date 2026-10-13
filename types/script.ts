@@ -174,6 +174,7 @@ export interface TurnRules {
 
 export interface GenerationConfig {
   model: string
+  temperature: number
   max_tokens: number
   system_prompt: string
   /**
