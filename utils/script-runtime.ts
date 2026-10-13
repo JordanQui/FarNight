@@ -830,7 +830,7 @@ ${s.sealed_object
   : ''}
 OBJETS MANIPULABLES
 ${s.interactables.instruction}${s.interactables.spare_card ? `\n${this.script.defaults.spare_card.instruction}` : ''}${s.interactables.card_half ? `\n${s.key_item.completes_half ? this.script.defaults.card_half.instruction_second : this.script.defaults.card_half.instruction}` : ''}
-Le verbe de l'objet à prendre s'écrit exactement ainsi : ${this.takeVerbs}.
+Un objet à prendre est PETIT : il tient dans la main et se glisse dans une poche — jamais une enseigne, un meuble, une machine, un écran ni rien de ce qui compose le lieu. Son verbe s'écrit exactement ainsi : ${this.takeVerbs}.
 
 ${this.script.defaults.item_icons.instruction}
 
@@ -1385,7 +1385,7 @@ ${lines}`)
    * il fait tout passer par les gens, la reprise aussi, et l'aventure tombait
    * en 502 au lancement. Le même geste le reconstruit.
    */
-  ensurePuzzleObjects(generated: GeneratedScene): void {
+  ensurePuzzleObjects(generated: GeneratedScene, lastTry = false): void {
     // La fréquence (a1s2) est revenue à sa forme du 2026-10-03 : elle ne
     // demande plus deux objets. Seul le code garde cette exigence.
     const needed = this.scene.key_item.puzzle === 'code' ? 2 : 1
@@ -1409,8 +1409,13 @@ ${lines}`)
     const rank = (slot: string) => slot === 'trace' ? 0
       : slot === 'focal' ? 3
         : slot === 'lointain' ? 2 : 1
+    // ON NE RAMASSE PAS UNE ENSEIGNE. Seule la `trace` tient dans la main ; le
+    // reste du décor — et tout celui de l'auberge, qui n'a pas de trace — n'est
+    // que du mobilier. La reprise redemande d'abord au modèle un petit objet ;
+    // le reste du décor ne sert qu'en dernier recours, plutôt qu'une panne.
     const decor = [...(generated.decor ?? [])]
       .filter(d => d.name?.trim() && d.description?.trim() && isNamed(d.name))
+      .filter(d => lastTry || d.slot_id === 'trace')
       .sort((a, b) => rank(a.slot_id) - rank(b.slot_id))
     const keyName = fold(generated.key_item?.name ?? '').trim()
     const takeVerb = this.pack.input.take[0]
@@ -1637,10 +1642,15 @@ ${lines}`)
     // libre, fait tout passer par les gens — et à l'auberge l'objet manquant
     // ferme le sas, qui attend qu'on ait déchiffré quelque chose.
     const takeable = (generated.interactables ?? []).filter(o => isTakeable(o, this.lang))
-    if (!takeable.length) {
+    // Un au moins EN VUE et nommé : c'est lui que le récit chiffre. Caché ou
+    // absent du texte, il n'y aurait rien à brouiller — à l'auberge, plus rien
+    // du tout, puisque c'est le seul.
+    const text = fold(generated.scene_text)
+    if (!takeable.some(o => !o.hidden && Boolean(o.label?.trim()) && text.includes(fold(o.label)))) {
       throw new Error(
         'Scène invalide : aucun objet à ramasser — un objet au moins doit être posé dans le '
-        + `décor avec pour verbe ${this.takeVerbs}, en plus de ce que les personnages donnent`)
+        + `décor avec pour verbe ${this.takeVerbs}, en plus de ce que les personnages donnent, `
+        + 'en vue (pas hidden), son label tel quel en Majuscules dans scene_text')
     }
     // LA MOITIÉ DE CARTE FERME LA SORTIE : sans elle dans le texte, le joueur
     // resterait devant une porte qui réclame une chose que la scène n'a pas.

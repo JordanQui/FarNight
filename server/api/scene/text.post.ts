@@ -269,7 +269,7 @@ export default defineEventHandler(async (event) => {
       ])
       generated = parseScene(repaired)
       scene.dropUnreachable(generated)
-      scene.ensurePuzzleObjects(generated)
+      scene.ensurePuzzleObjects(generated, true)
       scene.bindOffering(generated)
       scene.alignPlanIds(generated)
       scene.weldAugmentationName(generated)

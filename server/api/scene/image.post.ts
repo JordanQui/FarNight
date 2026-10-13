@@ -4,7 +4,7 @@ import { ScriptRuntime } from '~/utils/script-runtime'
 import { clampPlanned } from '~/utils/journal'
 import { generateImage } from '~/server/utils/image-gen'
 import { requireSecret } from '~/server/utils/runtime-secrets'
-import { assertNotLocked, consumeQuota } from '~/server/utils/session-quota'
+import { assertNotLocked, consumeQuota, readLock } from '~/server/utils/session-quota'
 
 /**
  * Phase 2 du pipeline : l'illustration.
@@ -43,7 +43,13 @@ export default defineEventHandler(async (event): Promise<SceneImageResponse> => 
   }
 
   // Quota de session : seule une génération réelle est décomptée.
-  assertNotLocked(event, runtime.limits.lock.message)
+  // L'épilogue ferme la ville en rendant son texte, et son image part juste
+  // après, sous ce verrou : elle seule passe, dans les minutes qui suivent la
+  // fermeture. Sans ça, l'aube tombait en 423 et l'écran de fin restait nu.
+  const lock = readLock(event)
+  const sealedAt = lock ? lock.until - runtime.limits.lock.completed_days * 24 * 3600_000 : 0
+  const dawn = scene.kind === 'ending' && lock?.reason === 'completed' && Date.now() - sealedAt < 5 * 60_000
+  if (!dawn) assertNotLocked(event, runtime.limits.lock.message)
   consumeQuota(event, 'images', runtime.limits)
 
   const prompt = scene.buildImagePrompt({
