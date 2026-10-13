@@ -28,22 +28,6 @@ onMounted(() => { ticker = setInterval(() => { now.value = Date.now() }, 30_000)
 onUnmounted(() => { if (ticker) clearInterval(ticker) })
 
 /**
- * Rouvrir, en développement et pendant les phases de test.
- *
- * Une fois l'écran affiché, le canal `#` n'est plus accessible : `#ouvre`
- * devient injoignable, et une séance de test condamnait la journée. Le serveur
- * refuse ce geste quand `lockOverride` est fermé — le bouton n'est alors même
- * pas rendu.
- */
-const canOverride = isLocal() || useRuntimeConfig().public.lockOverride
-
-async function reopen() {
-  await $fetch('/api/lockout', { method: 'POST', body: { open: true } }).catch(() => null)
-  gameStore.openCity()
-  gameStore.setScreen('login')
-}
-
-/**
  * La solution, une fois par scène, pour tous.
  *
  * Le serveur seul sait si elle a déjà été donnée pour cette scène : on lui
@@ -127,16 +111,6 @@ const remaining = computed(() => {
         @click="giveSolution"
       >
         {{ t('locked.give_solution') }}
-      </button>
-
-      <!-- Phases de test : un lien discret, pour les testeurs -->
-      <button
-        v-if="canOverride"
-        class="text-steel-400/40 hover:text-steel-400 underline underline-offset-4 font-display
-               uppercase text-[10px] tracking-[0.18em] transition-colors"
-        @click="reopen"
-      >
-        {{ t('locked.dev_unlock') }}
       </button>
     </div>
   </div>
