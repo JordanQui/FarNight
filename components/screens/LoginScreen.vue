@@ -51,7 +51,7 @@ const knownDossier = ref<UserProfile | null>(null)
 onMounted(() => { knownDossier.value = rememberedProfile() ?? admittedProfile() })
 
 /**
- * À défaut de partie gardée, le formulaire rempli jusqu'au bout suffit.
+ * À défaut de partie gardée, le dossier rempli — prénom et date — suffit.
  *
  * La partie (`tg_carry`) ne s'écrit qu'une fois la première scène née : un
  * dossier déposé dont la génération n'a pas abouti — serveur redémarré, build,
@@ -59,7 +59,7 @@ onMounted(() => { knownDossier.value = rememberedProfile() ?? admittedProfile() 
  */
 function admittedProfile(): UserProfile | null {
   const kept = rememberedAdmission()
-  if (!kept || kept.step < ADMISSION_STEPS - 1 || !kept.form.firstName?.trim()) return null
+  if (!kept || kept.form.birthday?.length !== 10 || !kept.form.firstName?.trim()) return null
   return profileFromAdmission({ ...kept.form, language: lang.value })
 }
 
@@ -105,12 +105,10 @@ function startFresh() {
 const memoryDays = useRuntimeConfig().public.memoryDays as number
 
 /**
- * Le nombre d'etapes du formulaire, annonce avant d'y entrer.
- *
- * L'ecran promettait « Cinq etapes » alors que le formulaire en compte six.
- * Une seule source desormais, et la promesse tient.
+ * Le nombre d'etapes du formulaire, annonce avant d'y entrer. Une seule depuis
+ * le 2026-10-13 : l'identite.
  */
-const ADMISSION_STEPS = 6
+const ADMISSION_STEPS = 1
 
 /** Les quatre points de l'avertissement, dans la langue courante. */
 const disclaimerPoints = computed(() => [

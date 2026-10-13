@@ -14,10 +14,10 @@ import type { LangCode } from '~/types/i18n'
  * déclare. On ne demande que ce que le jeu consomme réellement — l'inventaire
  * des champs est en tête de utils/admission.ts.
  *
- * Six écrans plutôt qu'une longue page : sur téléphone, une colonne de vingt
- * champs se referme avant d'être remplie. Seule la première étape est
- * obligatoire — le nom et la date fondent le signe et les nombres, tout le
- * reste enrichit sans jamais bloquer l'entrée.
+ * UN SEUL ÉCRAN depuis le 2026-10-13 : le nom, la date et l'accord. Le nom et
+ * la date fondent le signe et les nombres, d'où sortent le but, la tension et
+ * les six lieux. Origine, repères, empreintes et nuits ne sont plus demandés :
+ * `describeUser` fait tirer au modèle ce que le dossier laisse vide.
  *
  * TOUT SE TAPE, sauf l'accord grammatical et la langue. Les grilles de touches
  * ont été retirées : une touche rend au générateur un vocabulaire qu'il a
@@ -51,8 +51,8 @@ function chooseLang(code: LangCode) {
   setLang(code)
 }
 
-/** Les cinq étapes, titres et légendes pris au pack de langue. La 4e (bascule) a été retirée. */
-const STEPS = computed(() => [1, 2, 3, 5, 6].map(n => ({
+/** Une seule étape, l'identité. Titre et légende pris au pack de langue. */
+const STEPS = computed(() => [1].map(n => ({
   title: t(`admission.step${n}_title`),
   legend: t(`admission.step${n}_legend`),
 })))
@@ -70,25 +70,6 @@ const agreementChoices = computed(() => AGREEMENTS.map(value => ({
   value,
   label: t(`admission.agreement_${value}`),
   example: t(`admission.agreement_ex_${value}`),
-})))
-
-/**
- * Les trois repères : un moment, un film, un animal.
- *
- * Ils ont remplacé les trois lignes de passions, dont la première — « ce à
- * quoi vous tenez le plus » — reposait la question de l'objet des empreintes.
- * Chacun a son rôle dans la nuit (`defaults.touchstones`, script.json) ; l'amorce
- * n'entre jamais au dossier.
- */
-const TOUCHSTONES = [
-  { key: 'moment', id: 'moment' },
-  { key: 'fearFilm', id: 'fear_film' },
-  { key: 'animal', id: 'animal' },
-] as const
-const touchstoneFields = computed(() => TOUCHSTONES.map(({ key, id }) => ({
-  key,
-  label: t(`admission.${id}`),
-  hint: t(`admission.${id}_hint`),
 })))
 
 const step = ref(0)
@@ -109,44 +90,11 @@ const hasIdentity = computed(() => {
 const canAdvance = computed(() => step.value > 0 || hasIdentity.value)
 
 /**
- * Le dossier a été rempli jusqu'au bout une fois — dans cette visite ou dans
- * une précédente. Il ne décide plus de « Lancer l'aventure » : seule la
- * réponse de la commission, vue une fois, s'épargne ensuite.
- */
-const reachedEnd = ref(false)
-watch(step, (n) => { if (n === STEPS.value.length - 1) reachedEnd.value = true })
-
-/**
- * Le prénom et la date suffisent, dès la première étape : le but, la tension et
- * les six lieux n'en demandent pas plus. Le reste du dossier approfondit, il
- * n'ouvre rien.
- */
-const canLaunch = computed(() => hasIdentity.value)
-
-/** Partir tout de suite. La réponse de la commission ne s'épargne qu'à qui l'a déjà lue. */
-function launch() {
-  if (!canLaunch.value) return
-  if (!reachedEnd.value) return submit()
-  playerStore.setProfile(profileFromAdmission(form))
-  enterCity()
-}
-
-/**
  * Le nom écrit ne se calcule pas (chinois, kanji) : on demande sa forme latine,
  * et à lui seul. Un nom latin, arabe, cyrillique ou en kana se pèse tout seul.
  */
 const latinFirst = computed(() => needsLatinName(form.firstName))
 const latinLast = computed(() => needsLatinName(form.lastName))
-
-/**
- * Entrée passe à l'étape suivante — mais pas depuis une zone de texte, où la
- * touche sert à écrire. Les nuits et le rêve sont les deux seuls champs
- * multilignes du dossier.
- */
-function onEnter(event: KeyboardEvent) {
-  if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return
-  next()
-}
 
 function next() {
   if (!canAdvance.value) return
@@ -165,7 +113,6 @@ function back() {
  */
 function submit() {
   playerStore.setProfile(profileFromAdmission(form))
-  reachedEnd.value = true
   phase.value = 'verdict'
 }
 
@@ -194,7 +141,6 @@ onMounted(() => {
       Object.keys(empty).filter(k => k in old).map(k => [k, old[k as keyof AdmissionForm]]))
     Object.assign(form, empty, known, { language: lang.value })
     step.value = Math.min(Math.max(kept.step ?? 0, 0), STEPS.value.length - 1)
-    if (step.value === STEPS.value.length - 1) reachedEnd.value = true
   }
 
   // Écrit à chaque frappe. Un formulaire encore vierge ne laisse aucune trace.
@@ -231,7 +177,6 @@ function clearAnswers() {
   confirmingClear.value = false
   Object.assign(form, emptyAdmissionForm(lang.value))
   step.value = 0
-  reachedEnd.value = false
   forgetAdmission()
 }
 
@@ -292,25 +237,15 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
           <span class="field-hint">{{ t('lang.hint') }}</span>
         </label>
 
-        <!-- Avancement : un cran par étape, le cran courant seul est allumé -->
-        <div class="flex items-center gap-1.5 mb-6">
-          <span
-            v-for="(s, i) in STEPS"
-            :key="s.title"
-            class="h-[3px] flex-1 transition-colors duration-300"
-            :class="i < step ? 'bg-neon-600/70' : i === step ? 'bg-neon-400' : 'bg-steel-700'"
-          />
-        </div>
-
         <div
           class="dossier relative bg-ink-900/85 border border-neon-600/40 p-6 sm:p-7 space-y-6"
-          @keyup.enter="onEnter"
+          @keyup.enter="next"
         >
           <span class="absolute inset-[5px] border border-neon-500/12 pointer-events-none" />
 
           <div class="relative space-y-1">
             <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.32em] font-display">
-              {{ t('admission.step', { current: step + 1, total: STEPS.length, title: STEPS[step].title }) }}
+              {{ STEPS[step].title }}
             </p>
             <p class="text-steel-400 text-[11px] leading-relaxed">{{ STEPS[step].legend }}</p>
           </div>
@@ -320,7 +255,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             le prénom porte le namank (l'accueil du monde), le nom complet
             porte l'héritage. Les réunir ferait perdre l'un des deux nombres.
           -->
-          <div v-if="step === 0" class="relative space-y-5">
+          <div class="relative space-y-5">
             <div class="grid grid-cols-2 gap-3">
               <label class="block space-y-2">
                 <span class="field-label">{{ t('admission.first_name') }}</span>
@@ -375,125 +310,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             </div>
           </div>
 
-          <!-- 2. ORIGINE -->
-          <div v-else-if="step === 1" class="relative space-y-5">
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.hometown') }}</span>
-              <input v-model="form.hometown" type="text" class="field">
-            </label>
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.current_city') }}</span>
-              <input v-model="form.currentCity" type="text" class="field">
-              <span class="field-hint">{{ t('admission.current_city_hint') }}</span>
-            </label>
-          </div>
-
-          <!--
-            3. REPÈRES — un moment, un film, un animal. Trois questions qui se
-            répondent en trois secondes et jamais deux fois pareil, et qui ne
-            reposent pas celle de l'objet : chacune a son rôle dans la nuit.
-          -->
-          <div v-else-if="step === 2" class="relative space-y-4">
-            <p class="text-ink-200/70 text-[12px] leading-relaxed">
-              {{ t('admission.touchstones_intro') }}
-            </p>
-            <div class="space-y-4">
-              <label v-for="field in touchstoneFields" :key="field.key" class="block space-y-2">
-                <span class="field-label">{{ field.label }}</span>
-                <input
-                  v-model="form[field.key]"
-                  type="text"
-                  class="field"
-                >
-                <span class="field-hint">{{ field.hint }}</span>
-              </label>
-            </div>
-
-            <div class="h-px bg-neon-600/20" />
-
-            <!--
-              Le morceau : le son de la nuit. Jamais cité — ni ses paroles, ni
-              son titre —, il s'entend à l'auberge, revient haché dehors et
-              passe en entier au dernier lieu. Voir `defaults.touchstones`.
-            -->
-            <div class="grid grid-cols-2 gap-3">
-              <label class="block space-y-2">
-                <span class="field-label">{{ t('admission.anthem_title') }}</span>
-                <input v-model="form.anthemTitle" type="text" class="field">
-              </label>
-              <label class="block space-y-2">
-                <span class="field-label">{{ t('admission.anthem_artist') }}</span>
-                <input v-model="form.anthemArtist" type="text" class="field">
-              </label>
-            </div>
-            <span class="field-hint">{{ t('admission.anthem_hint') }}</span>
-          </div>
-
-          <!--
-            4. EMPREINTES — les quatre seuls champs qui ne racontent pas un
-            état civil. Ils reviennent en décor : l'objet sur une table, le
-            refuge en façade, le prénom dans la bouche d'un inconnu, et ce qu'il
-            ne supporte pas juste en travers de son chemin.
-          -->
-          <div v-else-if="step === 3" class="relative space-y-5">
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.keepsake') }}</span>
-              <input v-model="form.keepsake" type="text" class="field">
-            </label>
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.refuge') }}</span>
-              <input v-model="form.refuge" type="text" class="field">
-            </label>
-            <label class="block space-y-2">
-              <span class="field-label">
-                {{ t('admission.ally') }} <span class="text-steel-500">{{ t('admission.ally_note') }}</span>
-              </span>
-              <input v-model="form.ally" type="text" class="field" :placeholder="t('admission.ally_ph')">
-            </label>
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.aversion') }}</span>
-              <input v-model="form.aversion" type="text" class="field">
-            </label>
-          </div>
-
-          <!--
-            5. NUITS — la seule étape qui ne consigne pas un état civil.
-            La question est posée en CONDITIONNEL : « quel dormeur êtes-vous »
-            n'appelle rien de la part de qui dort bien, alors que des nuits sans
-            sommeil, tout le monde en a. Et les réponses se passent DEHORS —
-            le jeu est une nuit dans une ville, un quai ou un dernier bar lui
-            donnent un décor, le plafond d'une chambre ne lui donne rien.
-            Le rêve, PARCE QU'IL REVIENT, est le seul motif du dossier qu'une
-            scène peut reposer sans lasser.
-            Deux lignes libres, et plus de touches : ici plus qu'ailleurs, le
-            joueur est le seul à pouvoir écrire ce qu'il fait de ses nuits.
-          -->
-          <div v-else class="relative space-y-5">
-            <p class="text-ink-200/70 text-[12px] leading-relaxed">
-              {{ t('admission.nights_intro') }}
-            </p>
-
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.awake') }}</span>
-              <textarea
-                v-model="form.awakeNote"
-                rows="2"
-                class="field field-multi"
-              />
-              <span class="field-hint">{{ t('admission.awake_hint') }}</span>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.dream') }}</span>
-              <textarea
-                v-model="form.dreamNote"
-                rows="2"
-                class="field field-multi"
-              />
-              <span class="field-hint">{{ t('admission.dream_hint') }}</span>
-            </label>
-          </div>
-
           <div class="relative h-px bg-neon-600/25" />
 
           <div class="relative flex items-center justify-between gap-4">
@@ -508,14 +324,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
               {{ step === STEPS.length - 1 ? t('admission.submit') : t('common.next') }}
             </GlowButton>
           </div>
-
-          <GlowButton
-            v-if="canLaunch && step < STEPS.length - 1"
-            class="relative w-full"
-            @click="launch"
-          >
-            {{ t('admission.launch') }}
-          </GlowButton>
 
           <p v-if="step === 0 && !canAdvance" class="relative field-hint text-center">
             {{ t('admission.required_hint') }}
@@ -649,12 +457,6 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
 }
 
 /*
-  Deux champs respirent sur plusieurs lignes — les nuits et le rêve. Le
-  navigateur donne au textarea sa propre police et sa propre taille : on les
-  ramène à celles du dossier, et on interdit la poignée de redimensionnement,
-  qui casserait l'alignement du formulaire.
-*/
-/*
   Le sélecteur de langue. Le menu natif garde sa police et sa flèche système :
   on ramène la première à celle du dossier, et on remplace la seconde par un
   chevron dessiné, pour que le champ ne détonne pas au milieu des autres.
@@ -677,22 +479,13 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
   color: rgb(var(--ink-100));
 }
 
-.field-multi {
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.5;
-  resize: none;
-  display: block;
-}
-
 /*
   Sous 16px, Safari iOS zoome sur le champ dès qu'on y tape : sur écran
   tactile, les champs passent à 16px pour que la page reste immobile.
 */
 @media (hover: none) and (pointer: coarse) {
   .field,
-  .field-select,
-  .field-multi {
+  .field-select {
     font-size: 16px;
   }
 }
