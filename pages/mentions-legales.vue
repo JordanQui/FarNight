@@ -27,7 +27,7 @@ const keepsakeLabel = new Intl.NumberFormat('fr-FR', {
  */
 const EDITOR = {
   name: 'Jordan Quiqueret',
-  status: '[statut et SIRET]',
+  status: 'SIRET 531 073 583 00035',
   address: '[adresse postale]',
   phone: '[téléphone]',
   email: 'friend@farnight.online',
@@ -175,7 +175,7 @@ useHead({
       </section>
 
       <footer class="space-y-4 border-t border-steel-600/40 pt-6 text-xs">
-        <p class="text-steel-400">Mise à jour le 13 octobre 2026.</p>
+        <p class="text-steel-400">Mise à jour le 14 octobre 2026.</p>
         <NuxtLink to="/" class="font-display uppercase tracking-[0.28em] text-[10px]">Retour au jeu</NuxtLink>
       </footer>
     </div>
