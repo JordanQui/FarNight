@@ -126,6 +126,7 @@ const tiles = computed<Tile[]>(() => [
   { code: 'TRN', label: 'Tours de conversation', value: trafic.value ? route('/api/narrative/turn')?.total ?? 0 : null },
   { code: 'IMG', label: 'Images de scène', value: trafic.value ? route('/api/scene/image')?.total ?? 0 : null },
   { code: 'PWL', label: 'Paywalls ouverts', value: stripe.value?.server.creates ?? null },
+  { code: 'CNF', label: 'Confirmations Stripe', value: stripe.value?.browser ?? null, note: 'POST /confirm du navigateur, reconstitué' },
   { code: 'VTE', label: 'Nuits vendues', value: stripe.value?.statuses.succeeded ?? (stripe.value ? 0 : null) },
   { code: 'CA', label: 'Encaissé', value: stripe.value ? stripe.value.revenue / 100 : null, unit: '€', decimals: 2 },
   { code: 'OAI', label: 'Appels OpenAI réussis', value: trafic.value ? outboundCount('api.openai.com', s => s < 400) : null },
