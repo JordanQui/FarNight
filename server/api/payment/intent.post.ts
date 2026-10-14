@@ -1,6 +1,7 @@
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { assertNotLocked } from '~/server/utils/session-quota'
 import { stripeClient, stripePublishableKey } from '~/server/utils/stripe'
+import { notifyPhone, price } from '~/server/utils/notify'
 
 /**
  * Ouvre un PaymentIntent Stripe au prix du script. Son `client_secret` laisse
@@ -24,9 +25,10 @@ export default defineEventHandler(async (event) => {
   const runtime = await ScriptRuntime.load()
   const paywall = runtime.paywall
 
+  const amount = keepsake ? paywall.keepsake_cents : paywall.amount_cents
   // Rien qui renvoie hors de la page : le jeu ne saurait pas y revenir.
-  const intent = await stripeClient().paymentIntents.create({
-    amount: keepsake ? paywall.keepsake_cents : paywall.amount_cents,
+  const [intent] = await Promise.all([stripeClient().paymentIntents.create({
+    amount,
     currency: paywall.currency.toLowerCase(),
     automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
     // 3-D Secure toujours : sans lui, Radar jugeait seules les cartes de débit
@@ -35,7 +37,11 @@ export default defineEventHandler(async (event) => {
     payment_method_options: { card: { request_three_d_secure: 'any' } },
     description: keepsake ? 'PDF de la nuit' : paywall.cta,
     ...(keepsake ? { metadata: { product: 'keepsake' } } : {}),
-  })
+  }), notifyPhone({
+    title: 'Paywall ouvert',
+    message: `${price(amount, paywall.currency)} — ${keepsake ? 'PDF de la nuit' : 'une nuit'}`,
+    tags: ['credit_card'],
+  })])
 
   return {
     publishableKey: stripePublishableKey(),

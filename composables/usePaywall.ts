@@ -11,7 +11,7 @@ declare global {
     Stripe: (publishableKey: string) => {
       elements(options: { clientSecret: string; appearance?: Record<string, unknown> }): StripeElements
       confirmPayment(options: { elements: StripeElements; redirect: 'if_required' }): Promise<{
-        error?: { message?: string }
+        error?: { message?: string; type?: string }
         paymentIntent?: { id: string; status: string }
       }>
     }
@@ -162,6 +162,11 @@ export function usePaywall() {
     const result = await stripe.confirmPayment({ elements, redirect: 'if_required' })
     if (result.error || !result.paymentIntent) {
       paymentStore.setError(result.error?.message ?? t('errors.payment_refused'))
+      // Le refus s'arrête ici, chez Stripe.js : on le signale, sans l'attendre.
+      // Une carte mal saisie (validation_error) n'a jamais atteint la banque.
+      if (result.error?.type !== 'validation_error' && paymentStore.paymentId) {
+        $fetch('/api/payment/refused', { method: 'POST', body: { paymentIntentId: paymentStore.paymentId } }).catch(() => {})
+      }
       return null
     }
     return result.paymentIntent.id

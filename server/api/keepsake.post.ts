@@ -3,6 +3,7 @@ import { ScriptRuntime } from '~/utils/script-runtime'
 import { stripeClient } from '~/server/utils/stripe'
 import { clampKeepsake } from '~/utils/keepsake'
 import { renderKeepsakePdf } from '~/server/utils/keepsake-pdf'
+import { notifyPhone, price, stripePaymentUrl } from '~/server/utils/notify'
 
 /**
  * Le PDF de la nuit, contre le paiement passé sur l'écran de fin.
@@ -38,7 +39,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Paiement déjà utilisé pour une autre nuit' })
   }
   if (!intent.metadata.night) {
-    await stripe.paymentIntents.update(intent.id, { metadata: { night } })
+    await Promise.all([
+      stripe.paymentIntents.update(intent.id, { metadata: { night } }),
+      notifyPhone({
+        title: 'PDF de la nuit vendu',
+        message: price(intent.amount, intent.currency),
+        tags: ['moneybag'],
+        priority: 4,
+        click: stripePaymentUrl(intent.id, intent.livemode),
+      }),
+    ])
   }
 
   const pdf = await renderKeepsakePdf(keepsake)

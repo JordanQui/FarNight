@@ -1,6 +1,7 @@
 import { ScriptRuntime } from '~/utils/script-runtime'
 import { grantAccess, assertNotLocked } from '~/server/utils/session-quota'
 import { stripeClient } from '~/server/utils/stripe'
+import { notifyPhone, price, stripePaymentUrl } from '~/server/utils/notify'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ paymentIntentId: string }>(event)
@@ -35,7 +36,16 @@ export default defineEventHandler(async (event) => {
   if (intent.metadata.granted_at) {
     throw createError({ statusCode: 409, statusMessage: 'Paiement déjà utilisé' })
   }
-  await stripe.paymentIntents.update(intent.id, { metadata: { granted_at: String(Date.now()) } })
+  await Promise.all([
+    stripe.paymentIntents.update(intent.id, { metadata: { granted_at: String(Date.now()) } }),
+    notifyPhone({
+      title: 'Nuit vendue',
+      message: `${price(intent.amount, intent.currency)} — accès ouvert`,
+      tags: ['moneybag'],
+      priority: 4,
+      click: stripePaymentUrl(intent.id, intent.livemode),
+    }),
+  ])
 
   // Le paiement ouvre l'accès à la suite, pour la durée prévue au script.
   // Cookie SIGNÉ : le précédent portait une valeur fixe en clair, que
