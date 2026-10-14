@@ -76,7 +76,7 @@ export function describeUser(
   const { hometown, current_location } = user.origin
   if (hometown) {
     const traits = hometown.traits?.length ? ` — ${hometown.traits.join(', ')}` : ''
-    lines.push(`Ville d'origine : ${hometown.name}${traits}`)
+    lines.push(`Ville de naissance : ${hometown.name}${traits}`)
   }
   if (current_location) {
     const traits = current_location.traits?.length ? ` — ${current_location.traits.join(', ')}` : ''
@@ -145,7 +145,7 @@ export function describeUser(
   // retomber sur le décor générique qu'il servirait à tout le monde. Ce qui est
   // déjà lu à l'auberge (animal, nuits) n'est pas un manque.
   const missing = [
-    !hometown && 'ville d\'origine',
+    !hometown && !read && 'ville de naissance',
     !current_location && 'ville actuelle',
     !marks?.moment && 'moment auquel il tient',
     !marks?.fear_film && 'film qui lui a fait peur',
@@ -773,7 +773,8 @@ ${JSON.stringify(s.generation.output_schema, null, 2)}`
       .join('\n')
 
     const theme = resolveTheme(user, this.script)
-    const themeBlock = theme ? this.describeTheme(theme, natalChartLines(user.identity.birthday, this.lang)) : ''
+    const chart = natalChartLines(user.identity.birthday, this.lang, user.origin.hometown, user.identity.birth_time)
+    const themeBlock = theme ? this.describeTheme(theme, chart) : ''
     const tension = theme?.sign?.tension ?? ''
 
     // Rien de troquable, rien à réclamer : la section entière ne ferait que
@@ -983,6 +984,8 @@ ${list(o.posture)}`
     return interpolate(this.script.defaults.night.reading_fixed, {
       portrait: plan.portrait!.slice(0, 900),
       totem: plan.totem!.slice(0, 600),
+      // Un journal d'avant la ville n'en a pas : la ligne reste, vide de récit.
+      city: plan.city?.slice(0, 900) || '(rien de lu)',
     })
   }
 

@@ -15,8 +15,10 @@
  *                                l'écriture du nom ne se calcule pas (chinois,
  *                                kanji) — sans elle, ni accueil ni héritage
  *   identity.birthday .......... signe du zodiaque, moolank, bhagyank, âge
+ *   identity.birth_time ........ facultative : avec la ville, ascendant et maisons
  *   identity.agreement ......... accord des participes dans toute la narration
- *   origin.hometown ............ ville d'origine
+ *   origin.hometown ............ ville de naissance, située à l'envoi : le thème
+ *                                se dresse à son heure, l'auberge en lit l'histoire
  *   origin.current_location .... ville actuelle
  *   trajectory.turning_points .. le déménagement, déduit des deux villes — la
  *                                question de la bascule a été retirée
@@ -58,6 +60,35 @@ import { translate } from '~/utils/languages'
 import { needsLatinName } from '~/utils/numerology'
 import sampleJson from '../game/admission.json'
 
+export interface HometownPlace {
+  query: string
+  latitude: number
+  longitude: number
+  timezone: string
+}
+
+/**
+ * Situe la ville de naissance : coordonnées et fuseau, par le géocodage
+ * d'Open-Meteo (gratuit, sans clé, CORS ouvert). Seul le nom de la ville part.
+ *
+ * null si rien ne répond à temps : le thème retombe alors sur midi UT, et le
+ * nom de la ville voyage quand même — c'est lui qui porte les anecdotes.
+ */
+export async function locateHometown(name: string, lang: LangCode): Promise<HometownPlace | null> {
+  const query = clean(name)
+  if (!query) return null
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?count=1&format=json`
+      + `&language=${lang}&name=${encodeURIComponent(query)}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
+    const hit = res.ok ? (await res.json())?.results?.[0] : null
+    if (!hit || typeof hit.latitude !== 'number' || typeof hit.longitude !== 'number' || !hit.timezone) return null
+    return { query, latitude: hit.latitude, longitude: hit.longitude, timezone: hit.timezone }
+  } catch {
+    return null
+  }
+}
+
 export interface AdmissionForm {
   /**
    * La langue de la nuit.
@@ -82,8 +113,13 @@ export interface AdmissionForm {
   lastNameLatin: string
   /** `YYYY-MM-DD`, tel que le rend un `<input type="date">`. */
   birthday: string
+  /** `HH:MM`, facultative. Sans la ville, elle ne sert à rien. */
+  birthTime: string
   agreement: UserAgreement
+  /** La ville de naissance, telle qu'il l'a tapée. */
   hometown: string
+  /** Où elle se trouve, d'après le géocodage — `query` dit pour quelle saisie. */
+  hometownPlace: HometownPlace | null
   currentCity: string
   /** Un moment auquel il tient. Ce que la nuit rend. */
   moment: string
@@ -114,8 +150,10 @@ export function emptyAdmissionForm(lang: LangCode = DEFAULT_LANG): AdmissionForm
     firstNameLatin: '',
     lastNameLatin: '',
     birthday: '',
+    birthTime: '',
     agreement: 'masculin',
     hometown: '',
+    hometownPlace: null,
     currentCity: '',
     moment: '',
     fearFilm: '',
@@ -283,6 +321,11 @@ export function profileFromAdmission(form: AdmissionForm): UserProfile {
   const fullName = [firstName, lastName].filter(Boolean).join(' ')
   const hometown = clean(form.hometown)
   const city = clean(form.currentCity)
+  // Le lieu situé ne vaut que pour la saisie qui l'a produit.
+  const place = form.hometownPlace?.query === hometown ? form.hometownPlace : null
+  const located = place
+    ? { latitude: place.latitude, longitude: place.longitude, timezone: place.timezone }
+    : {}
 
   return {
     // La langue voyage AVEC le dossier, pas seulement dans le cookie : une
@@ -296,11 +339,12 @@ export function profileFromAdmission(form: AdmissionForm): UserProfile {
       first_name_latin: (needsLatinName(firstName) && clean(form.firstNameLatin ?? '')) || undefined,
       last_name_latin: (needsLatinName(lastName) && clean(form.lastNameLatin ?? '')) || undefined,
       birthday: form.birthday || undefined,
+      birth_time: /^\d{2}:\d{2}/.test(form.birthTime ?? '') ? form.birthTime.slice(0, 5) : undefined,
       age: form.birthday ? ageFrom(form.birthday) : undefined,
       agreement: form.agreement,
     },
     origin: {
-      hometown: hometown ? { name: hometown } : undefined,
+      hometown: hometown ? { name: hometown, ...located } : undefined,
       current_location: city ? { name: city } : undefined,
     },
     trajectory: {

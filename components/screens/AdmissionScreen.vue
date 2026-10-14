@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
-import { emptyAdmissionForm, profileFromAdmission, type AdmissionForm } from '~/utils/admission'
+import { emptyAdmissionForm, locateHometown, profileFromAdmission, type AdmissionForm } from '~/utils/admission'
 import { needsLatinName } from '~/utils/numerology'
 import { rememberedAdmission, storeAdmission, forgetAdmission } from '~/composables/useScene'
 import type { UserAgreement } from '~/types/user'
@@ -17,7 +17,10 @@ import type { LangCode } from '~/types/i18n'
  * UN SEUL ÉCRAN depuis le 2026-10-13 : le nom, la date et l'accord. Le nom et
  * la date fondent le signe et les nombres, d'où sortent le but, la tension et
  * les six lieux. Origine, repères, empreintes et nuits ne sont plus demandés :
- * `describeUser` fait tirer au modèle ce que le dossier laisse vide.
+ * `describeUser` fait tirer au modèle ce que le dossier laisse vide. Depuis le
+ * 2026-10-14, la ville et l'heure de naissance, facultatives, reviennent : la
+ * ville est située à l'envoi et dresse le thème à son heure ; l'auberge en
+ * lit l'histoire.
  *
  * TOUT SE TAPE, sauf l'accord grammatical et la langue. Les grilles de touches
  * ont été retirées : une touche rend au générateur un vocabulaire qu'il a
@@ -111,7 +114,17 @@ function back() {
  * `SceneBuildScreen` enverra à la génération — et l'écran bascule sur la
  * réponse de la commission.
  */
-function submit() {
+const locating = ref(false)
+
+async function submit() {
+  if (locating.value) return
+  // Situer la ville une fois par saisie : le thème a besoin de son fuseau.
+  const city = form.hometown.trim().replace(/\s+/g, ' ')
+  if (city && form.hometownPlace?.query !== city) {
+    locating.value = true
+    form.hometownPlace = await locateHometown(city, form.language)
+    locating.value = false
+  }
   playerStore.setProfile(profileFromAdmission(form))
   phase.value = 'verdict'
 }
@@ -152,7 +165,7 @@ onMounted(() => {
 
 /** Rien n'a été écrit. L'accord et la langue sont des réglages, pas des réponses. */
 function isBlank(): boolean {
-  const { language: _l, agreement: _a, ...texts } = form
+  const { language: _l, agreement: _a, hometownPlace: _p, ...texts } = form
   return Object.values(texts).every(v => !String(v).trim())
 }
 
@@ -282,10 +295,24 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
               <span class="field-hint">{{ t('admission.latin_hint') }}</span>
             </div>
 
-            <label class="block space-y-2">
-              <span class="field-label">{{ t('admission.birthday') }}</span>
-              <input v-model="form.birthday" type="date" class="field" max="2020-12-31">
+            <!-- L'heure ne sert qu'avec la ville : ensemble, ascendant et maisons. -->
+            <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block space-y-2">
+                  <span class="field-label">{{ t('admission.birthday') }}</span>
+                  <input v-model="form.birthday" type="date" class="field" max="2020-12-31">
+                </label>
+                <label class="block space-y-2">
+                  <span class="field-label">{{ t('admission.birth_time') }}</span>
+                  <input v-model="form.birthTime" type="time" class="field">
+                </label>
+              </div>
               <span class="field-hint">{{ t('admission.birthday_hint') }}</span>
+            </div>
+
+            <label class="block space-y-2">
+              <span class="field-label">{{ t('admission.hometown') }}</span>
+              <input v-model="form.hometown" type="text" class="field" autocomplete="off">
             </label>
 
             <div class="space-y-2">
@@ -320,7 +347,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             >
               {{ step === 0 ? t('common.back') : t('common.previous') }}
             </button>
-            <GlowButton :disabled="!canAdvance" @click="next">
+            <GlowButton :disabled="!canAdvance || locating" @click="next">
               {{ step === STEPS.length - 1 ? t('admission.submit') : t('common.next') }}
             </GlowButton>
           </div>

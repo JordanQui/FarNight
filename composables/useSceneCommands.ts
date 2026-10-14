@@ -86,6 +86,24 @@ export function useSceneCommands() {
       },
     },
     {
+      name: 'getaugmentation',
+      help: "greffe l'augmentation si elle manque : la loupe apparaît, l'objet-clé reste à obtenir",
+      run() {
+        if (gameStore.hasAugmentation) {
+          say(`Tu portes déjà ${gameStore.augmentation?.name ?? "l'augmentation"}.`)
+          return
+        }
+        const scene = playerStore.scene
+        // Son vrai nom n'est connu que là où elle se remet. Ailleurs, la loupe
+        // garde son libellé par défaut plutôt qu'un nom inventé.
+        if (scene?.grants_augmentation && scene.key_item?.name) {
+          gameStore.augmentation = { name: scene.key_item.name, sceneId: scene.scene_id }
+        }
+        gameStore.hasAugmentation = true
+        say(`Augmentation greffée : ${gameStore.augmentation?.name ?? 'la loupe'} est dans la barre d'outils.`)
+      },
+    },
+    {
       name: 'ferme',
       help: 'ferme la ville comme si la nuit avait patiné : écran d\'adieu et verrou',
       run() {

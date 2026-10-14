@@ -7,7 +7,9 @@
  * moins que la largeur d'un signe. Sans heure ni lieu de naissance, le thème
  * est dressé à midi UT : pas d'ascendant ni de maisons, et la Lune — qui
  * parcourt un signe en deux jours et demi — est donnée à cheval quand elle
- * frôle une frontière.
+ * frôle une frontière. La ville seule le dresse à midi, heure du lieu, et dit
+ * la longueur de la nuit ce jour-là ; la ville et l'heure ensemble donnent
+ * l'ascendant, le milieu du ciel, les maisons et le pilier de l'heure.
  *
  * Comme utils/zodiac.ts, ce fichier ne contient AUCUN texte de jeu : il rend
  * des positions. Ce qu'elles font dans la nuit vit dans game/script.json.
@@ -149,10 +151,10 @@ const MOON_DOUBT = 7
 const signOf = (lon: number) => SIGNS[Math.floor(lon / 30)]
 
 /** Le thème occidental : dix corps, les aspects serrés, les dominantes. */
-function westernLines(lon: Record<string, number>): string[] {
+function westernLines(lon: Record<string, number>, exact = false): string[] {
   const lines = Object.keys(NAMES).map((body) => {
     const deg = Math.floor(lon[body] % 30)
-    if (body === 'moon' && (deg < MOON_DOUBT || deg >= 30 - MOON_DOUBT)) {
+    if (body === 'moon' && !exact && (deg < MOON_DOUBT || deg >= 30 - MOON_DOUBT)) {
       const other = signOf(rev(lon[body] + (deg < MOON_DOUBT ? -30 : 30)))
       return `  - Lune : ${signOf(lon[body])} ou ${other} (à cheval, l'heure de naissance tranche)`
     }
@@ -204,7 +206,9 @@ const ANIMALS: Record<'zh' | 'vi' | 'ja', string[]> = {
  * pas au Nouvel An lunaire : c'est la règle des praticiens, pas celle des
  * calendriers populaires.
  */
-function chineseLines(lon: Record<string, number>, year: number, jdn: number, lang: 'zh' | 'vi' | 'ja'): string[] {
+function chineseLines(
+  lon: Record<string, number>, year: number, jdn: number, lang: 'zh' | 'vi' | 'ja', solarHour?: number,
+): string[] {
   const animals = ANIMALS[lang]
   const month = Math.floor(rev(lon.sun - 315) / 30) // 0 = mois du Tigre
   // Avant Lichun, on est encore dans l'année d'avant : janvier et début février.
@@ -220,16 +224,26 @@ function chineseLines(lon: Record<string, number>, year: number, jdn: number, la
   const pillar = (stem: number, branch: number) =>
     `${STEMS[stem]} — ${WU_XING[Math.floor(stem / 2)]} ${stem % 2 ? 'yin' : 'yang'}, ${animals[branch]}`
 
+  // L'heure en temps solaire du lieu : le Rat tient de 23 h à 1 h, et le
+  // jour donne sa tige à la première heure.
+  const hBranch = solarHour === undefined ? undefined : Math.floor(((solarHour + 1) % 24) / 2)
+  const hStem = hBranch === undefined ? undefined : ((dStem % 5) * 2 + hBranch) % 10
+
+  const stems = [yStem, mStem, dStem, ...(hStem === undefined ? [] : [hStem])]
+  const branches = [yBranch, mBranch, dBranch, ...(hBranch === undefined ? [] : [hBranch])]
   const tally = WU_XING.map(() => 0)
-  for (const stem of [yStem, mStem, dStem]) tally[Math.floor(stem / 2)]++
-  for (const branch of [yBranch, mBranch, dBranch]) tally[BRANCH_ELEMENT[branch]]++
+  for (const stem of stems) tally[Math.floor(stem / 2)]++
+  for (const branch of branches) tally[BRANCH_ELEMENT[branch]]++
 
   return [
-    '  - Tradition : astrologie chinoise des piliers (BaZi), sans pilier de l\'heure',
+    hBranch === undefined
+      ? '  - Tradition : astrologie chinoise des piliers (BaZi), sans pilier de l\'heure'
+      : '  - Tradition : astrologie chinoise des piliers (BaZi), quatre piliers',
     `  - Pilier de l'année : ${pillar(yStem, yBranch)}`,
     `  - Pilier du mois : ${pillar(mStem, mBranch)}`,
     `  - Pilier du jour (le maître du jour, son propre élément) : ${pillar(dStem, dBranch)}`,
-    `  - Cinq phases sur six caractères : ${WU_XING.map((e, i) => `${e} ${tally[i]}`).join(', ')}`,
+    hBranch === undefined ? '' : `  - Pilier de l'heure : ${pillar(hStem!, hBranch)}`,
+    `  - Cinq phases sur ${stems.length * 2} caractères : ${WU_XING.map((e, i) => `${e} ${tally[i]}`).join(', ')}`,
   ]
 }
 
@@ -246,18 +260,18 @@ const MANAZIL = [
  * (manzil), l'une des vingt-huit stations de la Lune. Le poids abjad du nom,
  * lui, est déjà dans la numérologie.
  */
-function arabicLines(lon: Record<string, number>): string[] {
+function arabicLines(lon: Record<string, number>, exact = false): string[] {
   const width = 360 / 28
   const at = Math.floor(lon.moon / width)
   const into = lon.moon - at * width
   // La Lune parcourt une demeure en un jour : à midi, la veille ou le
   // lendemain restent possibles près des bords.
-  const manzil = into < MOON_DOUBT || into > width - MOON_DOUBT
+  const manzil = !exact && (into < MOON_DOUBT || into > width - MOON_DOUBT)
     ? `${MANAZIL[at]} ou ${MANAZIL[(at + (into < MOON_DOUBT ? 27 : 1)) % 28]} (l'heure de naissance tranche)`
     : MANAZIL[at]
   return [
     '  - Tradition : astrologie arabe (thème des sept astres et demeures de la Lune)',
-    ...westernLines(lon),
+    ...westernLines(lon, exact),
     `  - Demeure lunaire : ${manzil}`,
   ]
 }
@@ -286,29 +300,118 @@ function julianDay(y: number, m: number, d: number): number {
     - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045
 }
 
+/** Le lieu de naissance, tel que l'admission l'a situé. */
+export interface BirthPlace {
+  latitude?: number
+  longitude?: number
+  timezone?: string
+}
+
+/**
+ * L'instant UT d'une heure légale, au jour et dans le fuseau donnés.
+ *
+ * L'heure légale vient d'Intl, qui connaît l'histoire de chaque fuseau (heure
+ * d'été comprise). Un fuseau illisible retombe sur l'heure solaire moyenne.
+ */
+function utcOf(year: number, m: number, day: number, minutes: number, timezone: string | undefined, longitude: number): number {
+  const local = Date.UTC(year, m - 1, day) + minutes * 60000
+  const offset = (utc: number) => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, hourCycle: 'h23',
+      year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric',
+    }).formatToParts(utc).map(p => [p.type, Number(p.value)]))
+    return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) - utc
+  }
+  try {
+    if (!timezone) throw new RangeError('fuseau absent')
+    // Deux passes : la seconde rattrape un changement d'heure entre les deux.
+    return local - offset(local - offset(local))
+  } catch {
+    return local - (longitude / 15) * 3600000
+  }
+}
+
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+
+/**
+ * Ce que le lieu ajoute au thème : la nuit de ce jour-là, et, avec l'heure,
+ * l'ascendant, le milieu du ciel et les maisons — en signes entiers, les plus
+ * anciennes, qui tiennent à toutes les latitudes.
+ */
+function placeLines(lon: Record<string, number>, d: number, latitude: number, longitude: number, exact: boolean): string[] {
+  const ecl = 23.4393 - 3.563e-7 * d
+  const dec = Math.asin(sin(ecl) * sin(lon.sun)) / RAD
+  // Coucher et lever au bord supérieur du disque, réfraction comprise.
+  const cosH = (sin(-0.833) - sin(latitude) * sin(dec)) / (cos(latitude) * cos(dec))
+  const nightHours = cosH <= -1 ? 0 : cosH >= 1 ? 24 : 24 - (2 * Math.acos(cosH) / RAD) / 15
+  const h = Math.floor(nightHours)
+  const min = Math.round((nightHours - h) * 60)
+  const night = nightHours === 0 ? 'à son lieu de naissance, le soleil ne s\'est pas couché ce jour-là'
+    : nightHours === 24 ? 'à son lieu de naissance, le soleil ne s\'est pas levé ce jour-là'
+      : `à son lieu de naissance, la nuit de ce jour-là a duré ${min === 60 ? h + 1 : h} h ${String(min % 60).padStart(2, '0')}`
+
+  if (!exact) {
+    return [
+      '  - Dressé à midi, heure de son lieu de naissance : heure inconnue, ni ascendant ni maisons',
+      `  - ${night[0].toUpperCase()}${night.slice(1)}`,
+    ]
+  }
+
+  const ramc = rev(280.46061837 + 360.98564736629 * (d - 1.5) + longitude)
+  const mc = rev(atan2(sin(ramc), cos(ramc) * cos(ecl)))
+  const asc = rev(atan2(cos(ramc), -(sin(ramc) * cos(ecl) + Math.tan(latitude * RAD) * sin(ecl))))
+  const at = (x: number) => `${signOf(x)} ${Math.floor(x % 30)}°`
+  const first = Math.floor(asc / 30)
+  const houses = Object.keys(NAMES)
+    .map(body => `${NAMES[body]} ${ROMAN[(Math.floor(lon[body] / 30) - first + 12) % 12]}`)
+  // De jour ou de nuit : la hauteur du Soleil à l'instant de la naissance.
+  const ra = atan2(cos(ecl) * sin(lon.sun), cos(lon.sun))
+  const altitude = Math.asin(sin(latitude) * sin(dec) + cos(latitude) * cos(dec) * cos(ramc - ra)) / RAD
+
+  return [
+    '  - Dressé à l\'heure et au lieu de naissance',
+    `  - Ascendant : ${at(asc)} ; milieu du ciel : ${at(mc)}`,
+    `  - Maisons, en signes entiers depuis l'ascendant : ${houses.join(', ')}`,
+    `  - ${altitude > -0.833 ? 'Naissance de jour (thème diurne)' : 'Naissance de nuit (thème nocturne)'} ; ${night}`,
+  ]
+}
+
 /**
  * Le thème rendu en lignes de prompt, dans la tradition de la langue jouée,
  * ou '' si la date manque ou si l'année sort de la plage où les séries tiennent.
+ *
+ * Le lieu situé le dresse à l'heure du lieu ; l'heure (`HH:MM`, légale) ne
+ * sert qu'avec lui.
  */
-export function natalChartLines(birthday?: string, lang = 'fr'): string {
+export function natalChartLines(birthday?: string, lang = 'fr', place?: BirthPlace, time?: string): string {
   const md = parseBirthday(birthday)
   const year = Number(birthday?.trim().slice(0, 4))
   if (!md || !Number.isInteger(year) || year < 1900 || year > 2099) return ''
 
   const { month: m, day } = md
-  const d = 367 * year - Math.floor((7 * (year + Math.floor((m + 9) / 12))) / 4)
-    + Math.floor((275 * m) / 9) + day - 730530 + 0.5
+  const { latitude, longitude, timezone } = place ?? {}
+  const located = Number.isFinite(latitude) && Number.isFinite(longitude)
+    && Math.abs(latitude!) < 90 && Math.abs(longitude!) <= 180
+  const clock = /^([01]\d|2[0-3]):([0-5]\d)/.exec(time ?? '')
+  const exact = located && Boolean(clock)
+  const ut = located
+    ? utcOf(year, m, day, clock ? Number(clock[1]) * 60 + Number(clock[2]) : 720, timezone, longitude!)
+    : Date.UTC(year, m - 1, day, 12)
+  // Jours depuis le 0 janvier 2000, 0 h UT : l'origine des séries.
+  const d = (ut - Date.UTC(1999, 11, 31)) / 86400000
   const lon = longitudes(d)
   const jdn = julianDay(year, m, day)
+  const solarHour = exact ? rev((ut / 3600000) * 15 + longitude!) / 15 : undefined
 
-  const western = ['  - Tradition : astrologie occidentale (thème natal tropical)', ...westernLines(lon)]
+  const western = ['  - Tradition : astrologie occidentale (thème natal tropical)', ...westernLines(lon, exact)]
   // Le BaZi sans l'heure et le weton laissent des trous — pas de liens entre
   // composantes, trop peu de composantes pour un casting : le thème
   // occidental les comble. L'arabe le contient déjà.
   const lines = lang === 'zh' || lang === 'vi' || lang === 'ja'
-    ? [...chineseLines(lon, year, jdn, lang), ...western]
-    : lang === 'ar' ? arabicLines(lon)
+    ? [...chineseLines(lon, year, jdn, lang, solarHour), ...western]
+    : lang === 'ar' ? arabicLines(lon, exact)
       : lang === 'id' ? [...wetonLines(jdn), ...western]
         : western
+  if (located) lines.push(...placeLines(lon, d, latitude!, longitude!, exact))
   return lines.filter(Boolean).join('\n')
 }

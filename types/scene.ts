@@ -339,6 +339,8 @@ export interface NightPlan {
   portrait?: string
   /** La qualité que porte son animal, sans la bête. Même régime que `portrait`. */
   totem?: string
+  /** Trois anecdotes de sa ville natale, une par acte. Même régime que `portrait`. */
+  city?: string
   acts: NightAct[]
   /** Reportés depuis la quête de l'auberge quand on la consigne : ils ne se réécrivent plus. */
   title?: string

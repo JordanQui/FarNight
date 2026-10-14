@@ -18,6 +18,11 @@ export interface UserPlace {
    * Ni le formulaire ni le dossier type n'en portent plus.
    */
   traits?: string[]
+  /** Situé à l'admission (géocodage) : le thème se dresse à l'heure de ce lieu. */
+  latitude?: number
+  longitude?: number
+  /** Fuseau IANA, pour l'heure légale du jour de naissance, été compris. */
+  timezone?: string
 }
 
 /**
@@ -141,6 +146,8 @@ export interface UserProfile {
     last_name_latin?: string
     picture_url?: string
     birthday?: string
+    /** `HH:MM`, heure locale du lieu de naissance. Avec lui : ascendant et maisons. */
+    birth_time?: string
     age?: number
     /** Comment accorder ce qu'on lui adresse. */
     agreement?: UserAgreement

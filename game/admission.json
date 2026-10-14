@@ -5,9 +5,11 @@
   "firstName": "Laure",
   "lastName": "Aime",
   "birthday": "1991-03-07",
+  "birthTime": "06:40",
   "agreement": "feminin",
 
   "hometown": "Saint-Malo",
+  "hometownPlace": { "query": "Saint-Malo", "latitude": 48.64738, "longitude": -2.00877, "timezone": "Europe/Paris" },
   "currentCity": "Lyon",
 
   "moment": "le port à marée basse avec mon père, six heures du matin, le thermos de café posé entre nous",
