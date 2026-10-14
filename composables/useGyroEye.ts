@@ -57,17 +57,18 @@ const POSTURE_TOP_Y: Record<string, number> = {
  * Relèvement de l'oeil, en pixels, par posture.
  *
  * ALLONGÉ SE VISE EXACTEMENT COMME ASSIS — même origine, même amplitude, mêmes
- * gains — et l'oeil y est simplement 400 px plus haut (réglé par le user le
- * 2026-10-13). Les modèles propres à l'allongé (repos à 180°, puis tenu debout
+ * gains — et l'oeil y est simplement 444 px plus haut (réglé par le user le
+ * 2026-10-14). Les modèles propres à l'allongé (repos à 180°, puis tenu debout
  * à 90°) donnaient un geste différent d'assis, et c'est cette différence qui
  * gênait.
  *
  * En pixels et non en fraction d'écran, pour être le même sur tout appareil.
- * Le relèvement s'applique AVANT la butée : le bas de l'écran reste atteignable.
+ * Le relèvement s'applique APRÈS la butée, à la position d'assis telle quelle :
+ * l'appareil à plat, l'oeil est au-dessus de l'écran.
  */
 const POSTURE_LIFT_PX: Record<string, number> = {
   assis: 0,
-  allonge: 400,
+  allonge: 444,
 }
 
 /**
@@ -181,11 +182,12 @@ export function useGyroEye() {
       up,
       REST_BETA_DEG[posture] ?? 0,
       RANGE_DEG * (POSTURE_RANGE_SCALE[posture] ?? 1),
-      (POSTURE_NEUTRAL_Y[posture] ?? 0.15) - (POSTURE_LIFT_PX[posture] ?? 0) / window.innerHeight,
+      POSTURE_NEUTRAL_Y[posture] ?? 0.15,
       POSTURE_RISE_SCALE[posture] ?? 1,
       undefined,
       POSTURE_TOP_Y[posture] ?? 0,
     )
+    target.y -= (POSTURE_LIFT_PX[posture] ?? 0) / window.innerHeight
     // La première mesure place l'oeil d'un coup : sinon, au chargement, il
     // glisse depuis son repos jusqu'à l'attitude réelle.
     if (first) gameStore.setEyePos(target)
