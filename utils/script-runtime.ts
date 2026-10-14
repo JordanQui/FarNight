@@ -486,6 +486,20 @@ export class SceneRuntime {
     // arrive par le journal : la réécrire coûterait un millier de jetons par
     // scène, et chaque réécriture pourrait la faire dériver.
     if (!this.isStart) delete schema.night
+    // LE PLAN SE REMPLIT, IL NE SE RECOPIE PAS. Le schéma ne montre qu'un acte
+    // et un lieu : gpt-4o le recopiait tel quel et n'écrivait que a1s1, puis
+    // oubliait a1s2 à la reprise. On lui tend la charpente entière, chaque
+    // lieu déjà à son identifiant, sous son acte.
+    else if (schema.night) {
+      const night = schema.night as { acts: Array<Record<string, unknown> & { scenes: Record<string, unknown>[] }> }
+      const [act] = night.acts
+      schema.night = {
+        ...night,
+        acts: this.script.acts
+          .map(a => ({ ...act, act_id: a.id, scenes: a.scenes.filter(id => this.planIds.includes(id)).map(id => ({ ...act!.scenes[0], scene_id: id })) }))
+          .filter(a => a.scenes.length),
+      }
+    }
 
     // LA SÉQUENCE est la seule énigme dont le modèle écrit un morceau : les
     // gestes du dénouement, qui sont ceux de CE joueur. Réclamés ici et nulle

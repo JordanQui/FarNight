@@ -22,9 +22,11 @@ const CAP = 5000
 
 const day = (unix: number) => new Date(unix * 1000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' })
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
   const stripe = stripeClient()
-  const created = { gte: Math.floor(Date.now() / 1000) - DAYS * 86400 }
+  // La page de suivi impose son point de départ (`?since=`, ISO).
+  const since = getQuery(event).since
+  const created = { gte: since ? Math.floor(new Date(String(since)).getTime() / 1000) : Math.floor(Date.now() / 1000) - DAYS * 86400 }
 
   const [intents, events, charges] = await Promise.all([
     stripe.paymentIntents.list({ created, limit: 100 }).autoPagingToArray({ limit: CAP }),

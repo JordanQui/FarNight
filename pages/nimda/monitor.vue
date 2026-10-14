@@ -1,45 +1,68 @@
 <script setup lang="ts">
 /**
- * La prod en direct : Vercel, OpenAI et Stripe sur une page.
+ * La prod en direct, présentée comme un tableau de cotations.
  *
- * Chaque bloc se charge seul (server/api/admin/monitor/*) : les métriques et
- * les journaux de Vercel prennent une quinzaine de secondes, le reste
- * s'affiche avant. Les paiements viennent de /api/admin/payments, la même
- * source que /nimda/monitorpaiement. Rien ici n'appelle un modèle.
+ * Tout compte à partir de SINCE, l'ouverture de la séance : chaque bloc
+ * transmet ce point de départ à sa route (server/api/admin/monitor/*, et
+ * /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, on
+ * change SINCE, et rien d'autre.
+ *
+ * La page relit tout toutes les deux minutes. Une tuile affiche l'écart avec
+ * la cotation précédente. Rien ici n'appelle un modèle.
  */
 
 // Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
 
-const lazy = { lazy: true, server: false } as const
-const { data: etat, error: etatError, status: etatStatus, refresh: refreshEtat } = useFetch('/api/admin/monitor/etat', lazy)
-const { data: trafic, error: traficError, status: traficStatus, refresh: refreshTrafic } = useFetch('/api/admin/monitor/trafic', lazy)
-const { data: journal, error: journalError, status: journalStatus, refresh: refreshJournal } = useFetch('/api/admin/monitor/journal', lazy)
-const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = useFetch('/api/admin/monitor/openai', lazy)
-const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = useFetch('/api/admin/payments', lazy)
+const SINCE = '2026-10-14T18:00:00+02:00'
+const REFRESH_S = 120
+
+const opts = { lazy: true, server: false, query: { since: SINCE } } as const
+const { data: etat, error: etatError, status: etatStatus, refresh: refreshEtat } = useFetch('/api/admin/monitor/etat', opts)
+const { data: trafic, error: traficError, status: traficStatus, refresh: refreshTrafic } = useFetch('/api/admin/monitor/trafic', opts)
+const { data: journal, error: journalError, status: journalStatus, refresh: refreshJournal } = useFetch('/api/admin/monitor/journal', opts)
+const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = useFetch('/api/admin/monitor/openai', opts)
+const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = useFetch('/api/admin/payments', opts)
 
 const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus].some(s => s.value === 'pending'))
 function refreshAll() {
+  countdown.value = REFRESH_S
   refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe()
 }
 
+// L'horloge ne tourne que dans le navigateur : le serveur rend des tirets.
+const now = ref<number | null>(null)
+const countdown = ref(REFRESH_S)
+let tick: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  now.value = Date.now()
+  tick = setInterval(() => {
+    now.value = Date.now()
+    if (busy.value) return
+    countdown.value = Math.max(0, countdown.value - 1)
+    if (countdown.value === 0) refreshAll()
+  }, 1000)
+})
+onBeforeUnmount(() => clearInterval(tick))
+
+const opening = new Date(SINCE).getTime()
+const pad = (n: number) => String(n).padStart(2, '0')
+const clock = (ms: number) => new Date(ms).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour12: false })
+const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
+const dayMonth = (ms: number) => new Date(ms).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit' })
+function chrono(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  const d = Math.floor(s / 86400)
+  return `${d ? `${d}.` : ''}${pad(Math.floor(s / 3600) % 24)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`
+}
 const int = (n: number) => new Intl.NumberFormat('fr-FR').format(n)
 const usd = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(n)
 const money = (cents: number, currency = 'eur') =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100)
-const date = (ms: number) => new Date(ms).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
-const shortDay = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}`
-const seconds = (ms: number) => `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(ms / 1000)} s`
-const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' })
-function ago(ms: number) {
-  const min = Math.round((ms - Date.now()) / 60_000)
-  if (Math.abs(min) < 60) return rtf.format(min, 'minute')
-  if (Math.abs(min) < 48 * 60) return rtf.format(Math.round(min / 60), 'hour')
-  return rtf.format(Math.round(min / 1440), 'day')
-}
 const reason = (e: { statusMessage?: string; message?: string } | null | undefined) => e?.statusMessage ?? e?.message ?? ''
+/** Le fond d'un afficheur : tous les segments allumés, très bas. */
+const ghost = (text: string) => text.replace(/\d/g, '8')
 
-/** Le palier des pages de statut, en clair. */
 const INDICATOR: Record<string, string> = { none: 'opérationnel', minor: 'perturbé', major: 'panne partielle', critical: 'panne' }
 
 /** Ce que fait chaque route du jeu, pour lire le tableau sans ouvrir le code. */
@@ -52,6 +75,7 @@ const ROUTES: Record<string, string> = {
   '/api/scene/position': 'cookie de position',
   '/api/payment/intent': 'paywall ouvert',
   '/api/payment/confirm': 'paiement confirmé',
+  '/api/payment/refused': 'carte refusée, signalée',
   '/api/payment/invite': 'code d’invitation',
   '/api/paywall': 'paywall sans scène',
   '/api/lockout': 'ville fermée',
@@ -68,7 +92,116 @@ const STRIPE_STATUS: Record<string, string> = {
   canceled: 'annulé',
 }
 
-/** Les appels sortants, un hôte par ligne : ce qui est passé, et les refus code par code. */
+const route = (path: string) => trafic.value?.api.find(r => r.path === path)
+const outboundCount = (host: string, test: (status: number) => boolean) =>
+  (trafic.value?.outbound ?? []).filter(r => r.host === host && test(r.status)).reduce((s, r) => s + r.count, 0)
+const buckets = computed(() => trafic.value?.buckets ?? [])
+const bucketLabel = (at: string) => trafic.value?.granularity === '1h' ? `${hhmm(Date.parse(at))}` : dayMonth(Date.parse(at))
+
+/** Les échecs de scène ne se voient que dans les journaux : la route répond 200 avant d'échouer. */
+const sceneFailures = computed(() => journal.value?.lines.filter(l => l.path === '/api/scene/text').length ?? null)
+
+type Tile = {
+  code: string; label: string; value: number | null
+  unit?: string; decimals?: number; bad?: boolean; alert?: boolean; note?: string; spark?: number[]
+}
+
+/** Le crédit OpenAI : le solde saisi, moins ce que les coûts ont avancé depuis. */
+const credit = computed(() => openai.value?.configured ? openai.value.credit : null)
+const CREDIT_LOW_EUR = 5
+
+const tiles = computed<Tile[]>(() => [
+  {
+    code: 'CRD', label: 'Crédit OpenAI restant', value: credit.value?.remaining ?? null, unit: '€', decimals: 2,
+    alert: credit.value != null && credit.value.remaining < CREDIT_LOW_EUR,
+    note: !openai.value ? undefined : !openai.value.configured ? 'clé admin absente' : credit.value
+      ? `estimé, solde saisi le ${dayMonth(Date.parse(credit.value.at))} à ${hhmm(Date.parse(credit.value.at))}`
+      : 'solde à saisir dans le panneau OpenAI',
+  },
+  { code: 'VIS', label: 'Visiteurs uniques', value: trafic.value?.visitors ?? null, spark: buckets.value.map(b => b.visitors), note: 'Web Analytics' },
+  { code: 'PGV', label: 'Pages vues', value: trafic.value?.views ?? null, spark: buckets.value.map(b => b.views) },
+  { code: 'REQ', label: 'Requêtes serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.ok + b.refused + b.failed, 0) : null, spark: buckets.value.map(b => b.ok + b.refused + b.failed), note: 'robots compris' },
+  { code: 'SCN', label: 'Scènes demandées', value: trafic.value ? route('/api/scene/text')?.total ?? 0 : null },
+  { code: 'KO', label: 'Scènes ratées', value: sceneFailures.value, bad: true, note: journal.value?.gaveUpAfter ? 'journal muet' : 'lues au journal' },
+  { code: 'TRN', label: 'Tours de conversation', value: trafic.value ? route('/api/narrative/turn')?.total ?? 0 : null },
+  { code: 'IMG', label: 'Images de scène', value: trafic.value ? route('/api/scene/image')?.total ?? 0 : null },
+  { code: 'PWL', label: 'Paywalls ouverts', value: stripe.value?.server.creates ?? null },
+  { code: 'VTE', label: 'Nuits vendues', value: stripe.value?.statuses.succeeded ?? (stripe.value ? 0 : null) },
+  { code: 'CA', label: 'Encaissé', value: stripe.value ? stripe.value.revenue / 100 : null, unit: '€', decimals: 2 },
+  { code: 'OAI', label: 'Appels OpenAI réussis', value: trafic.value ? outboundCount('api.openai.com', s => s < 400) : null },
+  { code: '429', label: 'Refus OpenAI', value: trafic.value ? outboundCount('api.openai.com', s => s === 429) : null, bad: true },
+  { code: '$AI', label: 'Dépense OpenAI', value: openai.value?.configured ? openai.value.total : null, unit: '$', decimals: 2, bad: true, note: !openai.value ? undefined : openai.value.configured ? `jour UTC entier, depuis ${dayMonth(Date.parse(openai.value.costsFrom))} ${hhmm(Date.parse(openai.value.costsFrom))}` : 'clé admin absente' },
+  { code: '5XX', label: 'Échecs serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.failed, 0) : null, bad: true, spark: buckets.value.map(b => b.failed) },
+  { code: 'LAT', label: 'Réponse du site', value: etat.value?.ping?.ms ?? null, unit: 'ms', bad: true },
+  { code: 'VRC', label: 'Vercel consommé', value: etat.value?.usage?.consumption ?? null, unit: '$', decimals: 2, bad: true, note: 'jour entier, heure de Los Angeles' },
+])
+
+const led = (t: Tile) => t.value == null ? '--' : t.value.toFixed(t.decimals ?? 0)
+
+// L'écart avec la cotation précédente : pris quand toutes les lectures sont rentrées.
+const previous = ref<Record<string, number>>({})
+const deltas = ref<Record<string, number>>({})
+const quotedAt = ref<number | null>(null)
+watch(busy, (isBusy, wasBusy) => {
+  if (isBusy || !wasBusy) return
+  const next: Record<string, number> = {}
+  const moved: Record<string, number> = {}
+  for (const t of tiles.value) {
+    if (t.value == null) continue
+    next[t.code] = t.value
+    if (t.code in previous.value) moved[t.code] = t.value - previous.value[t.code]
+  }
+  previous.value = next
+  deltas.value = moved
+  quotedAt.value = Date.now()
+})
+
+function move(t: Tile) {
+  const d = deltas.value[t.code]
+  if (d == null) return null
+  if (Math.abs(d) < 1e-9) return { arrow: '=', text: '', tone: 'flat' }
+  const up = d > 0
+  return {
+    arrow: up ? '▲' : '▼',
+    text: `${up ? '+' : '−'}${Math.abs(d).toFixed(t.decimals ?? 0)}`,
+    tone: up === !t.bad ? 'good' : 'bad',
+  }
+}
+const sparkMax = (values: number[]) => Math.max(1, ...values)
+
+const healthy = computed(() => {
+  const e = etat.value
+  if (!e) return null
+  return !!e.ping && e.ping.status < 400 && e.status.every(s => s.indicator === 'none')
+})
+
+/** Le bandeau : chaque cotation, puis l'état des services. */
+const ticker = computed(() => {
+  const items = tiles.value.map((t) => {
+    const m = move(t)
+    return { key: t.code, code: t.code, value: t.value == null ? '—' : `${t.unit === '$' ? usd(t.value) : t.unit === '€' ? money(t.value * 100) : int(t.value)}${t.unit === 'ms' ? ' ms' : ''}`, move: m }
+  })
+  for (const s of etat.value?.status ?? []) {
+    items.push({ key: s.name, code: s.name.toUpperCase(), value: INDICATOR[s.indicator] ?? s.indicator, move: { arrow: '●', text: '', tone: s.indicator === 'none' ? 'good' : 'bad' } })
+  }
+  return items
+})
+
+const balanceInput = ref('')
+const savingBalance = ref(false)
+async function saveBalance() {
+  const value = Number(balanceInput.value.replace(',', '.'))
+  if (!Number.isFinite(value) || value < 0) return
+  savingBalance.value = true
+  try {
+    await $fetch('/api/admin/monitor/openai', { method: 'POST', body: { eur: value } })
+    balanceInput.value = ''
+    await refreshOpenai()
+  } finally {
+    savingBalance.value = false
+  }
+}
+
 const outbound = computed(() => {
   const hosts = new Map<string, { host: string; ok: number; failures: { status: number; count: number }[] }>()
   for (const r of trafic.value?.outbound ?? []) {
@@ -79,375 +212,402 @@ const outbound = computed(() => {
   }
   return [...hosts.values()].sort((a, b) => b.ok - a.ok)
 })
-
-const trafficMax = computed(() => Math.max(1, ...(trafic.value?.daily ?? []).map(d => d.ok + d.refused + d.failed)))
-const failedDays = computed(() => (trafic.value?.daily ?? []).filter(d => d.failed > 0))
-const costMax = computed(() => Math.max(0.01, ...(openai.value?.configured ? openai.value.daily.map(d => d.usd) : [])))
-
-const paid = computed(() => stripe.value?.statuses.succeeded ?? 0)
-const conversion = computed(() => {
-  const opened = stripe.value?.server.creates ?? 0
-  return opened ? Math.round((paid.value / opened) * 100) : null
-})
 </script>
 
 <template>
-  <div class="min-h-[100dvh] px-5 py-10 sm:px-8">
-    <div class="mx-auto w-full max-w-5xl space-y-12">
-
-      <header class="space-y-4">
-        <p class="font-display text-[10px] uppercase tracking-[0.4em] text-neon-400/80">Admin — en direct</p>
-        <h1 class="neon-text font-display uppercase text-2xl sm:text-3xl tracking-[0.05em]">La prod</h1>
-        <div class="neon-rule w-32" />
-        <p class="text-ink-200/85 text-sm leading-relaxed">
-          Vercel, OpenAI et Stripe, lus à l’instant depuis ce poste. Chaque bloc se charge seul : les métriques et
-          les journaux de Vercel prennent une quinzaine de secondes. Aucune lecture ne consomme de jetons.
+  <div class="bourse">
+    <!-- Bandeau du haut : la séance -->
+    <header class="top">
+      <div class="brand">
+        <p class="eyebrow">Admin — séance en direct</p>
+        <p class="name">FAR NIGHT <span class="sym">FNGT</span></p>
+        <p class="session" :class="healthy === false ? 'bad' : 'good'">
+          <span class="dot" />{{ healthy === false ? 'Séance perturbée' : 'Séance ouverte' }}
         </p>
-        <!-- Les lectures ne partent que du navigateur : le serveur ne sait pas qu'elles sont en cours. -->
+      </div>
+
+      <div class="clock" aria-label="Heure de Paris">
+        <span class="led-ghost">88:88:88</span>
+        <span class="led-on">{{ now ? clock(now) : '--:--:--' }}</span>
+        <span class="clock-tz">Paris</span>
+      </div>
+
+      <div class="meta">
+        <p><span class="k">Ouverture</span> {{ dayMonth(opening) }} {{ clock(opening) }}</p>
+        <p><span class="k">Écoulé</span> <span class="led-small">{{ now ? chrono(now - opening) : '--:--:--' }}</span></p>
+        <p>
+          <span class="k">Prochaine cotation</span>
+          <span class="led-small">{{ !now || busy ? '--:--' : `${pad(Math.floor(countdown / 60))}:${pad(countdown % 60)}` }}</span>
+        </p>
+        <p v-if="quotedAt"><span class="k">Dernière</span> {{ clock(quotedAt) }}</p>
         <ClientOnly>
-          <button
-            type="button" :disabled="busy"
-            class="border border-steel-600/60 hover:border-neon-600/60 px-3 py-1.5 text-xs text-ink-200 disabled:opacity-50"
-            @click="refreshAll()"
-          >
-            {{ busy ? 'lecture…' : 'Tout relire' }}
-          </button>
+          <button type="button" class="btn" :disabled="busy" @click="refreshAll()">{{ busy ? 'cotation…' : 'Coter maintenant' }}</button>
         </ClientOnly>
-      </header>
+      </div>
+    </header>
 
-      <!-- En ce moment -->
-      <section class="space-y-4">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">En ce moment</h2>
-        <p v-if="etatError" class="text-red-300/90 text-sm">{{ reason(etatError) }}</p>
-        <p v-else-if="!etat" class="text-steel-400 text-xs">lecture de Vercel…</p>
-        <template v-else>
-          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="border p-4 space-y-1" :class="etat.ping && etat.ping.status < 400 ? 'border-neon-600/40' : 'border-red-400/40'">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Site</p>
-              <p class="text-ink-100 text-sm break-words">{{ etat.host ?? 'domaine inconnu' }}</p>
-              <p v-if="etat.ping" class="font-display text-lg" :class="etat.ping.status < 400 ? 'text-neon-300' : 'text-red-300'">
-                {{ etat.ping.status }} <span class="text-ink-300 text-xs">en {{ int(etat.ping.ms) }} ms</span>
-              </p>
-              <p v-else class="text-red-300/90 text-xs">{{ etat.errors.site ?? 'pas de réponse' }}</p>
-            </div>
-            <div class="border border-steel-600/60 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">En ligne</p>
-              <template v-if="etat.prod">
-                <p class="text-ink-100 text-sm">{{ etat.prod.message ?? etat.prod.url }}</p>
-                <p class="text-ink-300 text-xs"><code class="text-steel-400">{{ etat.prod.sha }}</code> · {{ ago(etat.prod.createdAt) }}</p>
-                <p v-if="etat.ahead === 0" class="text-neon-300/90 text-xs">main local = prod</p>
-                <p v-else-if="etat.ahead" class="text-ink-200 text-xs">{{ etat.ahead }} commit{{ etat.ahead > 1 ? 's' : '' }} local{{ etat.ahead > 1 ? 'aux' : '' }} pas encore en ligne</p>
-              </template>
-            </div>
-            <a
-              v-for="s in etat.status" :key="s.name" :href="s.url" target="_blank" rel="noopener"
-              class="border p-4 space-y-1 hover:border-neon-600/60" :class="s.indicator === 'none' ? 'border-steel-600/60' : 'border-red-400/40'"
-            >
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Statut {{ s.name }}</p>
-              <p class="font-display text-lg" :class="s.indicator === 'none' ? 'text-neon-300' : 'text-red-300'">{{ INDICATOR[s.indicator] ?? s.indicator }}</p>
-              <p class="text-ink-300 text-xs">{{ s.description }}</p>
-            </a>
-          </div>
-          <p v-if="etat.alerts?.length" class="text-red-300/90 text-sm">
-            Alertes Vercel : {{ etat.alerts.join(' · ') }}
-          </p>
-          <p v-for="(msg, name) in etat.errors" :key="name" class="text-red-300/90 text-xs">{{ name }} — {{ msg }}</p>
+    <!-- Le bandeau défilant -->
+    <div class="tape" aria-hidden="true">
+      <div class="tape-track">
+        <template v-for="copy in 2" :key="copy">
+          <span v-for="i in ticker" :key="`${copy}-${i.key}`" class="tape-item">
+            <span class="tape-code">{{ i.code }}</span>
+            <span class="tape-value">{{ i.value }}</span>
+            <span v-if="i.move" :class="['tape-move', i.move.tone]">{{ i.move.arrow }} {{ i.move.text }}</span>
+          </span>
         </template>
-      </section>
-
-      <!-- Erreurs -->
-      <section class="space-y-4">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
-          Erreurs des fonctions <span class="text-steel-400">— {{ journal?.hours ?? 24 }} dernières heures</span>
-        </h2>
-        <p v-if="journalError" class="text-red-300/90 text-sm">{{ reason(journalError) }}</p>
-        <p v-else-if="!journal" class="text-steel-400 text-xs">lecture des journaux…</p>
-        <p v-else-if="journal.gaveUpAfter" class="text-ink-300 text-sm">
-          Aucune erreur remontée : la recherche s’est arrêtée au bout de {{ journal.gaveUpAfter }} s.
-        </p>
-        <p v-else-if="!journal.lines.length" class="text-neon-300/90 text-sm">Aucune erreur.</p>
-        <ul v-else class="space-y-2">
-          <li v-for="l in journal.lines" :key="l.id" class="border-t border-steel-700/60 pt-2">
-            <details>
-              <summary class="cursor-pointer text-sm text-ink-200/90 leading-snug">
-                <span class="text-steel-400 text-xs whitespace-nowrap">{{ date(l.at) }}</span> <code class="text-neon-300/90 text-xs">{{ l.method }} {{ l.path }} → {{ l.status }}</code> <span class="text-red-300/90">{{ l.message }}</span>
-              </summary>
-              <ul class="mt-2 pl-4 space-y-1">
-                <li v-for="(t, i) in l.trail" :key="i" class="text-xs leading-snug" :class="t.level === 'error' ? 'text-red-300/90' : 'text-ink-300'">
-                  <span class="text-steel-400 uppercase text-[10px]">{{ t.level }}</span> {{ t.message }}
-                </li>
-              </ul>
-            </details>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Joueurs -->
-      <section class="space-y-5">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
-          Fréquentation <span class="text-steel-400">— {{ trafic?.days ?? 7 }} derniers jours, prod</span>
-        </h2>
-        <p v-if="traficError" class="text-red-300/90 text-sm">{{ reason(traficError) }}</p>
-        <p v-else-if="!trafic" class="text-steel-400 text-xs">lecture des métriques…</p>
-        <template v-else>
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="border border-neon-600/40 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Visiteurs uniques</p>
-              <p class="neon-text font-display text-3xl">{{ trafic.visitors == null ? '—' : int(trafic.visitors) }}</p>
-              <p class="text-ink-300 text-[11px]">Web Analytics, navigateurs qui ont exécuté le script</p>
-            </div>
-            <div class="border border-steel-600/60 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Pages vues</p>
-              <p class="text-ink-100 font-display text-3xl">{{ trafic.views == null ? '—' : int(trafic.views) }}</p>
-            </div>
-            <div class="border border-steel-600/60 p-4 space-y-2">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">D’où</p>
-              <p class="flex flex-wrap gap-x-3 text-ink-200 text-xs leading-relaxed">
-                <span v-for="c in trafic.countries ?? []" :key="c.country"><span class="text-ink-100 tabular-nums">{{ int(c.visitors) }}</span> {{ c.country }}</span>
-              </p>
-              <p class="flex flex-wrap gap-x-3 text-ink-200 text-xs leading-relaxed">
-                <span v-for="r in trafic.referrers ?? []" :key="r.host"><span class="text-ink-100 tabular-nums">{{ int(r.views) }}</span> {{ r.host || 'accès direct' }}</span>
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <p class="text-ink-200/85 text-sm">Requêtes reçues par les fonctions, jour par jour (UTC), robots compris</p>
-            <div class="flex items-end gap-1 h-28 border-b border-steel-600/60">
-              <div
-                v-for="d in trafic.daily" :key="d.day" class="flex-1 h-full flex items-end"
-                :title="`${shortDay(d.day)} — ${int(d.ok + d.refused + d.failed)} requêtes : ${int(d.ok)} servies, ${int(d.refused)} refusées (4xx), ${int(d.failed)} en échec (5xx)`"
-              >
-                <div class="w-full bg-neon-500/70" :style="{ height: `${(d.ok + d.refused + d.failed) / trafficMax * 100}%`, borderRadius: '4px 4px 0 0' }" />
-              </div>
-            </div>
-            <div v-if="trafic.daily.length" class="flex justify-between text-[10px] text-steel-400">
-              <span>{{ shortDay(trafic.daily[0].day) }}</span><span>{{ shortDay(trafic.daily[trafic.daily.length - 1].day) }}</span>
-            </div>
-            <p v-if="failedDays.length" class="flex flex-wrap gap-x-3 text-red-300/90 text-xs">
-              <span>Échecs serveur (5xx) :</span><span v-for="d in failedDays" :key="d.day">{{ shortDay(d.day) }} × {{ d.failed }}</span>
-            </p>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
-              <thead>
-                <tr class="text-steel-400 font-display text-[10px] uppercase tracking-[0.16em]">
-                  <th class="text-left py-2 pr-4 font-normal">Route du jeu</th>
-                  <th class="text-right py-2 px-3 font-normal">Appels</th>
-                  <th class="text-right py-2 px-3 font-normal">Refusés (4xx)</th>
-                  <th class="text-right py-2 pl-3 font-normal">En échec (5xx)</th>
-                </tr>
-              </thead>
-              <tbody class="text-ink-200/85">
-                <tr v-for="r in trafic.api" :key="r.path" class="border-t border-steel-700/60">
-                  <td class="py-2 pr-4">
-                    <code class="text-neon-300/90 text-xs">{{ r.path }}</code>
-                    <span v-if="ROUTES[r.path]" class="text-ink-300 text-xs"> — {{ ROUTES[r.path] }}</span>
-                  </td>
-                  <td class="py-2 px-3 text-right tabular-nums">{{ int(r.total) }}</td>
-                  <td class="py-2 px-3 text-right tabular-nums">{{ r.refused ? int(r.refused) : '' }}</td>
-                  <td class="py-2 pl-3 text-right tabular-nums" :class="r.failed ? 'text-red-300/90' : ''">{{ r.failed ? int(r.failed) : '' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p v-for="(msg, name) in trafic.errors" :key="name" class="text-red-300/90 text-xs">{{ name }} — {{ msg }}</p>
-        </template>
-      </section>
-
-      <!-- Stripe -->
-      <section class="space-y-5">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
-          Paiements Stripe <span class="text-steel-400">— {{ stripe?.days ?? 30 }} derniers jours<template v-if="stripe">, {{ stripe.livemode === false ? 'mode test' : stripe.livemode ? 'mode live' : 'mode inconnu' }}</template></span>
-        </h2>
-        <p v-if="stripeError" class="text-red-300/90 text-sm">{{ reason(stripeError) }}</p>
-        <p v-else-if="!stripe" class="text-steel-400 text-xs">lecture de Stripe…</p>
-        <template v-else>
-          <div class="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <div class="border border-neon-600/40 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Encaissé</p>
-              <p class="neon-text font-display text-3xl">{{ money(stripe.revenue, stripe.recent[0]?.currency) }}</p>
-            </div>
-            <div class="border border-steel-600/60 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Nuits payées</p>
-              <p class="text-ink-100 font-display text-3xl">{{ int(paid) }}</p>
-            </div>
-            <div class="border border-steel-600/60 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Paywalls ouverts</p>
-              <p class="text-ink-100 font-display text-3xl">{{ int(stripe.server.creates) }}</p>
-              <p v-if="conversion != null" class="text-ink-300 text-[11px]">{{ conversion }} % payés</p>
-            </div>
-            <div class="border p-4 space-y-1" :class="stripe.charges.failed ? 'border-red-400/40' : 'border-steel-600/60'">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">Cartes refusées</p>
-              <p class="font-display text-3xl" :class="stripe.charges.failed ? 'text-red-300' : 'text-ink-100'">{{ int(stripe.charges.failed) }}</p>
-              <p v-if="stripe.refusals[0]" class="text-ink-300 text-[11px]">surtout {{ stripe.refusals[0].reason }}</p>
-            </div>
-          </div>
-          <ul class="text-sm space-y-1">
-            <li v-for="p in stripe.recent.slice(0, 6)" :key="p.id" class="flex flex-wrap gap-x-3 border-t border-steel-700/60 pt-1">
-              <span class="text-steel-400 text-xs">{{ date(p.created * 1000) }}</span>
-              <span class="text-ink-100 tabular-nums text-xs">{{ money(p.amount, p.currency) }}</span>
-              <span class="text-xs" :class="p.status === 'succeeded' ? 'text-neon-300/90' : 'text-ink-300'">{{ STRIPE_STATUS[p.status] ?? p.status }}</span>
-              <span v-if="p.error" class="text-red-300/90 text-xs">{{ p.error }}</span>
-            </li>
-          </ul>
-          <NuxtLink to="/nimda/monitorpaiement" class="inline-block text-xs text-neon-300 hover:underline underline-offset-4">Le détail des requêtes Stripe →</NuxtLink>
-        </template>
-      </section>
-
-      <!-- OpenAI -->
-      <section class="space-y-5">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">OpenAI</h2>
-        <p v-if="openaiError" class="text-red-300/90 text-sm">{{ reason(openaiError) }}</p>
-        <p v-else-if="!openai" class="text-steel-400 text-xs">lecture d’OpenAI…</p>
-        <div v-else-if="!openai.configured" class="border border-steel-600/60 p-5 space-y-2 text-sm text-ink-200/85 leading-relaxed">
-          <p>
-            Les dépenses se lisent avec une <span class="text-ink-100">clé d’administration</span> : la clé du jeu n’y a pas accès.
-            Un Owner la crée dans
-            <a href="https://platform.openai.com/settings/organization/admin-keys" target="_blank" rel="noopener" class="text-neon-300 hover:underline underline-offset-4">Settings → Admin keys</a>,
-            puis on l’ajoute au <code class="text-neon-300">.env</code> local seulement :
-          </p>
-          <pre class="text-xs text-neon-300/90">OPENAI_ADMIN_KEY=sk-admin-…</pre>
-          <p class="text-ink-300 text-xs">Relancer le serveur de dev ensuite. En attendant, les appels vus depuis Vercel sont juste en dessous.</p>
-        </div>
-        <template v-else>
-          <div class="grid gap-3 grid-cols-3">
-            <div v-for="t in [
-              { label: 'Aujourd’hui (UTC)', value: openai.today },
-              { label: '7 jours', value: openai.week },
-              { label: `${openai.days} jours`, value: openai.month },
-            ]" :key="t.label" class="border border-steel-600/60 p-4 space-y-1">
-              <p class="text-steel-400 text-[10px] uppercase tracking-[0.12em] font-display">{{ t.label }}</p>
-              <p class="text-ink-100 font-display text-2xl">{{ usd(t.value) }}</p>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <p class="text-ink-200/85 text-sm">Dépense jour par jour, en dollars — OpenAI la met à jour avec quelques heures de retard</p>
-            <div class="flex items-end gap-1 h-28 border-b border-steel-600/60">
-              <div v-for="d in openai.daily" :key="d.day" class="flex-1 h-full flex items-end" :title="`${shortDay(d.day)} — ${usd(d.usd)}`">
-                <div class="w-full bg-neon-500/70" :style="{ height: `${d.usd / costMax * 100}%`, borderRadius: '4px 4px 0 0' }" />
-              </div>
-            </div>
-            <div v-if="openai.daily.length" class="flex justify-between text-[10px] text-steel-400">
-              <span>{{ shortDay(openai.daily[0].day) }}</span><span>{{ shortDay(openai.daily[openai.daily.length - 1].day) }}</span>
-            </div>
-          </div>
-          <div class="grid gap-8 sm:grid-cols-2">
-            <div class="space-y-2">
-              <p class="font-display text-[10px] uppercase tracking-[0.2em] text-steel-400">Par poste, {{ openai.days }} jours</p>
-              <ul class="text-sm space-y-1">
-                <li v-for="i in openai.items" :key="i.name" class="flex justify-between gap-4 border-t border-steel-700/60 pt-1">
-                  <span class="text-ink-200/85 text-xs">{{ i.name }}</span><span class="text-ink-100 tabular-nums text-xs">{{ usd(i.usd) }}</span>
-                </li>
-              </ul>
-            </div>
-            <div class="space-y-2 overflow-x-auto">
-              <p class="font-display text-[10px] uppercase tracking-[0.2em] text-steel-400">Texte, {{ openai.days }} jours</p>
-              <table class="w-full text-xs border-collapse">
-                <thead>
-                  <tr class="text-steel-400 text-[10px]">
-                    <th class="text-left py-1 pr-3 font-normal">modèle</th>
-                    <th class="text-right py-1 px-2 font-normal">requêtes</th>
-                    <th class="text-right py-1 px-2 font-normal">entrée</th>
-                    <th class="text-right py-1 px-2 font-normal">dont cache</th>
-                    <th class="text-right py-1 pl-3 font-normal">sortie</th>
-                  </tr>
-                </thead>
-                <tbody class="text-ink-200/85">
-                  <tr v-for="m in openai.models" :key="m.model" class="border-t border-steel-700/60">
-                    <td class="py-1 pr-3">{{ m.model }}</td>
-                    <td class="py-1 px-2 text-right tabular-nums">{{ int(m.requests) }}</td>
-                    <td class="py-1 px-2 text-right tabular-nums">{{ int(m.input) }}</td>
-                    <td class="py-1 px-2 text-right tabular-nums">{{ int(m.cached) }}</td>
-                    <td class="py-1 pl-3 text-right tabular-nums">{{ int(m.output) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p v-for="m in openai.images" :key="m.model" class="text-ink-200/85 text-xs">
-                Images {{ m.model }} : <span class="text-ink-100 tabular-nums">{{ int(m.images) }}</span> en {{ int(m.requests) }} requêtes
-              </p>
-            </div>
-          </div>
-        </template>
-
-        <div v-if="trafic" class="space-y-2">
-          <p class="font-display text-[10px] uppercase tracking-[0.2em] text-steel-400">Appels sortants vus par Vercel, {{ trafic.days }} jours</p>
-          <ul class="text-sm space-y-1">
-            <li v-for="h in outbound" :key="h.host" class="flex flex-wrap gap-x-3 border-t border-steel-700/60 pt-1 text-xs">
-              <code class="text-neon-300/90">{{ h.host }}</code>
-              <span class="text-ink-200"><span class="text-ink-100 tabular-nums">{{ int(h.ok) }}</span> réussis</span>
-              <span v-for="f in h.failures" :key="f.status" class="text-red-300/90">{{ int(f.count) }} × {{ f.status }}</span>
-            </li>
-          </ul>
-          <p v-if="outbound.some(h => h.failures.some(f => f.status === 429))" class="text-ink-300 text-xs leading-relaxed">
-            Un 429 d’OpenAI est un refus : limite de débit atteinte, ou crédit épuisé. Rien n’est facturé, mais le joueur n’a pas eu sa scène.
-          </p>
-          <p v-for="d in trafic.openaiMs ?? []" :key="d.path" class="text-ink-300 text-xs">
-            <code class="text-steel-400">{{ d.path }}</code> répond en {{ seconds(d.avg) }} en moyenne
-          </p>
-        </div>
-      </section>
-
-      <!-- Vercel -->
-      <section v-if="etat" class="space-y-5">
-        <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
-          Vercel
-          <span v-if="etat.project" class="text-steel-400">— {{ etat.project.name }}, {{ etat.project.framework }}, Node {{ etat.project.node }}, {{ etat.project.region }}</span>
-        </h2>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm border-collapse">
-            <tbody class="text-ink-200/85">
-              <tr v-for="d in etat.deployments ?? []" :key="d.url" class="border-t border-steel-700/60">
-                <td class="py-2 pr-3 text-xs whitespace-nowrap" :class="d.state === 'READY' ? 'text-ink-300' : d.state === 'ERROR' ? 'text-red-300/90' : 'text-ink-100'">
-                  {{ d.state }}<span v-if="d.live" class="text-neon-300"> · en ligne</span>
-                </td>
-                <td class="py-2 px-3 text-xs text-steel-400 whitespace-nowrap">{{ d.target }}</td>
-                <td class="py-2 px-3 text-xs">{{ d.message ?? d.url }} <code v-if="d.sha" class="text-steel-400">{{ d.sha }}</code></td>
-                <td class="py-2 px-3 text-xs text-steel-400 whitespace-nowrap">{{ ago(d.createdAt) }}</td>
-                <td class="py-2 pl-3 text-xs text-right tabular-nums whitespace-nowrap">{{ d.buildMs ? seconds(d.buildMs) : '' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="grid gap-8 sm:grid-cols-2">
-          <div class="space-y-2">
-            <p class="font-display text-[10px] uppercase tracking-[0.2em] text-steel-400">Variables de prod</p>
-            <ul class="text-xs space-y-1">
-              <li v-for="e in etat.env ?? []" :key="e.key" class="flex flex-wrap justify-between gap-x-4 border-t border-steel-700/60 pt-1">
-                <code class="text-ink-100">{{ e.key }}</code>
-                <span :class="e.stale ? 'text-red-300/90' : 'text-steel-400'">
-                  {{ e.stale ? `changée ${ago(e.updatedAt)}, après le déploiement en ligne : redéployer` : `posée ${ago(e.updatedAt)}` }}
-                </span>
-              </li>
-            </ul>
-          </div>
-          <div v-if="etat.usage" class="space-y-2">
-            <p class="font-display text-[10px] uppercase tracking-[0.2em] text-steel-400">
-              Facture du {{ new Date(etat.usage.from).toLocaleDateString('fr-FR') }} au {{ new Date(etat.usage.to).toLocaleDateString('fr-FR') }}
-            </p>
-            <p class="text-ink-100 font-display text-2xl">{{ usd(etat.usage.total) }}</p>
-            <p v-if="etat.usage.credit" class="text-ink-300 text-xs">
-              Crédit inclus : {{ usd(etat.usage.credit.used) }} consommés sur {{ usd(etat.usage.credit.allocated) }}
-            </p>
-            <ul class="text-xs space-y-1">
-              <li v-for="s in etat.usage.services" :key="s.name" class="flex justify-between gap-4 border-t border-steel-700/60 pt-1">
-                <span class="text-ink-200/85">{{ s.name }} <span class="text-steel-400">— {{ int(Math.round(s.quantity * 100) / 100) }} {{ s.unit }}</span></span>
-                <span class="text-ink-100 tabular-nums">{{ usd(s.cost) }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <a v-if="etat.dashboard" :href="etat.dashboard" target="_blank" rel="noopener" class="inline-block text-xs text-neon-300 hover:underline underline-offset-4">Ouvrir le projet sur Vercel →</a>
-      </section>
-
-      <nav class="flex flex-wrap gap-4 text-xs">
-        <NuxtLink to="/" class="text-ink-300 hover:text-neon-300 hover:underline underline-offset-4">Retour au jeu</NuxtLink>
-        <NuxtLink to="/nimda/marge" class="text-ink-300 hover:text-neon-300 hover:underline underline-offset-4">Coûts &amp; marges</NuxtLink>
-        <NuxtLink to="/nimda/monitorpaiement" class="text-ink-300 hover:text-neon-300 hover:underline underline-offset-4">Requêtes Stripe</NuxtLink>
-      </nav>
+      </div>
     </div>
+
+    <main class="wrap">
+      <!-- Le tableau des cotes -->
+      <section class="board" aria-label="Cotations">
+        <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== 'ms' && t.unit !== '$') }">
+          <header class="tile-head">
+            <span class="tile-code">{{ t.code }}</span>
+            <span v-if="move(t)" :class="['tile-move', move(t)!.tone]">{{ move(t)!.arrow }} {{ move(t)!.text }}</span>
+          </header>
+          <p class="tile-value">
+            <span class="led-ghost">{{ ghost(led(t)) }}</span>
+            <span class="led-on">{{ led(t) }}</span>
+            <span v-if="t.unit" class="tile-unit">{{ t.unit }}</span>
+          </p>
+          <p class="tile-label">{{ t.label }}</p>
+          <div v-if="t.spark?.length" class="spark">
+            <span
+              v-for="(v, i) in t.spark" :key="i" class="spark-bar"
+              :style="{ height: `${(v / sparkMax(t.spark)) * 100}%` }"
+              :title="`${bucketLabel(buckets[i]?.at ?? '')} — ${int(v)}`"
+            />
+          </div>
+          <p v-if="t.note" class="tile-note">{{ t.note }}</p>
+        </article>
+      </section>
+
+      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
+      <p v-for="(msg, name) in { ...(etat?.errors ?? {}), ...(trafic?.errors ?? {}) }" :key="name" class="err">{{ name }} — {{ msg }}</p>
+
+      <div class="cols">
+        <!-- Dépêches : les erreurs du journal -->
+        <section class="panel">
+          <h2>Dépêches <span>erreurs des fonctions depuis l’ouverture</span></h2>
+          <p v-if="!journal" class="muted">lecture des journaux…</p>
+          <p v-else-if="journal.gaveUpAfter" class="muted">Aucune erreur remontée : le journal n’a rien rendu en {{ journal.gaveUpAfter }} s.</p>
+          <p v-else-if="!journal.lines.length" class="good">Aucune erreur.</p>
+          <ul v-else class="wire">
+            <li v-for="l in journal.lines" :key="l.id">
+              <details>
+                <summary>
+                  <span class="t">{{ clock(l.at) }}</span>
+                  <span v-if="l.path === '/api/scene/text'" class="tag bad">scène ratée</span>
+                  <code>{{ l.method }} {{ l.path }} → {{ l.status }}</code>
+                  <span class="bad">{{ l.message }}</span>
+                </summary>
+                <ul class="trail">
+                  <li v-for="(t, i) in l.trail" :key="i" :class="t.level === 'error' ? 'bad' : 'muted'"><b>{{ t.level }}</b> {{ t.message }}</li>
+                </ul>
+              </details>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Transactions : Stripe -->
+        <section class="panel">
+          <h2>Transactions <span>Stripe, {{ stripe ? (stripe.livemode === false ? 'mode test' : 'mode live') : '…' }}</span></h2>
+          <p v-if="!stripe" class="muted">lecture de Stripe…</p>
+          <template v-else>
+            <p v-if="!stripe.recent.length" class="muted">Aucun paywall ouvert depuis l’ouverture.</p>
+            <table v-else class="tbl">
+              <tr v-for="p in stripe.recent" :key="p.id">
+                <td class="t">{{ clock(p.created * 1000) }}</td>
+                <td class="num">{{ money(p.amount, p.currency) }}</td>
+                <td :class="p.status === 'succeeded' ? 'good' : 'muted'">{{ STRIPE_STATUS[p.status] ?? p.status }}</td>
+                <td class="bad">{{ p.error ?? '' }}</td>
+              </tr>
+            </table>
+            <p v-if="stripe.charges.failed" class="bad small">{{ stripe.charges.failed }} carte(s) refusée(s){{ stripe.refusals[0] ? ` — ${stripe.refusals[0].reason}` : '' }}</p>
+            <p class="muted small">Les paywalls ouverts depuis ce poste comptent aussi : la clé Stripe du .env local est la clé live.</p>
+            <NuxtLink to="/nimda/monitorpaiement" class="link">Le détail des requêtes Stripe →</NuxtLink>
+          </template>
+        </section>
+      </div>
+
+      <!-- Cotes détaillées : les routes du jeu -->
+      <section class="panel">
+        <h2>Cotes détaillées <span>routes du jeu depuis l’ouverture</span></h2>
+        <p v-if="!trafic" class="muted">lecture des métriques…</p>
+        <p v-else-if="!trafic.api.length" class="muted">Aucun appel depuis l’ouverture.</p>
+        <table v-else class="tbl">
+          <thead><tr><th>Route</th><th class="num">Appels</th><th class="num">4xx</th><th class="num">5xx</th></tr></thead>
+          <tr v-for="r in trafic.api" :key="r.path">
+            <td><code>{{ r.path }}</code> <span class="muted">{{ ROUTES[r.path] ?? '' }}</span></td>
+            <td class="num">{{ int(r.total) }}</td>
+            <td class="num">{{ r.refused ? int(r.refused) : '' }}</td>
+            <td class="num" :class="r.failed ? 'bad' : ''">{{ r.failed ? int(r.failed) : '' }}</td>
+          </tr>
+        </table>
+        <p class="muted small">/api/scene/text répond en flux : son 200 part avant la scène. Ses échecs se lisent dans les dépêches, pas dans la colonne 5xx.</p>
+      </section>
+
+      <div class="cols">
+        <!-- Flux sortants -->
+        <section class="panel">
+          <h2>Flux sortants <span>appels de nos fonctions</span></h2>
+          <p v-if="!trafic" class="muted">lecture des métriques…</p>
+          <template v-else>
+            <p v-if="!outbound.length" class="muted">Aucun appel sortant depuis l’ouverture.</p>
+            <table v-else class="tbl">
+              <tr v-for="h in outbound" :key="h.host">
+                <td><code>{{ h.host }}</code></td>
+                <td class="num">{{ int(h.ok) }} ok</td>
+                <td class="bad">{{ h.failures.map(f => `${int(f.count)} × ${f.status}`).join(' · ') }}</td>
+              </tr>
+            </table>
+            <p v-for="d in trafic.openaiMs ?? []" :key="d.path" class="muted small">
+              <code>{{ d.path }}</code> répond en {{ (d.avg / 1000).toFixed(1) }} s en moyenne
+            </p>
+            <p v-if="outbound.some(h => h.failures.some(f => f.status === 429))" class="muted small">
+              Un 429 d’OpenAI est un refus : limite de débit (30 000 jetons par minute au palier 1) ou crédit épuisé.
+            </p>
+          </template>
+        </section>
+
+        <!-- OpenAI -->
+        <section class="panel">
+          <h2>OpenAI <span>facturé chez OpenAI{{ openai?.configured ? ` · coûts depuis ${dayMonth(Date.parse(openai.costsFrom))} ${hhmm(Date.parse(openai.costsFrom))}, usage depuis l’ouverture` : '' }}</span></h2>
+          <p v-if="openaiError" class="bad">{{ reason(openaiError) }}</p>
+          <p v-else-if="!openai" class="muted">lecture d’OpenAI…</p>
+          <div v-else-if="!openai.configured" class="muted small">
+            <p>
+              Les dépenses ne se lisent qu’avec une clé d’administration, créée par un Owner dans
+              <a href="https://platform.openai.com/settings/organization/admin-keys" target="_blank" rel="noopener" class="link">Settings → Admin keys</a>,
+              puis ajoutée au <code>.env</code> local seulement : <code>OPENAI_ADMIN_KEY=sk-admin-…</code>. Relancer le dev ensuite.
+            </p>
+          </div>
+          <template v-else>
+            <form class="balance" @submit.prevent="saveBalance">
+              <label for="balance">
+                Solde lu sur
+                <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener" class="link">Billing</a>
+              </label>
+              <input id="balance" v-model="balanceInput" inputmode="decimal" placeholder="en euros" autocomplete="off">
+              <button type="submit" class="btn" :disabled="savingBalance || !balanceInput">{{ savingBalance ? '…' : 'Enregistrer' }}</button>
+            </form>
+            <p v-if="openai.credit" class="muted small">
+              {{ money(openai.credit.eur * 100) }} le {{ dayMonth(Date.parse(openai.credit.at)) }} à {{ hhmm(Date.parse(openai.credit.at)) }},
+              {{ money((openai.credit.eur - openai.credit.remaining) * 100) }} dépensés depuis : reste {{ money(openai.credit.remaining * 100) }}.
+              Dépenses facturées en dollars, converties à {{ openai.credit.usdToEur.toFixed(4) }} € le dollar.
+              Aucune API ne donne ce solde, il se recale à chaque saisie.
+            </p>
+            <table class="tbl">
+              <tr v-for="i in openai.items" :key="i.name"><td>{{ i.name }}</td><td class="num">{{ usd(i.usd) }}</td></tr>
+            </table>
+            <table class="tbl">
+              <thead><tr><th>Modèle</th><th class="num">Requêtes</th><th class="num">Entrée</th><th class="num">Sortie</th></tr></thead>
+              <tr v-for="m in openai.models" :key="m.model">
+                <td>{{ m.model }}</td><td class="num">{{ int(m.requests) }}</td><td class="num">{{ int(m.input) }}</td><td class="num">{{ int(m.output) }}</td>
+              </tr>
+            </table>
+            <p v-for="m in openai.images" :key="m.model" class="muted small">Images {{ m.model }} : {{ int(m.images) }}</p>
+            <p class="muted small">OpenAI met ces chiffres à jour avec quelques heures de retard.</p>
+          </template>
+        </section>
+      </div>
+
+      <!-- Infrastructure -->
+      <section v-if="etat" class="panel">
+        <h2>
+          Infrastructure
+          <span v-if="etat.project">{{ etat.project.name }} · {{ etat.project.framework }} · Node {{ etat.project.node }} · {{ etat.project.region }}</span>
+        </h2>
+        <div class="infra">
+          <div>
+            <p class="k">Site</p>
+            <p :class="etat.ping && etat.ping.status < 400 ? 'good' : 'bad'">
+              {{ etat.host ?? '—' }} · {{ etat.ping ? `${etat.ping.status} en ${etat.ping.ms} ms` : etat.errors.site ?? 'pas de réponse' }}
+            </p>
+            <p class="k">En ligne</p>
+            <p v-if="etat.prod">{{ etat.prod.message }} <code>{{ etat.prod.sha }}</code></p>
+            <p v-if="etat.ahead === 0" class="good small">main local = prod</p>
+            <p v-else-if="etat.ahead" class="small">{{ etat.ahead }} commit(s) local(aux) pas encore en ligne</p>
+            <p class="k">Services</p>
+            <p v-for="s in etat.status" :key="s.name" :class="s.indicator === 'none' ? 'good' : 'bad'">● {{ s.name }} {{ INDICATOR[s.indicator] ?? s.indicator }}</p>
+            <p v-if="etat.alerts?.length" class="bad">Alertes : {{ etat.alerts.join(' · ') }}</p>
+          </div>
+          <div>
+            <p class="k">Derniers déploiements</p>
+            <table class="tbl">
+              <tr v-for="d in (etat.deployments ?? []).slice(0, 6)" :key="d.url">
+                <td :class="d.state === 'READY' ? (d.live ? 'good' : 'muted') : 'bad'">{{ d.live ? 'EN LIGNE' : d.state }}</td>
+                <td>{{ d.message ?? d.url }}</td>
+                <td class="t">{{ dayMonth(d.createdAt) }} {{ hhmm(d.createdAt) }}</td>
+              </tr>
+            </table>
+            <p class="k">Variables de prod</p>
+            <p v-for="e in etat.env ?? []" :key="e.key" class="small" :class="e.stale ? 'bad' : 'muted'">
+              <code>{{ e.key }}</code>{{ e.stale ? ' — changée après le déploiement en ligne : redéployer' : '' }}
+            </p>
+          </div>
+          <div v-if="etat.usage">
+            <p class="k">Vercel, du {{ new Date(etat.usage.from).toLocaleDateString('fr-FR') }} au {{ new Date(etat.usage.to).toLocaleDateString('fr-FR') }}</p>
+            <table class="tbl">
+              <tr v-for="s in etat.usage.services" :key="s.name"><td>{{ s.name }}</td><td class="num">{{ usd(s.cost) }}</td></tr>
+            </table>
+            <a v-if="etat.dashboard" :href="etat.dashboard" target="_blank" rel="noopener" class="link">Ouvrir le projet sur Vercel →</a>
+          </div>
+        </div>
+      </section>
+
+      <nav class="foot">
+        <NuxtLink to="/" class="link">Retour au jeu</NuxtLink>
+        <NuxtLink to="/nimda/marge" class="link">Coûts &amp; marges</NuxtLink>
+        <NuxtLink to="/nimda/monitorpaiement" class="link">Requêtes Stripe</NuxtLink>
+      </nav>
+    </main>
   </div>
 </template>
+
+<style>
+/* Afficheur à 7 segments, licence SIL OFL : https://github.com/keshikan/DSEG */
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');
+  font-display: swap;
+}
+</style>
+
+<style scoped>
+.bourse {
+  --up: #3ddc84;
+  --down: #ff5c5c;
+  --led: rgb(var(--neon-300));
+  --panel: rgba(255, 255, 255, 0.025);
+  --line: rgba(255, 255, 255, 0.09);
+  --muted: rgb(var(--ink-300));
+  min-height: 100dvh;
+  background: #05070a;
+  color: rgb(var(--ink-100));
+  font-size: 13px;
+}
+
+/* La séance */
+.top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(#0a0d12, #05070a);
+}
+.eyebrow, .k, .tile-code, .tile-label, .panel h2, .session, .clock-tz {
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+.eyebrow { font-size: 10px; color: rgb(var(--neon-400) / 0.8); letter-spacing: 0.4em; }
+.name { font-size: 20px; letter-spacing: 0.12em; margin-top: 4px; }
+.sym { font-size: 11px; color: var(--muted); border: 1px solid var(--line); padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+.session { font-size: 10px; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; animation: pulse 1.6s ease-in-out infinite; }
+
+.clock { position: relative; display: grid; justify-items: center; }
+.clock .led-ghost, .clock .led-on { grid-area: 1 / 1; font-size: clamp(34px, 7vw, 64px); }
+.clock-tz { font-size: 9px; color: var(--muted); margin-top: 6px; }
+
+.led-ghost, .led-on, .led-small { font-family: 'DSEG7', 'Courier New', monospace; font-style: normal; }
+.led-ghost { color: var(--led); opacity: 0.07; }
+.led-on { color: var(--led); text-shadow: 0 0 6px rgb(var(--neon-400) / 0.65), 0 0 18px rgb(var(--neon-500) / 0.35); }
+.led-small { color: var(--led); font-size: 12px; text-shadow: 0 0 6px rgb(var(--neon-400) / 0.5); }
+
+.meta { justify-self: end; text-align: right; display: grid; gap: 4px; font-size: 12px; }
+.meta .k { font-size: 9px; color: var(--muted); margin-right: 6px; }
+.btn { justify-self: end; margin-top: 4px; border: 1px solid var(--line); padding: 4px 10px; font-size: 11px; color: rgb(var(--ink-200)); }
+.btn:hover:not(:disabled) { border-color: rgb(var(--neon-500) / 0.6); }
+.btn:disabled { opacity: 0.5; }
+
+/* Le bandeau défilant */
+.tape { overflow: hidden; border-bottom: 1px solid var(--line); background: #080b0f; white-space: nowrap; }
+.tape-track { display: inline-flex; animation: tape 70s linear infinite; }
+.tape:hover .tape-track { animation-play-state: paused; }
+.tape-item { display: inline-flex; gap: 8px; align-items: baseline; padding: 8px 22px; border-right: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.tape-code { color: var(--muted); font-size: 11px; letter-spacing: 0.1em; }
+.tape-value { color: rgb(var(--ink-100)); }
+.tape-move { font-size: 11px; }
+
+.good { color: var(--up); }
+.bad { color: var(--down); }
+.flat, .muted { color: var(--muted); }
+
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px; }
+
+/* Le tableau des cotes */
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.tile { background: var(--panel); border: 1px solid var(--line); padding: 10px 12px 12px; display: grid; gap: 6px; align-content: start; }
+.tile.alert { border-color: rgb(255 92 92 / 0.45); }
+.tile-head { display: flex; justify-content: space-between; align-items: baseline; }
+.tile-code { font-size: 11px; color: rgb(var(--neon-400) / 0.85); }
+.tile-move { font-size: 11px; font-variant-numeric: tabular-nums; }
+.tile-value { position: relative; display: grid; justify-content: start; align-items: baseline; grid-template-columns: auto auto; column-gap: 6px; }
+.tile-value .led-ghost, .tile-value .led-on { grid-area: 1 / 1; font-size: 30px; line-height: 1.1; }
+.tile-unit { grid-area: 1 / 2; font-size: 12px; color: var(--muted); }
+.tile-label { font-size: 9px; color: rgb(var(--ink-200)); letter-spacing: 0.14em; }
+.tile-note { font-size: 10px; color: var(--muted); }
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; border-bottom: 1px solid var(--line); }
+.spark-bar { flex: 1; min-width: 2px; background: rgb(var(--neon-500) / 0.7); border-radius: 2px 2px 0 0; }
+
+.err { color: var(--down); font-size: 12px; }
+
+/* Panneaux */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 20px; }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel h2 { font-size: 11px; color: rgb(var(--ink-100)); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.panel h2 span { font-size: 9px; color: var(--muted); letter-spacing: 0.14em; }
+.small { font-size: 11px; }
+code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9); font-size: 12px; }
+.link { color: rgb(var(--neon-300)); font-size: 12px; }
+.link:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tbl th { text-align: left; font-weight: normal; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 4px 8px 6px 0; }
+.tbl td { border-top: 1px solid var(--line); padding: 5px 8px 5px 0; vertical-align: top; }
+.tbl .num { text-align: right; white-space: nowrap; }
+.t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.wire { display: grid; gap: 6px; }
+.wire > li { border-top: 1px solid var(--line); padding-top: 6px; }
+.wire summary { cursor: pointer; line-height: 1.5; }
+.wire summary > * { margin-right: 8px; }
+.tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 0 5px; }
+.trail { margin-top: 6px; padding-left: 16px; display: grid; gap: 3px; font-size: 11px; }
+.trail b { font-weight: normal; text-transform: uppercase; font-size: 9px; color: var(--muted); margin-right: 6px; }
+
+.infra { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
+.infra .k { font-size: 9px; color: var(--muted); margin-top: 8px; }
+.infra .k:first-child { margin-top: 0; }
+
+.foot { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.balance { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.balance input { width: 120px; background: #05070a; border: 1px solid var(--line); padding: 4px 8px; color: rgb(var(--ink-100)); font-variant-numeric: tabular-nums; }
+.balance input:focus { outline: none; border-color: rgb(var(--neon-500) / 0.6); }
+.balance .btn { margin-top: 0; }
+
+@keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track, .dot { animation: none; }
+  .tape { overflow-x: auto; }
+}
+
+@media (max-width: 760px) {
+  .top { grid-template-columns: 1fr; justify-items: start; padding: 16px; }
+  .clock { justify-self: center; }
+  .meta { justify-self: stretch; text-align: left; }
+  .btn { justify-self: start; }
+  .wrap { padding: 16px; }
+  .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile-value .led-ghost, .tile-value .led-on { font-size: 24px; }
+}
+</style>

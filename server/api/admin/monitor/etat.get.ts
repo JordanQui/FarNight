@@ -8,6 +8,9 @@ import { vercelJson, vercelProject } from '~/server/utils/vercel-cli'
  *
  * Chaque source peut manquer sans emporter les autres : son erreur part dans
  * `errors` et la page affiche le reste.
+ *
+ * La facture part du point de départ de la page (`?since=`, ISO), arrondi au
+ * jour : Vercel ne la compte qu'en jours entiers, à l'heure de Los Angeles.
  */
 
 type Production = { id: string; url: string; createdAt: number; readyState: string; meta?: Record<string, string> }
@@ -21,6 +24,8 @@ type Usage = {
   creditBalance?: { allocated: number; used: number; remaining: number }
   services: { name: string; quantity: number; unit: string; cost: number; category: string }[]
 }
+
+const laDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Los_Angeles' })
 
 const git = async (...args: string[]) =>
   (await promisify(execFile)('git', args, { cwd: process.cwd() })).stdout.trim()
@@ -37,7 +42,9 @@ async function probe(url: string) {
   return { url, status: res.status, ms: Math.round(performance.now() - t0) }
 }
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const since = new Date(String(getQuery(event).since))
+  if (Number.isNaN(since.getTime())) throw createError({ statusCode: 400, statusMessage: 'since manquant ou illisible' })
   const errors: Record<string, string> = {}
   const soft = <T>(name: string, p: Promise<T>) => p.catch((e: Error) => { errors[name] = e.message; return null })
 
@@ -50,7 +57,7 @@ export default defineEventHandler(async () => {
     soft('déploiements', vercelJson<{ contextName: string; deployments: Deployment[] }>(['ls', '--json', '--limit', '12'])),
     soft('variables', vercelJson<{ envs: { key: string; target?: string[]; type: string; updatedAt: number }[] }>(['env', 'ls', '--json'])),
     soft('alertes', vercelJson<{ groups: Record<string, unknown>[] }>(['alerts', '--json'])),
-    soft('facture', vercelJson<Usage>(['usage', '--json'])),
+    soft('facture', vercelJson<Usage>(['usage', '--json', '--from', laDay(since), '--to', laDay(new Date())])),
     soft('statut Vercel', statusPage('Vercel', 'https://www.vercel-status.com')),
     soft('statut OpenAI', statusPage('OpenAI', 'https://status.openai.com')),
   ])
@@ -108,6 +115,8 @@ export default defineEventHandler(async () => {
       currency: usage.costUnit,
       credit: usage.creditBalance ?? null,
       total: usage.services.reduce((sum, s) => sum + s.cost, 0),
+      /** Sans l'abonnement : ce que la prod a réellement consommé. */
+      consumption: usage.services.filter(s => s.category === 'usage').reduce((sum, s) => sum + s.cost, 0),
       services: usage.services.filter(s => s.cost >= 0.005).sort((a, b) => b.cost - a.cost),
     },
   }
