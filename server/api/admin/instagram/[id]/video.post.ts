@@ -1,9 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { promisify } from 'node:util'
-import { ScriptRuntime } from '~/utils/script-runtime'
 
 /**
  * Anime l'image du post avec Veo : un Reel de 8 secondes, en 9:16, muet sauf
@@ -15,6 +15,11 @@ import { ScriptRuntime } from '~/utils/script-runtime'
  * anglais de Veo. Il peut citer les images du pool de références par @nom.
  * Comme pour les images, chaque appel ajoute une variante.
  *
+ * Une correction part d'une vidéo déjà tournée : Claude en regarde quelques
+ * images, relit la consigne qu'avait reçue Veo et la remarque de l'auteur, et
+ * réécrit la consigne. Veo ne retouche pas une vidéo : il retourne la prise
+ * depuis la même image, c'est une génération entière.
+ *
  * Pas de SDK : l'API Gemini se parle en trois requêtes — lancer, attendre
  * l'opération, télécharger. La vidéo n'y reste que deux jours, on la rapatrie
  * aussitôt dans communication/.
@@ -23,8 +28,11 @@ const BASE = 'https://generativelanguage.googleapis.com/v1beta'
 const MODELS = { fast: 'veo-3.1-fast-generate-preview', standard: 'veo-3.1-generate-preview' } as const
 const POLL_MS = 10_000
 const MAX_WAIT_MS = 9 * 60_000
+/** Les secondes où Claude regarde la vidéo à corriger. */
+const FRAMES_AT = [1, 3, 5, 7]
 
 type Picture = { data: string; mimeType: string }
+type Ref = Picture & { name: string }
 
 function imageBlock({ data, mimeType }: Picture): Anthropic.ContentBlockParam[] {
   return mimeType === 'image/png' || mimeType === 'image/jpeg' || mimeType === 'image/webp'
@@ -33,41 +41,93 @@ function imageBlock({ data, mimeType }: Picture): Anthropic.ContentBlockParam[] 
 }
 
 /**
- * La prose française de l'auteur, devenue consigne de mouvement en anglais.
- * Les références citées par @nom sont montrées à Claude sous leur nom : Veo ne
- * les verra jamais, c'est la description de Claude qui les fait entrer.
+ * L'image de départ, puis les références citées par @nom, montrées à Claude
+ * sous leur nom : Veo ne les verra jamais, c'est la description de Claude qui
+ * les fait entrer.
  */
-async function motionForVeo(motion: string, start: Picture, refs: (Picture & { name: string })[]): Promise<string> {
-  const config = useRuntimeConfig()
-  const claude = new Anthropic({ apiKey: requireSecret(config.anthropicApiKey, 'ANTHROPIC_API_KEY') })
-  const { script } = await ScriptRuntime.load()
+function pictures(start: Picture, refs: Ref[]): Anthropic.ContentBlockParam[] {
   const content: Anthropic.ContentBlockParam[] = [{ type: 'text', text: 'Première image de la vidéo :' }, ...imageBlock(start)]
   for (const ref of refs) content.push({ type: 'text', text: `Référence @${ref.name} :` }, ...imageBlock(ref))
-  content.push({
+  return content
+}
+
+const DESCRIBE_REFS = `Veo ne voit pas les références : remplace chaque @nom par une description visuelle précise de l'image du même nom — forme, silhouette, matières, détails qui la distinguent — pour qu'il la reproduise sans l'avoir vue. Aucun @ ne doit rester.`
+
+async function ask(content: Anthropic.ContentBlockParam[]): Promise<string> {
+  const claude = new Anthropic({ apiKey: requireSecret(useRuntimeConfig().anthropicApiKey, 'ANTHROPIC_API_KEY') })
+  const message = await claude.messages.create({
+    model: IG_TEXT_MODEL,
+    max_tokens: 400,
+    messages: [{ role: 'user', content }],
+  })
+  const text = message.content.map(b => (b.type === 'text' ? b.text : '')).join('').trim()
+  if (!text) throw createError({ statusCode: 502, statusMessage: 'Claude n’a pas écrit la consigne de Veo' })
+  return text
+}
+
+/** La prose française de l'auteur, devenue consigne de mouvement en anglais. */
+function motionForVeo(motion: string, start: Picture, refs: Ref[]): Promise<string> {
+  return ask([...pictures(start, refs), {
     type: 'text',
     text: `La première image ci-dessus ouvre une vidéo de 8 secondes que Veo va animer. L'auteur décrit en français ce qui doit bouger :
 
 « ${motion} »
 
-Réécris-le en anglais comme une consigne de mouvement pour Veo : ce qui bouge dans l'image, comment, et ce que fait la caméra (fixe, travelling, zoom lent…), en phrases simples et concrètes, en t'appuyant sur ce qu'on voit dans l'image. Garde l'intention de l'auteur, n'ajoute ni action ni personnage qu'il n'a pas demandé. Ne décris ni le style ni les couleurs, ils sont ajoutés ailleurs. ${refs.length
-      ? `Veo ne voit pas les références : remplace chaque @nom par une description visuelle précise de l'image du même nom — forme, silhouette, matières, détails qui la distinguent — pour qu'il la reproduise sans l'avoir vue. Aucun @ ne doit rester. Six phrases au plus.`
-      : 'Trois phrases au plus.'}
+Réécris-le en anglais comme une consigne de mouvement pour Veo : ce qui bouge dans l'image, comment, et ce que fait la caméra (fixe, travelling, zoom lent…), en phrases simples et concrètes, en t'appuyant sur ce qu'on voit dans l'image. Garde l'intention de l'auteur, n'ajoute ni action ni personnage qu'il n'a pas demandé. Ne décris ni le style ni les couleurs, ils sont ajoutés ailleurs. ${refs.length ? `${DESCRIBE_REFS} Six phrases au plus.` : 'Trois phrases au plus.'}
+
+Réponds uniquement par la consigne, sans guillemets ni commentaire.`,
+  }])
+}
+
+/**
+ * Ce que Veo a tourné, à quelques secondes d'intervalle. ffmpeg ne rend rien
+ * au-delà de la fin : une vidéo plus courte donne moins d'images.
+ */
+async function framesOf(video: string): Promise<(Picture & { at: number })[]> {
+  const file = communicationPath(video)
+  if (!existsSync(file)) throw createError({ statusCode: 404, statusMessage: 'La vidéo à corriger n’est plus sur le disque' })
+  try {
+    const frames = await Promise.all(FRAMES_AT.map(async (at) => {
+      const { stdout } = await promisify(execFile)('ffmpeg', [
+        '-loglevel', 'error', '-ss', String(at), '-i', file, '-frames:v', '1', '-vf', 'scale=-2:768', '-f', 'image2pipe', '-c:v', 'png', 'pipe:1',
+      ], { encoding: 'buffer', maxBuffer: 16 * 1024 * 1024 })
+      return { at, mimeType: 'image/png', data: stdout.toString('base64') }
+    }))
+    return frames.filter(f => f.data)
+  } catch (err: any) {
+    throw createError({ statusCode: 500, statusMessage: `ffmpeg n’a pas lu la vidéo : ${err?.stderr || err?.message}` })
+  }
+}
+
+/**
+ * La remarque de l'auteur sur une prise ratée, devenue nouvelle consigne.
+ * Claude voit ce que Veo a vraiment tourné ; Veo ne verra que l'image de départ
+ * et la consigne réécrite. Une prise d'avant la correction n'a pas gardé sa
+ * consigne : Claude repart alors de l'intention en français.
+ */
+function fixForVeo(note: string, previous: string, intent: string, start: Picture, frames: (Picture & { at: number })[], refs: Ref[]): Promise<string> {
+  const content = pictures(start, refs)
+  for (const frame of frames) content.push({ type: 'text', text: `La vidéo tournée, à ${frame.at} s :` }, ...imageBlock(frame))
+  content.push({
+    type: 'text',
+    text: `Veo a animé la première image ci-dessus en une vidéo de 8 secondes, ${previous
+      ? `avec cette consigne :\n\n${previous}`
+      : `d'après cette intention de l'auteur : « ${intent} »`}
+
+Les images « vidéo tournée » montrent ce qu'il en a fait. L'auteur dit en français ce qui ne va pas :
+
+« ${note} »
+
+Réécris en anglais la consigne de mouvement de Veo pour corriger cela. Regarde les images de la vidéo pour comprendre ce qui s'est passé, garde ce qui marchait, ne change que ce que l'auteur vise. Veo ne verra ni la vidéo ni cette remarque : décris ce qui doit se passer, en phrases simples et concrètes, pas ce qui s'est mal passé. N'ajoute ni action ni personnage qu'il n'a pas demandé. Ne décris ni le style ni les couleurs, ils sont ajoutés ailleurs. ${refs.length ? DESCRIBE_REFS : ''} Six phrases au plus.
 
 Réponds uniquement par la consigne, sans guillemets ni commentaire.`,
   })
-  const message = await claude.messages.create({
-    model: script.defaults.generation.model,
-    max_tokens: 400,
-    messages: [{ role: 'user', content }],
-  })
-  const text = message.content.map(b => (b.type === 'text' ? b.text : '')).join('').trim()
-  if (!text) throw createError({ statusCode: 502, statusMessage: 'Claude n’a pas traduit le mouvement' })
-  return text
+  return ask(content)
 }
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
-  const body = await readBody<{ motion?: string; model?: string; sound?: boolean }>(event)
+  const body = await readBody<{ motion?: string; model?: string; sound?: boolean; fix?: { video?: string; note?: string } }>(event)
   const sound = body?.sound === true
   const model = MODELS[body?.model === 'standard' ? 'standard' : 'fast']
 
@@ -75,8 +135,15 @@ export default defineEventHandler(async (event) => {
   const post = posts.find(p => p.id === id)
   if (!post) throw createError({ statusCode: 404, statusMessage: `Post inconnu : ${id}` })
   const motion = (body?.motion ?? post.motion).trim()
-  if (!motion) throw createError({ statusCode: 400, statusMessage: 'Décris d’abord ce qui bouge' })
-  const start = post.source
+  // Une correction repart de la prise visée : son image et sa consigne.
+  const fix = body?.fix
+  const note = fix?.note?.trim() ?? ''
+  if (fix) {
+    if (!fix.video || !post.videos.includes(fix.video)) throw createError({ statusCode: 404, statusMessage: 'Vidéo à corriger inconnue' })
+    if (!note) throw createError({ statusCode: 400, statusMessage: 'Dis d’abord ce qui ne va pas' })
+  } else if (!motion) throw createError({ statusCode: 400, statusMessage: 'Décris d’abord ce qui bouge' })
+  const take = fix?.video ? post.takes[fix.video] : undefined
+  const start = take && existsSync(communicationPath(take.source)) ? take.source : post.source
   if (!start) throw createError({ statusCode: 400, statusMessage: 'Il faut d’abord une image à animer' })
   const mimeType = mimeOf(start)
   if (!mimeType.startsWith('image/')) throw createError({ statusCode: 400, statusMessage: 'Image de départ illisible' })
@@ -92,8 +159,9 @@ export default defineEventHandler(async (event) => {
     return res
   }
 
-  // Seules les références citées partent chez Claude.
-  const cited = [...new Set([...motion.matchAll(/@([\p{L}\p{N}-]+)/gu)].map(m => refName(m[1]!)))]
+  // Seules les références citées partent chez Claude. Une consigne déjà tournée les a décrites.
+  const citing = fix ? `${take ? '' : motion} ${note}` : motion
+  const cited = [...new Set([...citing.matchAll(/@([\p{L}\p{N}-]+)/gu)].map(m => refName(m[1]!)))]
   const refs = await Promise.all(cited.map(async (name) => {
     const ref = post.refs.find(r => r.name === name)
     if (!ref) throw createError({ statusCode: 400, statusMessage: `Référence inconnue : @${name}` })
@@ -101,7 +169,9 @@ export default defineEventHandler(async (event) => {
   }))
 
   const data = (await readFile(communicationPath(start))).toString('base64')
-  const motionEn = await motionForVeo(motion, { data, mimeType }, refs)
+  const motionEn = fix?.video
+    ? await fixForVeo(note, take?.motion ?? '', motion, { data, mimeType }, await framesOf(fix.video), refs)
+    : await motionForVeo(motion, { data, mimeType }, refs)
   let op = await (await call(`${BASE}/models/${model}:predictLongRunning`, {
     method: 'POST',
     body: JSON.stringify({
@@ -146,5 +216,6 @@ export default defineEventHandler(async (event) => {
     }
     p.videos.push(rel)
     p.video = rel
+    p.takes[rel] = { source: start, motion: motionEn }
   })
 })

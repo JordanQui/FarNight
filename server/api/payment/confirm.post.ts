@@ -24,7 +24,9 @@ export default defineEventHandler(async (event) => {
   if (intent.status !== 'succeeded') {
     throw createError({ statusCode: 402, statusMessage: `Paiement non abouti : ${intent.status}` })
   }
-  if (intent.amount !== paywall.amount_cents || intent.currency !== paywall.currency.toLowerCase()) {
+  // Le PDF de la nuit coûte le même prix : son paiement n'ouvre pas une nuit.
+  if (intent.metadata.product === 'keepsake'
+    || intent.amount !== paywall.amount_cents || intent.currency !== paywall.currency.toLowerCase()) {
     throw createError({ statusCode: 402, statusMessage: 'Montant du paiement inattendu' })
   }
 

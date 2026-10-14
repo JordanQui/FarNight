@@ -135,32 +135,45 @@ export function usePaywall() {
     })
   }
 
-  async function fetchPaymentIntent() {
-    const data = await $fetch<PaymentIntentConfig>('/api/payment/intent', { method: 'POST', body: {} })
+  /** `keepsake` : le PDF de la nuit, vendu sur l'écran de fin. */
+  async function fetchPaymentIntent(product?: 'keepsake') {
+    const data = await $fetch<PaymentIntentConfig>('/api/payment/intent', {
+      method: 'POST',
+      body: product ? { product } : {},
+    })
     paymentStore.setIntent({ paymentId: data.paymentIntentId })
     return data
   }
 
-  async function submitPayment() {
+  /**
+   * Stripe débite, 3-D Secure compris s'il le faut, sans quitter la page.
+   * Rend l'identifiant du paiement abouti, ou null — l'erreur est au store.
+   */
+  async function confirmCard(): Promise<string | null> {
     if (!stripe || !elements) {
       paymentStore.setError(t('errors.payment_form'))
-      return false
+      return null
     }
 
     // On reste sur l'écran : le bouton tourne. Passer par un écran de
     // traitement démontait le paywall, et à son retour l'erreur était effacée.
     paymentStore.setProcessing()
 
+    const result = await stripe.confirmPayment({ elements, redirect: 'if_required' })
+    if (result.error || !result.paymentIntent) {
+      paymentStore.setError(result.error?.message ?? t('errors.payment_refused'))
+      return null
+    }
+    return result.paymentIntent.id
+  }
+
+  async function submitPayment() {
     try {
-      // Stripe débite, 3-D Secure compris s'il le faut, sans quitter la page.
-      const result = await stripe.confirmPayment({ elements, redirect: 'if_required' })
-      if (result.error || !result.paymentIntent) {
-        paymentStore.setError(result.error?.message ?? t('errors.payment_refused'))
-        return false
-      }
+      const paymentIntentId = await confirmCard()
+      if (!paymentIntentId) return false
       const confirmed = await $fetch<{ expiresAt?: number }>('/api/payment/confirm', {
         method: 'POST',
-        body: { paymentIntentId: result.paymentIntent.id },
+        body: { paymentIntentId },
       })
       paymentStore.setSuccess(confirmed?.expiresAt ?? null)
       gameStore.setScreen('payment_success')
@@ -195,5 +208,5 @@ export function usePaywall() {
   // Les prédicats de sortie — « il en parle », « il est trop tôt », « l'objet
   // manque » — vivent désormais dans les qualités du deck : ils s'y lisent
   // dans l'ordre où ils se jouent. Ne reste ici que l'ouverture elle-même.
-  return { objectiveMet, openExit, initPayments, fetchPaymentIntent, submitPayment, submitInvite }
+  return { objectiveMet, openExit, initPayments, fetchPaymentIntent, confirmCard, submitPayment, submitInvite }
 }

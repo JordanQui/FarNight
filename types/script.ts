@@ -662,6 +662,8 @@ export interface PaywallConfig {
   sub_cta: string
   amount_cents: number
   currency: string
+  /** Le prix du PDF de la nuit, vendu sur l'écran de fin. Même devise. */
+  keepsake_cents: number
   pitch: PaywallPitch
 }
 

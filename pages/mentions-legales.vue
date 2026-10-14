@@ -7,13 +7,18 @@
  * les recopier ici garantirait qu'ils finissent par diverger.
  */
 const config = useRuntimeConfig().public
-const price = config.paywallPrice as { amount: number; currency: string }
+const price = config.paywallPrice as { amount: number; currency: string; keepsake: number }
 const days = config.memoryDays as number
 const priceLabel = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: price.currency,
   minimumFractionDigits: Number.isInteger(price.amount) ? 0 : 2,
 }).format(price.amount)
+const keepsakeLabel = new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: price.currency,
+  minimumFractionDigits: Number.isInteger(price.keepsake) ? 0 : 2,
+}).format(price.keepsake)
 
 /**
  * Ce que la loi exige et que le dépôt ne connaît pas. Les crochets restent
@@ -113,12 +118,17 @@ useHead({
           peut se fermer pendant 24 heures.
         </p>
         <p>
+          À la fin de la nuit, son récit — les lieux traversés, les réponses trouvées, le texte de fin — peut être
+          emporté en PDF, par un paiement unique de {{ keepsakeLabel }} TTC. Il reste téléchargeable pendant
+          {{ days }} jours dans le navigateur utilisé.
+        </p>
+        <p>
           Le paiement est traité par <a href="https://stripe.com/fr/privacy" rel="noopener">Stripe</a> ; les données
           de carte ne passent pas par nos serveurs.
         </p>
         <p>
-          Le jeu est un contenu numérique fourni dès le paiement. En payant, vous demandez son exécution immédiate et
-          renoncez expressément à votre droit de rétractation (article L221-28 13° du Code de la consommation).
+          Le jeu et son PDF sont des contenus numériques fournis dès le paiement. En payant, vous demandez leur
+          exécution immédiate et renoncez expressément à votre droit de rétractation (article L221-28 13° du Code de la consommation).
         </p>
         <p>
           En cas de difficulté, écrivez à <a :href="`mailto:${EDITOR.email}`">{{ EDITOR.email }}</a>. Faute

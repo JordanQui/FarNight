@@ -242,6 +242,23 @@ export function answerClue(puzzle: ScenePuzzle, lang: LangCode = DEFAULT_LANG): 
   }
 }
 
+/**
+ * La réponse elle-même, sans la phrase qui la cache dans le décor.
+ *
+ * C'est ce que le PDF de la nuit relit, lieu par lieu. La carte qu'attend un
+ * lecteur n'en a pas : elle est déjà au journal, comme objet emporté.
+ */
+export function answerOf(puzzle: ScenePuzzle): string | undefined {
+  switch (puzzle.kind) {
+    case 'frequency': return `${puzzle.solution} MHz`
+    case 'code': return puzzle.solution
+    // « › » et non « → » : la flèche manque aux polices du PDF.
+    case 'sequence': return puzzle.solution.map(i => puzzle.steps[i]).join(' › ')
+    case 'lock': return undefined
+    case 'search': return puzzle.spots.find(s => s.id === puzzle.solution)?.label
+  }
+}
+
 /** La réponse est-elle la bonne ? La forme dépend de l'énigme. */
 export function isSolved(puzzle: ScenePuzzle, answer: string | number | number[]): boolean {
   switch (puzzle.kind) {

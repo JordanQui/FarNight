@@ -1582,6 +1582,7 @@
     "sub_cta": "Débloquez la suite de {{quest_title}}",
     "amount_cents": 1200,
     "currency": "EUR",
+    "keepsake_cents": 1200,
     "pitch": {
       "eyebrow": "Ce qui se joue pour vous",
       "generative": {
@@ -1775,7 +1776,7 @@
       "note": "La FERMETURE, à ne pas confondre avec le quota. Le quota borne la dépense sur la fenêtre ; la fermeture borne le TEMPS. Elle s'applique toujours, quotas éteints et développement compris — c'est une règle de jeu. Sans elle, une partie qui patine consomme autant qu'une partie entière, plusieurs fois par jour, pendant toute la fenêtre payante.",
       "turns_per_scene": 10,
       "hours": 24,
-      "completed_days": 365,
+      "completed_days": 8,
       "message": "La ville se recharge. Reviens quand elle aura fini.",
       "completed_message": "Cette histoire est allée jusqu'au bout. Elle ne se rejoue pas."
     },

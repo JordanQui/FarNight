@@ -5,6 +5,9 @@ import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { useInterfacePalette } from '~/composables/useInterfacePalette'
 import type { EndingResponse } from '~/types/scene'
+import { asJpeg, nightHeadOf, placesOf, storeKeepsake, type Keepsake } from '~/utils/keepsake'
+import { pack } from '~/utils/languages'
+import { saveFile } from '~/utils/save-file'
 
 /**
  * L'épilogue.
@@ -23,6 +26,8 @@ const image = ref<string | null>(null)
 const error = ref<string | null>(null)
 /** L'image est arrivée, ou a échoué : la page peut s'afficher. */
 const drawn = ref(false)
+/** La nuit mise de côté pour son PDF. */
+const keepsake = ref<Keepsake | null>(null)
 
 onMounted(async () => {
   try {
@@ -66,15 +71,44 @@ onMounted(async () => {
     // Sans image, le texte tient debout tout seul sur le fond de la palette.
   }
   drawn.value = true
+  keepsake.value = await keepNight(ending.value)
 })
+
+/**
+ * Ce que le PDF relira, gardé tout de suite.
+ *
+ * L'épilogue ne s'affiche qu'une fois : au rechargement, c'est l'écran de
+ * fermeture qui revient, et il retrouve l'offre ici.
+ */
+async function keepNight(end: EndingResponse): Promise<Keepsake> {
+  const head = nightHeadOf(playerStore.journal)
+  const lang = playerStore.language
+  const kept: Keepsake = {
+    lang,
+    name: playerStore.playerName,
+    date: new Intl.DateTimeFormat(pack(lang).tag, { dateStyle: 'long' }).format(new Date()),
+    title: head.title || end.scene_title,
+    goal: head.goal,
+    places: placesOf(playerStore.journal),
+    augmentation: gameStore.augmentation?.name,
+    kept: gameStore.inventory.filter(o => gameStore.decryptedObjectIds.includes(o.id)).map(o => o.label),
+    ending_html: end.ending_html,
+    image: image.value ? await asJpeg(image.value) : undefined,
+    palette: {
+      dominant: { hex: end.palette.dominant.hex },
+      secondary: { hex: end.palette.secondary.hex },
+      accent: { hex: end.palette.accent.hex },
+    },
+  }
+  storeKeepsake(kept)
+  return kept
+}
 
 /**
  * L'image de l'aube, emportée comme récompense.
  *
  * L'image arrive en data URL (gpt-image ne renvoie que du base64) ; on la repasse par un Blob, sinon certains navigateurs refusent
- * de télécharger une URL de plusieurs mégaoctets. Sur mobile, la feuille de
- * partage permet de l'enregistrer dans la photothèque, ce qu'un téléchargement
- * n'offre pas sur iOS.
+ * de télécharger une URL de plusieurs mégaoctets.
  */
 const canDownload = computed(() => !!image.value && !!ending.value && !error.value)
 
@@ -83,28 +117,7 @@ async function downloadImage() {
   const blob = await (await fetch(image.value)).blob()
   const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'webp'
   const name = `${t('seo.title').split(' — ')[0]} — ${ending.value?.scene_title ?? ''}`.trim()
-  const filename = `${name.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ')}.${ext}`
-  const file = new File([blob], filename, { type: blob.type })
-
-  const touch = window.matchMedia('(pointer: coarse)').matches
-  if (touch && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] })
-      return
-    } catch (err) {
-      // Feuille fermée par le joueur : il n'a rien demandé d'autre.
-      if ((err as Error).name === 'AbortError') return
-    }
-  }
-
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  await saveFile(blob, `${name}.${ext}`)
 }
 </script>
 
@@ -126,6 +139,8 @@ async function downloadImage() {
       <button v-if="canDownload" type="button" class="keep" @click="downloadImage">
         {{ t('game.dawn_download') }}
       </button>
+
+      <KeepsakeOffer v-if="keepsake && drawn" :keepsake="keepsake" />
     </div>
   </div>
 </template>

@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { readFile } from 'node:fs/promises'
-import { ScriptRuntime } from '~/utils/script-runtime'
 
 /**
  * La légende et les hashtags, écrits par Claude.
@@ -66,9 +65,8 @@ ${story ? STORY_ASK : CAPTION_ASK}`,
 
   const config = useRuntimeConfig()
   const claude = new Anthropic({ apiKey: requireSecret(config.anthropicApiKey, 'ANTHROPIC_API_KEY') })
-  const { script } = await ScriptRuntime.load()
   const message = await claude.messages.create({
-    model: script.defaults.generation.model,
+    model: IG_TEXT_MODEL,
     max_tokens: 2000,
     messages: [{ role: 'user', content }],
   })

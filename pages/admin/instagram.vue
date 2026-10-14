@@ -442,6 +442,27 @@ async function animate() {
   }
 }
 
+/** La prise qu'on corrige, et ce qui n'y va pas : Claude la regarde, Veo la retourne. */
+const fixing = ref<string | null>(null)
+const fixNote = ref('')
+
+async function fixVideo() {
+  const d = draft.value
+  const video = fixing.value
+  if (!d || !video) return
+  if (!fixNote.value.trim()) return say('Dis d’abord ce qui ne va pas', true)
+  flushSave()
+  const post = await run('fix', () => $fetch<InstagramPost>(`/api/admin/instagram/${d.id}/video`, {
+    method: 'POST', body: { model: videoModel.value, sound: videoSound.value, fix: { video, note: fixNote.value } }, timeout: 600_000,
+  }))
+  if (post) {
+    adopt(post)
+    fixing.value = null
+    fixNote.value = ''
+    say('Prise corrigée')
+  }
+}
+
 /** Le pool de références : peintes ou importées, citées par @nom dans « Ce qui bouge ». */
 const refNameInput = ref('')
 const refSubject = ref('')
@@ -557,6 +578,7 @@ const BUSY_LABEL: Record<string, string> = {
   variant: 'Suppression de la variante…',
   upload: 'Import de l’image…',
   video: 'Veo anime l’image — compte deux à six minutes…',
+  fix: 'Claude regarde la prise, Veo la retourne — compte deux à six minutes…',
   create: 'Création du post…',
   delete: 'Suppression…',
 }
@@ -886,9 +908,27 @@ const label = 'font-display text-[11px] uppercase tracking-[0.2em] text-ink-200'
                     <button v-if="draft.video !== v" class="text-ink-100 hover:text-neon-300" @click="pickVideo(v)">Choisir</button>
                     <span v-else class="text-neon-300">Choisie</span>
                     <a :href="fileUrl(v)" :download="`${draft.id}-reel.mp4`" class="text-neon-300 hover:underline underline-offset-4">Télécharger</a>
+                    <button v-if="fixing !== v" class="text-ink-100 hover:text-neon-300" @click="fixing = v">Corriger</button>
+                    <span v-else class="text-neon-300">À corriger</span>
                     <button class="ml-auto text-red-400/80 hover:text-red-300" :disabled="!!busy" @click="removeVariant(v)">Supprimer</button>
                   </div>
                 </div>
+              </div>
+              <div v-if="fixing && draft.videos.includes(fixing)" class="space-y-2">
+                <label class="block space-y-1">
+                  <span :class="label">Corriger cette prise — ce qui ne va pas, en français</span>
+                  <textarea
+                    v-model="fixNote" rows="2" :class="input"
+                    placeholder="Ce qui cloche dans la prise, et ce qui devrait se passer à la place"
+                  />
+                </label>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button :class="button" :disabled="!!busy || !fixNote.trim()" @click="fixVideo">Retourner corrigé</button>
+                  <button :class="ghost" :disabled="!!busy" @click="fixing = null">Annuler</button>
+                </div>
+                <p class="text-[11px] text-ink-300">
+                  Claude regarde la prise et réécrit la consigne ; Veo retourne tout depuis la même image, avec le modèle et le son choisis plus haut — le prix d’une variante.
+                </p>
               </div>
             </section>
 

@@ -45,6 +45,8 @@ export interface InstagramPost {
   videos: string[]
   /** Celle qui part en Reel. */
   video: string | null
+  /** Ce que Veo a reçu pour chaque vidéo, par chemin : c'est de là que part une correction. */
+  takes: Record<string, VideoTake>
   /**
    * Le pool d'un Reel : des images nommées que « Ce qui bouge » cite par
    * `@nom`. Veo ne les voit pas — Claude les regarde et les décrit dans le
@@ -64,6 +66,13 @@ export interface StoryOverlay {
   /** L'appel qui renvoie au sticker lien, ajouté à la main dans l'app. */
   cta: string
   position: 'top' | 'center' | 'bottom'
+}
+
+/** Une prise de Veo : l'image animée et la consigne anglaise, sans le rappel de style. */
+export interface VideoTake {
+  /** Chemin relatif à `communication/`. */
+  source: string
+  motion: string
 }
 
 /** Une image de précision du Reel, citée par son nom dans « Ce qui bouge ». */

@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     } else if (p.videos.includes(path)) {
       p.videos = p.videos.filter(v => v !== path)
       if (p.video === path) p.video = p.videos.at(-1) ?? null
+      delete p.takes[path]
     } else if (p.refs.some(r => r.path === path)) {
       p.refs = p.refs.filter(r => r.path !== path)
     } else {

@@ -1,4 +1,5 @@
 import type { NightPlan, PlannedScene, SceneTextResponse } from '~/types/scene'
+import { answerOf } from '~/utils/puzzles'
 
 /**
  * Ce qu'une scène laisse à la suivante.
@@ -30,6 +31,11 @@ export interface JournalEntry {
    */
   focal?: string
   /**
+   * La réponse de l'énigme du lieu, en clair. N'entre pas dans le prompt : seul
+   * le PDF de la nuit la relit. Absente des lieux sans énigme.
+   */
+  answer?: string
+  /**
    * La quête de la nuit, fixée à l'auberge : le but et le plan sur lesquels
    * toutes les scènes se construisent. Optionnelle, les journaux d'avant ce
    * champ n'en ont pas.
@@ -49,6 +55,7 @@ export function entryFrom(scene: SceneTextResponse): JournalEntry {
     who_mattered: who,
     carried: scene.key_item?.name ?? null,
     focal: scene.decor?.find(d => d.slot_id === 'focal')?.name?.slice(0, 80) || undefined,
+    answer: scene.puzzle ? answerOf(scene.puzzle) : undefined,
     // Le titre et l'horizon sont figés avec le plan : les scènes suivantes les
     // recopient au lieu d'en inventer, et le sas les promet tels quels.
     night: scene.night

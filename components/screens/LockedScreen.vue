@@ -3,6 +3,7 @@ const { t } = useLang()
 
 import { useGameStore } from '~/stores/game'
 import { useProgression } from '~/composables/useProgression'
+import { readKeepsake, type Keepsake } from '~/utils/keepsake'
 
 /**
  * La ville fermée.
@@ -20,6 +21,13 @@ const gameStore = useGameStore()
 
 const lock = computed(() => gameStore.lock)
 const definitive = computed(() => lock.value?.reason === 'completed')
+
+/** Le PDF de la nuit reste en vente tant que la ville est close sur elle. */
+const keepsake = ref<Keepsake | null>(null)
+const memoryDays = useRuntimeConfig().public.memoryDays as number
+onMounted(() => {
+  if (definitive.value) keepsake.value = readKeepsake(memoryDays)
+})
 
 /** Le temps qui reste, rafraîchi à la minute. Inutile d'être à la seconde. */
 const now = ref(Date.now())
@@ -112,6 +120,8 @@ const remaining = computed(() => {
       >
         {{ t('locked.give_solution') }}
       </button>
+
+      <KeepsakeOffer v-if="keepsake" :keepsake="keepsake" />
     </div>
   </div>
 </template>
