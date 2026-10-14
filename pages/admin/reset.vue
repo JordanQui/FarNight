@@ -12,6 +12,7 @@ import { forgetKeepsake } from '~/utils/keepsake'
  * injoignable depuis l'écran de fermeture, et oublie en plus le PDF de la nuit.
  * La langue reste.
  */
+// Voir middleware/admin.ts : en production, la page suit `lockOverride`.
 definePageMeta({ middleware: 'admin' })
 
 /** Le cookie, en 3D : des disques empilés pour l'épaisseur, des pépites en relief. */
@@ -215,7 +216,7 @@ async function reset() {
         <GlowButton class="w-full" :loading="phase === 'charging' || phase === 'boom'" @click="reset">Reset cookie</GlowButton>
         <p v-if="phase === 'done'" class="text-neon-300 text-sm">Mémoire vide. La prochaine partie repart de l’accueil.</p>
         <p v-else-if="phase === 'error'" class="text-red-400/80 text-xs">
-          Le serveur n’a pas effacé les cookies : le serveur de dev tourne-t-il ?
+          Le serveur n’a pas effacé les cookies.
         </p>
       </div>
 

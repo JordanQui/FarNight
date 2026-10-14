@@ -18,10 +18,11 @@ export default defineEventHandler((event) => {
     || path.startsWith('/admin/')
     || path.startsWith('/api/admin/')
 
-  // Le plan des scènes suit les autres outils de test : ouvert tant que
-  // `lockOverride` l'est. Il ne fait rien de plus que la commande `#scene<n>`.
-  const isRoute = path.replace(/\/$/, '') === '/admin/route'
-  if (isRoute && useRuntimeConfig().public.lockOverride) return
+  // Le plan des scènes et le reset suivent les autres outils de test : ouverts
+  // tant que `lockOverride` l'est. Ils ne font rien de plus que la commande
+  // `#scene<n>` et « mémoire vide (test) ».
+  const isTestTool = ['/admin/route', '/admin/reset'].includes(path.replace(/\/$/, ''))
+  if (isTestTool && useRuntimeConfig().public.lockOverride) return
 
   if (isAdmin) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' })

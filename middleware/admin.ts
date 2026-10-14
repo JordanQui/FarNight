@@ -7,6 +7,7 @@
  */
 export default defineNuxtRouteMiddleware((to) => {
   if (isLocal()) return
-  if (to.path.replace(/\/$/, '') === '/admin/route' && useRuntimeConfig().public.lockOverride) return
+  const isTestTool = ['/admin/route', '/admin/reset'].includes(to.path.replace(/\/$/, ''))
+  if (isTestTool && useRuntimeConfig().public.lockOverride) return
   throw createError({ statusCode: 404, statusMessage: 'Not Found', fatal: true })
 })
