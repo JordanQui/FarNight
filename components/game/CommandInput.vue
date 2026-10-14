@@ -90,6 +90,7 @@ onMounted(() => {
     <!-- Issue de secours : éteinte tant que la porte ne cède pas, allumée dès qu'elle cède. -->
     <button
       :disabled="disabled || !exitReady"
+      data-hint="exit"
       class="exit-sign shrink-0 p-1.5 -my-1.5 border transition-all duration-500"
       :class="exitReady
         ? 'exit-sign--lit text-neon-300 border-neon-400/80 hover:text-neon-100'

@@ -67,6 +67,8 @@ export default defineEventHandler(async () => {
     livemode: intents[0]?.livemode ?? events[0]?.livemode ?? null,
     truncated: [intents, events, charges].some(list => list.length >= CAP),
     server: { creates: intents.length, retrieves: granted, updates: granted },
+    /** Encaissé sur la période, remboursements non déduits. */
+    revenue: intents.filter(pi => pi.status === 'succeeded').reduce((sum, pi) => sum + pi.amount_received, 0),
     browser: browser.size,
     statuses,
     charges: {

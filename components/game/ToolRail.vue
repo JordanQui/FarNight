@@ -51,6 +51,7 @@ const lensLabel = computed(() => gameStore.augmentation?.name
 
     <button
       v-if="gameStore.lensAvailable"
+      data-hint="lens"
       class="p-1.5 -my-0.5 transition-colors"
       :class="gameStore.activeTool === 'lens' ? 'text-neon-400' : 'text-steel-400 hover:text-neon-600'"
       :aria-pressed="gameStore.activeTool === 'lens'"

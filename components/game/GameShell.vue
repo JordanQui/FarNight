@@ -88,6 +88,22 @@ function takeExit() {
 }
 
 /**
+ * Le panneau qui désigne la loupe, puis l'issue.
+ *
+ * La fenêtre de l'augmentation ne s'ouvre qu'une fois par partie : sa
+ * fermeture est donc la première fois que la loupe est là. À l'auberge,
+ * l'issue s'allume au même instant — l'augmentation est son objet-clé —, et
+ * c'est aussi la première fois qu'elle s'allume.
+ */
+const hint = ref<'lens' | 'exit' | null>(null)
+watch(() => gameStore.primerOpen, (open, was) => {
+  if (was && !open && gameStore.hasAugmentation) hint.value = 'lens'
+})
+function nextHint() {
+  hint.value = hint.value === 'lens' && exitReady.value ? 'exit' : null
+}
+
+/**
  * Ouvert par défaut : le joueur doit voir tout de suite avec qui parler, c'est
  * par là que passe la progression. Il peut toujours replier pour lire.
  */
@@ -378,6 +394,22 @@ function retryImage() {
 
     <!-- À la remise de l'augmentation : ce qu'elle est, et comment s'en servir -->
     <AugmentationPrimer v-if="gameStore.primerOpen" />
+
+    <!-- Puis, une fois refermée : où est la loupe, et où est l'issue -->
+    <SpotlightHint
+      v-if="hint === 'lens'"
+      target="lens"
+      :text="t('game.lens_title', { label: gameStore.augmentation?.name ?? playerStore.scene?.key_item?.name ?? '' })"
+      :cta="t('common.continue')"
+      @close="nextHint"
+    />
+    <SpotlightHint
+      v-else-if="hint === 'exit'"
+      target="exit"
+      :text="t('oracle.just_exit', { exit: playerStore.scene?.exit_label || playerStore.scene?.paywall.exit_keywords[0] || '' })"
+      :cta="t('common.continue')"
+      @close="nextHint"
+    />
 
 
     <PsychoTest

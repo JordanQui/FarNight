@@ -15,9 +15,43 @@ definePageMeta({ middleware: 'admin' })
 const { data, error } = await useFetch('/api/admin/economics')
 
 // Curseurs. Initialisés depuis le script, ajustables à la main.
-const visits = ref(10_000)
+// Les visites viennent d'Instagram : personnes touchées × part qui passe sur le site.
+// Toucher s'achète : 1 000 € de pub au départ. 1 % passe sur le site — un clic
+// pour ~100 affichages, ~1,4 affichage par personne, moins ceux qui ferment avant
+// le chargement. HYPOTHÈSES.
+const instaReach = ref(100_000)
+const instaToSitePct = ref(1)
 const conversionPct = ref(3)
 const turnsPerScene = ref(6)
+// Ce que Meta facture pour toucher 1 000 personnes sur Instagram en France : CPM
+// Reels ~7 € (fourchette 7–20 €, +25 à 50 % au 4e trimestre) × ~1,4 affichage par
+// personne. Ordre de grandeur relevé le 14/10/2026, à remplacer par le chiffre
+// d'Ads Manager dès la première campagne.
+const AD_COST_PER_1000_REACHED = 10
+// Le budget et les personnes touchées sont le même curseur vu des deux côtés.
+const adBudget = computed({
+  get: () => instaReach.value * AD_COST_PER_1000_REACHED / 1000,
+  set: (budget: number) => { instaReach.value = Math.round(budget * 1000 / AD_COST_PER_1000_REACHED) },
+})
+// Bouche à oreille, SPÉCULATIF : les visites qu'un acheteur amène autour de lui.
+// k = visites amenées × conversion. Une semaine entre une nuit jouée et celle des
+// amis : quatre générations dans le mois. 10 visites à 3 % donnent k = 0,3 — un
+// produit au bouche à oreille remarquable ; au-delà de 1, c'est une épidémie.
+const womVisitsPerBuyer = ref(10)
+const WOM_GENERATIONS = 4
+const womK = computed(() => womVisitsPerBuyer.value * conversionPct.value / 100)
+const instaVisits = computed(() => instaReach.value * instaToSitePct.value / 100)
+/** Une visite d'Instagram en amène 1 + k + k² + … sur les générations du mois. */
+function womMultiplierAt(k: number) {
+  let wave = 1
+  let total = 1
+  for (let n = 0; n < WOM_GENERATIONS; n++) total += (wave *= k)
+  return total
+}
+const womMultiplier = computed(() => womMultiplierAt(womK.value))
+const visits = computed(() => Math.round(instaVisits.value * womMultiplier.value))
+/** Ce que coûte en pub une visite du mois, celles du bouche à oreille étant gratuites. */
+const adCostPerVisit = computed(() => AD_COST_PER_1000_REACHED / 1000 / (instaToSitePct.value / 100 * womMultiplier.value))
 watch(data, (d) => {
   if (!d) return
   conversionPct.value = d.economics.conversion_rate_pct
@@ -150,7 +184,7 @@ function hosting(v: number) {
   return { analyticsUsd, total: eur(h.plan_monthly_usd + Math.max(0, analyticsUsd - h.usage_credit_usd)) }
 }
 
-function project(v: number) {
+function project(v: number, ads = v * adCostPerVisit.value) {
   const buyers = v * conversionPct.value / 100
   const revenue = buyers * price.value
   const vat = buyers * vatPerSale.value
@@ -158,25 +192,50 @@ function project(v: number) {
   const aiVisitors = (v - buyers) * visitorCost.value
   const aiBuyers = buyers * night.value.total
   const host = hosting(v).total
-  const net = revenue - vat - fees - aiVisitors - aiBuyers - host
+  const net = revenue - vat - fees - aiVisitors - aiBuyers - host - ads
   const netRevenue = revenue - vat
-  return { buyers, revenue, vat, fees, aiVisitors, aiBuyers, host, net, margin: netRevenue ? net / netRevenue * 100 : 0 }
+  return { buyers, revenue, vat, fees, aiVisitors, aiBuyers, host, ads, net, margin: netRevenue ? net / netRevenue * 100 : 0 }
 }
 
-const current = computed(() => project(visits.value))
+const current = computed(() => project(visits.value, adBudget.value))
 const scenarios = computed(() => [1_000, 10_000, 100_000, 1_000_000].map(v => ({ visits: v, ...project(v) })))
 
 /**
- * Visites mensuelles à partir desquelles le forfait est couvert.
+ * Ce que rapporte une visite, avant la pub qui l'a amenée.
+ */
+const visitValue = computed(() => {
+  const rate = conversionPct.value / 100
+  return rate * netPerSale.value - (1 - rate) * visitorCost.value
+})
+
+/** Ce qu'un acheteur coûte pour venir : sa pub, et l'IA de ceux qui repartent sans payer. */
+const buyerAcquisition = computed(() => {
+  const rate = conversionPct.value / 100
+  if (!rate) return { ads: Infinity, ai: Infinity }
+  return { ads: adCostPerVisit.value / rate, ai: (1 - rate) / rate * visitorCost.value }
+})
+
+/** Conversion à partir de laquelle une visite rapporte plus que sa pub ; le bouche à oreille en dépend. */
+const adBreakEvenPct = computed(() => {
+  for (let i = 1; i <= 1000; i++) {
+    const rate = i / 1000
+    const ad = AD_COST_PER_1000_REACHED / 1000 / (instaToSitePct.value / 100 * womMultiplierAt(womVisitsPerBuyer.value * rate))
+    if (rate * netPerSale.value - (1 - rate) * visitorCost.value >= ad) return rate * 100
+  }
+  return Infinity
+})
+
+/**
+ * Visites mensuelles à partir desquelles le forfait est couvert, la pub de
+ * chaque visite déduite.
  *
- * Calculé sur le seul forfait : l'Analytics ne dépasse le crédit qu'autour de
+ * Calculé sans le dépassement : l'Analytics ne dépasse le crédit qu'autour de
  * 440 000 visites, bien après le seuil quand il existe.
  */
 const breakEven = computed(() => {
   const h = data.value?.economics.hosting
   if (!h) return Infinity
-  const rate = conversionPct.value / 100
-  const perVisit = rate * netPerSale.value - (1 - rate) * visitorCost.value
+  const perVisit = visitValue.value - adCostPerVisit.value
   return perVisit > 0 ? eur(h.plan_monthly_usd) / perVisit : Infinity
 })
 
@@ -388,18 +447,27 @@ const warnings = computed(() => {
         <section class="space-y-5 border-y border-neon-600/25 py-8">
           <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">Simulateur <span class="text-steel-400">— sur un mois</span></h2>
 
-          <div class="grid gap-6 sm:grid-cols-3">
+          <div class="grid gap-6 sm:grid-cols-2">
             <label class="space-y-2 block">
               <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
-                <span>Visites / mois</span><span class="text-neon-300">{{ int(visits) }}</span>
+                <span>Touchés sur Insta / mois</span>
+                <input v-model.number="instaReach" type="number" min="0" step="1" class="w-28 bg-transparent text-right text-neon-300 tabular-nums border-b border-neon-600/40 focus:outline-none focus:border-neon-400">
               </span>
-              <input v-model.number="visits" type="range" min="100" max="1000000" step="100" class="w-full accent-neon-500">
+              <input v-model.number="instaReach" type="range" min="0" max="10000000" step="1" class="w-full accent-neon-500">
             </label>
             <label class="space-y-2 block">
               <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
-                <span>Conversion</span><span class="text-neon-300">{{ fmt(conversionPct, 1) }} %</span>
+                <span>Insta → site</span>
+                <span class="text-neon-300"><input v-model.number="instaToSitePct" type="number" min="0" max="100" step="0.05" class="w-16 bg-transparent text-right text-neon-300 tabular-nums border-b border-neon-600/40 focus:outline-none focus:border-neon-400"> % · {{ int(instaVisits) }} visites</span>
               </span>
-              <input v-model.number="conversionPct" type="range" min="0.1" max="15" step="0.1" class="w-full accent-neon-500">
+              <input v-model.number="instaToSitePct" type="range" min="0" max="100" step="0.05" class="w-full accent-neon-500">
+            </label>
+            <label class="space-y-2 block">
+              <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
+                <span>Conversion</span>
+                <span class="text-neon-300"><input v-model.number="conversionPct" type="number" min="0" max="100" step="0.1" class="w-16 bg-transparent text-right text-neon-300 tabular-nums border-b border-neon-600/40 focus:outline-none focus:border-neon-400"> %</span>
+              </span>
+              <input v-model.number="conversionPct" type="range" min="0" max="100" step="0.1" class="w-full accent-neon-500">
             </label>
             <label class="space-y-2 block">
               <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
@@ -407,13 +475,26 @@ const warnings = computed(() => {
               </span>
               <input v-model.number="turnsPerScene" type="range" min="1" :max="data.limits.lock.turns_per_scene" step="1" class="w-full accent-neon-500">
             </label>
+            <label class="space-y-2 block">
+              <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
+                <span>Pub / mois</span><span class="text-neon-300">{{ money(adBudget) }} · {{ AD_COST_PER_1000_REACHED }} € les 1 000 touchés</span>
+              </span>
+              <input v-model.number="adBudget" type="range" min="0" :max="AD_COST_PER_1000_REACHED * 10000" step="10" class="w-full accent-neon-500">
+            </label>
+            <label class="space-y-2 block">
+              <span class="flex justify-between font-display text-[10px] uppercase tracking-[0.18em] text-steel-400">
+                <span>Bouche à oreille <span class="text-steel-500">— spéculatif</span></span>
+                <span :class="womK >= 1 ? 'text-red-400' : 'text-neon-300'">{{ womVisitsPerBuyer }} / acheteur · k = {{ fmt(womK) }} · + {{ int(visits - instaVisits) }} visites</span>
+              </span>
+              <input v-model.number="womVisitsPerBuyer" type="range" min="0" max="40" step="1" class="w-full accent-neon-500">
+            </label>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-4">
             <div v-for="c in [
               { label: 'Acheteurs', value: int(current.buyers), bad: false },
               { label: 'Chiffre d\'affaires TTC', value: money(current.revenue), bad: false },
-              { label: 'Coûts totaux', value: money(current.vat + current.fees + current.aiVisitors + current.aiBuyers + current.host), bad: false },
+              { label: 'Coûts totaux', value: money(current.vat + current.fees + current.aiVisitors + current.aiBuyers + current.host + current.ads), bad: false },
               { label: 'Résultat net', value: money(current.net), bad: current.net < 0 },
             ]" :key="c.label" class="border border-steel-600/60 p-4 space-y-1">
               <p class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display">{{ c.label }}</p>
@@ -425,6 +506,9 @@ const warnings = computed(() => {
             <li>IA des {{ int(visits - current.buyers) }} visiteurs qui ne paient pas : {{ money(current.aiVisitors) }}</li>
             <li>IA des acheteurs : {{ money(current.aiBuyers) }}</li>
             <li>TVA et Stripe : {{ money(current.vat + current.fees) }}</li>
+            <li :class="adCostPerVisit > visitValue ? 'text-red-400' : ''">
+              Pub : {{ money(current.ads) }} — une visite coûte {{ money(adCostPerVisit) }} de pub et rapporte {{ money(visitValue) }}
+            </li>
             <li>
               Vercel : {{ money(current.host) }}
               <span class="text-steel-400">— Analytics {{ fmt(hosting(visits).analyticsUsd) }} $, dans le crédit jusqu'à
@@ -433,10 +517,44 @@ const warnings = computed(() => {
           </ul>
         </section>
 
+        <!-- Coût Instagram -->
+        <section class="space-y-4">
+          <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
+            Coût Instagram <span class="text-steel-400">— la pub, par visite et par acheteur</span>
+          </h2>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-for="c in [
+              { label: 'Toucher 1 000 personnes', value: money(AD_COST_PER_1000_REACHED), detail: 'CPM Reels ~7 € × ~1,4 affichage par personne ; +25 à 50 % au 4e trimestre', bad: false },
+              { label: 'Une visite venue d\'Instagram', value: money(AD_COST_PER_1000_REACHED / 1000 / (instaToSitePct / 100)), detail: `${fmt(instaToSitePct)} % des personnes touchées passent sur le site`, bad: false },
+              { label: 'Une visite, bouche à oreille compris', value: money(adCostPerVisit), detail: `chaque visite payée en amène ${fmt(womMultiplier - 1)} de plus, gratuites`, bad: adCostPerVisit > visitValue },
+              { label: 'Un acheteur', value: money(buyerAcquisition.ads), detail: `+ ${money(buyerAcquisition.ai)} d'IA pour ceux qui repartent sans payer`, bad: buyerAcquisition.ads + buyerAcquisition.ai > netPerSale },
+            ]" :key="c.label" class="border border-steel-600/60 p-4 space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-steel-400 text-[10px] uppercase tracking-[0.18em] font-display">{{ c.label }}</p>
+                <span class="border px-1.5 text-[9px] uppercase tracking-[0.12em] whitespace-nowrap" :class="TAG.hypothese">{{ TAG_LABEL.hypothese }}</span>
+              </div>
+              <p class="font-display text-xl" :class="c.bad ? 'text-red-400' : 'text-neon-300'">{{ c.value }}</p>
+              <p class="text-ink-300 text-[11px]">{{ c.detail }}</p>
+            </div>
+          </div>
+          <p class="text-ink-300 text-xs leading-relaxed">
+            À {{ fmt(conversionPct, 1) }} % de conversion, un acheteur coûte {{ money(buyerAcquisition.ads) }} de pub et
+            {{ money(buyerAcquisition.ai) }} d'IA pour ceux qui repartent sans payer, pour {{ money(netPerSale) }} net par vente :
+            <strong :class="buyerAcquisition.ads + buyerAcquisition.ai > netPerSale ? 'text-red-400' : 'text-ink-100'">
+              {{ money(netPerSale - buyerAcquisition.ads - buyerAcquisition.ai) }} par acheteur</strong>.
+            <template v-if="adBreakEvenPct !== Infinity">
+              La pub devient rentable à partir de {{ fmt(adBreakEvenPct, 1) }} % de conversion, avec
+              {{ womVisitsPerBuyer }} visites amenées par acheteur.
+            </template>
+            <template v-else>À ce taux de passage vers le site, la pub n'est rentable à aucune conversion.</template>
+            La fabrication des posts dans l'atelier (images, Reels, légendes) n'est pas comptée.
+          </p>
+        </section>
+
         <!-- Scénarios -->
         <section class="space-y-4">
           <h2 class="font-display text-[11px] uppercase tracking-[0.28em] text-ink-100">
-            Si ça prend <span class="text-steel-400">— à {{ fmt(conversionPct, 1) }} % de conversion, {{ turnsPerScene }} tours par scène</span>
+            Si ça prend <span class="text-steel-400">— à {{ fmt(conversionPct, 1) }} % de conversion, {{ turnsPerScene }} tours par scène, {{ money(adCostPerVisit) }} de pub par visite</span>
           </h2>
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
@@ -448,6 +566,7 @@ const warnings = computed(() => {
                   <th class="text-right py-2 px-3 font-normal">IA gratuits</th>
                   <th class="text-right py-2 px-3 font-normal">IA acheteurs</th>
                   <th class="text-right py-2 px-3 font-normal">Vercel</th>
+                  <th class="text-right py-2 px-3 font-normal">Pub</th>
                   <th class="text-right py-2 px-3 font-normal">Net</th>
                   <th class="text-right py-2 pl-3 font-normal">Marge</th>
                 </tr>
@@ -460,6 +579,7 @@ const warnings = computed(() => {
                   <td class="py-2.5 px-3 text-right tabular-nums text-steel-400">{{ money(s.aiVisitors) }}</td>
                   <td class="py-2.5 px-3 text-right tabular-nums text-steel-400">{{ money(s.aiBuyers) }}</td>
                   <td class="py-2.5 px-3 text-right tabular-nums text-steel-400">{{ money(s.host) }}</td>
+                  <td class="py-2.5 px-3 text-right tabular-nums text-steel-400">{{ money(s.ads) }}</td>
                   <td class="py-2.5 px-3 text-right tabular-nums" :class="s.net < 0 ? 'text-red-400' : 'text-ink-100'">
                     {{ money(s.net) }}
                   </td>
@@ -474,7 +594,9 @@ const warnings = computed(() => {
           </p>
           <p v-else class="text-ink-300 text-xs leading-relaxed">
             À ce taux, chaque visite est rentable en moyenne : le forfait Vercel est couvert à partir de
-            <strong class="text-ink-100">{{ int(Math.ceil(breakEven)) }} visites par mois</strong>, et le résultat
+            <strong class="text-ink-100">{{ int(Math.ceil(breakEven)) }} visites par mois</strong>
+            — {{ int(Math.ceil(breakEven / (instaToSitePct / 100 * womMultiplier))) }} personnes touchées sur Instagram,
+            {{ money(breakEven * adCostPerVisit) }} de pub —, et le résultat
             croît avec le trafic au-delà.
           </p>
         </section>
@@ -484,7 +606,7 @@ const warnings = computed(() => {
           <code class="text-neon-300/80">game/script.json</code>. Facture : le prix image. Tarifs publics :
           OpenAI et Vercel, relevés le 13/09/2026. <strong class="text-ink-200">Hypothèses</strong> : les sorties,
           les reprises, les tours joués, la conversion, la TVA et la commission Stripe, déclarées sous
-          <code class="text-neon-300/80">economics</code>. À réviser dès qu'il existe une facture sur la nuit à
+          <code class="text-neon-300/80">economics</code> ; les personnes touchées sur Instagram, la part qui passe sur le site, le bouche à oreille, et le prix de la pub ({{ AD_COST_PER_1000_REACHED }} € les 1 000 personnes touchées, ordre de grandeur Meta en France), réglés dans la page. À réviser dès qu'il existe une facture sur la nuit à
           {{ rows.length }} scènes et du trafic réel.
         </p>
       </template>

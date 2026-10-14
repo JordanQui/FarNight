@@ -2,9 +2,8 @@
 import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useProgression } from '~/composables/useProgression'
-import { forgetAdmission, forgetRun, rememberedAdmission, rememberedProfile } from '~/composables/useScene'
+import { forgetRun, rememberedAdmission, rememberedProfile } from '~/composables/useScene'
 import { profileFromAdmission } from '~/utils/admission'
-import { forgetSceneImage } from '~/utils/scene-image-memory'
 import type { UserProfile } from '~/types/user'
 import type { LangCode } from '~/types/i18n'
 
@@ -158,23 +157,29 @@ function goOutAgain() {
 }
 
 /**
- * Vider la mémoire du jeu, pendant les phases de test.
+ * Partager l'adresse du jeu, par la feuille de partage du système.
  *
- * Plus radical que « repartir de zéro » : les cookies signés partent aussi —
- * quota, accès payé, verrou, position. Ils sont `httpOnly`, seul le serveur
- * peut les effacer. Le formulaire part avec : ses réponses et le dossier qui
- * en sort — on rouvre l'admission vide. Seule la langue reste. Même garde que
- * la levée du verrou : le bouton n'est pas rendu quand `lockOverride` est fermé.
+ * Sans elle (Firefox de bureau, notamment), l'adresse part dans le
+ * presse-papiers et l'icône le confirme d'une coche : aucune chaîne à traduire.
+ * Le domaine est celui servi, comme l'adresse canonique d'app.vue.
  */
-const canForget = isLocal() || useRuntimeConfig().public.lockOverride
+const { origin, host } = useRequestURL({ xForwardedHost: true })
+const copied = ref(false)
 
-async function forgetEverything() {
-  if (!window.confirm(t('login.dev_forget') + ' ?')) return
-  await $fetch('/api/dev/forget', { method: 'POST' }).catch(() => null)
-  forgetRun()
-  forgetAdmission()
-  await forgetSceneImage()
-  window.location.reload()
+async function shareSite() {
+  const data = { title: t('seo.title'), url: `${origin}/` }
+  if (navigator.share) {
+    // Refermer la feuille sans rien partager rejette la promesse : pas une erreur.
+    await navigator.share(data).catch(() => {})
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(data.url)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1800)
+  } catch {
+    // Ni partage ni presse-papiers : le domaine reste affiché, il se recopie.
+  }
 }
 
 function openDisclaimer() {
@@ -320,21 +325,48 @@ function acceptAndEnroll() {
         visiteur reconnaîtra à coup sûr, quelle que soit la langue affichée.
         Le choix part dans le cookie, et le formulaire s'ouvrira dessus.
       -->
-      <label class="flex items-center gap-2 pt-1">
-        <span class="sr-only">{{ t('lang.label') }}</span>
-        <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
-             stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-          <circle cx="10" cy="10" r="8" />
-          <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
-        </svg>
-        <select
-          class="lang-select"
-          :value="lang"
-          @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-1">
+        <label class="flex items-center gap-2">
+          <span class="sr-only">{{ t('lang.label') }}</span>
+          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
+               stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" />
+            <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
+          </svg>
+          <select
+            class="lang-select"
+            :value="lang"
+            @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
+          >
+            <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
+          </select>
+        </label>
+
+        <!-- Partager l'adresse : le domaine sert de libellé, il se lit dans toutes les langues -->
+        <button class="share-link group flex items-center gap-2" @click="shareSite">
+          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500 group-hover:text-neon-400 transition-colors"
+               fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
+            <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
+          </svg>
+          {{ host }}
+        </button>
+
+        <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
+        <a
+          href="https://instagram.com/farnigt_game"
+          target="_blank"
+          rel="noopener"
+          aria-label="Instagram"
+          class="p-1 text-steel-500 hover:text-neon-400 transition-colors"
         >
-          <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
-        </select>
-      </label>
+          <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="15" height="15" rx="4.5" />
+            <circle cx="10" cy="10" r="3.6" />
+            <circle cx="14.6" cy="5.4" r="0.7" fill="currentColor" stroke="none" />
+          </svg>
+        </a>
+      </div>
 
       <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
       <NuxtLink
@@ -344,16 +376,6 @@ function acceptAndEnroll() {
         © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
       </NuxtLink>
     </div>
-
-    <!-- Test uniquement : vide cookies, mémoire locale et image gardée -->
-    <button
-      v-if="canForget"
-      class="absolute bottom-3 right-3 z-30 font-display text-[9px] uppercase tracking-[0.2em]
-             text-steel-500/50 hover:text-steel-400 transition-colors p-2"
-      @click="forgetEverything"
-    >
-      {{ t('login.dev_forget') }}
-    </button>
 
     <!-- Balayage cathodique, tout au-dessus -->
     <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
@@ -458,6 +480,21 @@ function acceptAndEnroll() {
 .lang-select:focus {
   color: rgb(var(--neon-300));
   border-bottom-color: rgb(var(--neon-600) / 0.7);
+}
+
+/* Le partage, à la même voix que le menu de langue qu'il accompagne. */
+.share-link {
+  color: rgb(var(--ink-300));
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  padding: 0.25rem 0 0.3rem;
+  transition: color 0.2s ease;
+}
+
+.share-link:hover,
+.share-link:focus-visible {
+  color: rgb(var(--neon-300));
 }
 
 /* Le menu déroulé est rendu par le système : il lui faut un fond opaque. */
