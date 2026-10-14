@@ -1,6 +1,6 @@
 import { isLocal } from '~/utils/app-env'
 /**
- * Tout ce qui vit sous /admin n'existe qu'en local.
+ * Tout ce qui vit sous /nimda (pages) et /api/admin n'existe qu'en local.
  *
  * Le 404 est délibéré plutôt qu'un 403 : une page d'administration ne doit pas
  * signaler sa propre existence. Le garde couvre les pages comme les routes
@@ -16,12 +16,13 @@ export default defineEventHandler((event) => {
   const path = getRequestURL(event).pathname
   const isAdmin = path === '/admin'
     || path.startsWith('/admin/')
+    || path === '/nimda'
+    || path.startsWith('/nimda/')
     || path.startsWith('/api/admin/')
 
-  // Le plan des scènes et le reset suivent les autres outils de test : ouverts
-  // tant que `lockOverride` l'est. Ils ne font rien de plus que la commande
-  // `#scene<n>` et « mémoire vide (test) ».
-  const isTestTool = ['/admin/route', '/admin/reset'].includes(path.replace(/\/$/, ''))
+  // Le reset suit les autres outils de test : ouvert tant que `lockOverride`
+  // l'est. Il ne fait rien de plus que « mémoire vide (test) ».
+  const isTestTool = path.replace(/\/$/, '') === '/nimda/reset'
   if (isTestTool && useRuntimeConfig().public.lockOverride) return
 
   if (isAdmin) {
