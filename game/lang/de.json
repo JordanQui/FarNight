@@ -335,6 +335,15 @@
     "home.fig_places": "Orte, für dich erfunden",
     "home.fig_langs": "Sprachen",
     "home.fig_night": "Nacht, nie wiederholt",
+    "home.keep_eyebrow": "Was dir bleibt",
+    "home.keep_title_1": "Die Stadt schließt.",
+    "home.keep_title_2": "Deine Nacht bleibt.",
+    "home.keep_text": "Bei Tagesanbruch wird deine ganze Nacht zu einem illustrierten Dokument gedruckt — zum Lesen und Wiederlesen, lange nach der Morgendämmerung.",
+    "home.keep_item1": "Das Ziel, das dir die Nacht gegeben hat",
+    "home.keep_item2": "Jeder Ort, den du durchquert hast, und was dort geschah",
+    "home.keep_item3": "Die Antworten, die du gefunden hast",
+    "home.keep_item4": "Was du mitnimmst, und der Text deines Morgens",
+    "home.keep_price": "Ein PDF zum Mitnehmen vom letzten Bildschirm: {{price}}.",
     "home.cta_eyebrow": "Erste Szene gratis",
     "home.cta_title_1": "Der Tresen",
     "home.cta_title_2": "hat geöffnet.",
@@ -687,7 +696,7 @@
           },
           {
             "label": "Was du mitnimmst",
-            "text": "Der Knoten, der sich in der Fiktion löst, ist derselbe wie in deinem Leben. Du gehst mit etwas, das du brauchen kannst, nicht mit einem Punktestand."
+            "text": "Im Morgengrauen fasst ein Dokument für 4 € deine ganze Nacht zusammen: ihre Spannungen und die Lösungen, die du gefunden hast. Der Knoten, der sich in der Fiktion löst, ist derselbe wie in deinem Leben. Du gehst mit etwas, das du brauchen kannst, nicht mit einem Punktestand."
           }
         ],
         "closing": "Auf der anderen Seite der Schleuse hat der Regen nicht aufgehört zu fallen. Er wartet auf deinen Schritt."

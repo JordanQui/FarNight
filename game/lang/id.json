@@ -282,6 +282,15 @@
     "home.fig_places": "tempat diciptakan untukmu",
     "home.fig_langs": "bahasa",
     "home.fig_night": "malam, tak pernah diulang",
+    "home.keep_eyebrow": "Yang tersisa untukmu",
+    "home.keep_title_1": "Kota itu tutup.",
+    "home.keep_title_2": "Malammu tetap tinggal.",
+    "home.keep_text": "Saat hari terang, seluruh malammu tercetak menjadi dokumen bergambar — untuk dibaca dan dibaca ulang, lama setelah fajar.",
+    "home.keep_item1": "Tujuan yang diberikan malam kepadamu",
+    "home.keep_item2": "Setiap tempat yang kamu lalui, dan apa yang terjadi di sana",
+    "home.keep_item3": "Jawaban yang kamu temukan",
+    "home.keep_item4": "Apa yang kamu bawa pulang, dan teks fajarmu",
+    "home.keep_price": "PDF untuk dibawa pulang dari layar terakhir: {{price}}.",
     "home.cta_eyebrow": "Adegan pertama gratis",
     "home.cta_title_1": "Meja Bar",
     "home.cta_title_2": "sudah buka.",
@@ -634,7 +643,7 @@
           },
           {
             "label": "Yang kau bawa pulang",
-            "text": "Simpul yang terurai dalam fiksi adalah simpul yang sama dengan yang ada dalam hidupmu. Kau pergi membawa sesuatu yang bisa kau pakai, bukan skor."
+            "text": "Saat fajar, seharga 4 €, sebuah dokumen merangkum seluruh malammu: ketegangannya dan solusi yang kau temukan. Simpul yang terurai dalam fiksi adalah simpul yang sama dengan yang ada dalam hidupmu. Kau pergi membawa sesuatu yang bisa kau pakai, bukan skor."
           }
         ],
         "closing": "Di sisi lain sekat udara, hujan tak pernah berhenti turun. Ia menunggu langkahmu."

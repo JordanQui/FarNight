@@ -305,6 +305,15 @@
     "home.fig_places": "senin için icat edilen mekân",
     "home.fig_langs": "dil",
     "home.fig_night": "gece, asla tekrar oynanmaz",
+    "home.keep_eyebrow": "Sana kalan",
+    "home.keep_title_1": "Şehir kapanır.",
+    "home.keep_title_2": "Gecen kalır.",
+    "home.keep_text": "Gün doğarken bütün gecen resimli bir belgeye basılır — şafaktan çok sonra da okumak ve yeniden okumak için.",
+    "home.keep_item1": "Gecenin sana verdiği amaç",
+    "home.keep_item2": "Geçtiğin her mekân ve orada olanlar",
+    "home.keep_item3": "Bulduğun cevaplar",
+    "home.keep_item4": "Yanında götürdüklerin ve şafağının metni",
+    "home.keep_price": "Son ekrandan alınacak bir PDF: {{price}}.",
     "home.cta_eyebrow": "İlk sahne ücretsiz",
     "home.cta_title_1": "Tezgâh",
     "home.cta_title_2": "açık.",
@@ -657,7 +666,7 @@
           },
           {
             "label": "Yanında götürdüğün",
-            "text": "Kurguda çözülen düğüm, hayatındakiyle aynı düğüm. Buradan bir puanla değil, işine yarayacak bir şeyle ayrılırsın."
+            "text": "Şafakta, 4 € karşılığında, bir belge bütün geceni özetliyor: gerilimlerini ve bulduğun çözümleri. Kurguda çözülen düğüm, hayatındakiyle aynı düğüm. Buradan bir puanla değil, işine yarayacak bir şeyle ayrılırsın."
           }
         ],
         "closing": "Hava kilidinin öbür yanında yağmur hiç dinmedi. Adımını bekliyor."

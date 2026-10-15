@@ -307,6 +307,15 @@
     "home.fig_places": "miejsc wymyślonych dla ciebie",
     "home.fig_langs": "języków",
     "home.fig_night": "noc, której nie da się powtórzyć",
+    "home.keep_eyebrow": "Co ci zostaje",
+    "home.keep_title_1": "Miasto się zamyka.",
+    "home.keep_title_2": "Twoja noc zostaje.",
+    "home.keep_text": "Gdy wstaje dzień, cała twoja noc drukuje się w ilustrowany dokument — do czytania i czytania od nowa, długo po świcie.",
+    "home.keep_item1": "Cel, który dała ci noc",
+    "home.keep_item2": "Każde odwiedzone miejsce i to, co się tam wydarzyło",
+    "home.keep_item3": "Znalezione odpowiedzi",
+    "home.keep_item4": "To, co zabierasz, i tekst twojego świtu",
+    "home.keep_price": "PDF do zabrania z ekranu końcowego: {{price}}.",
     "home.cta_eyebrow": "Pierwsza scena za darmo",
     "home.cta_title_1": "Kontuar",
     "home.cta_title_2": "jest otwarty.",
@@ -659,7 +668,7 @@
           },
           {
             "label": "Co z tego wyniesiesz",
-            "text": "Węzeł, który rozplątuje się w fikcji, jest tym samym węzłem co w twoim życiu. Wychodzisz z czymś, czego możesz użyć, a nie z wynikiem punktowym."
+            "text": "O świcie, za 4 €, dokument podsumowuje całą twoją noc: jej napięcia i rozwiązania, które udało ci się znaleźć. Węzeł, który rozplątuje się w fikcji, jest tym samym węzłem co w twoim życiu. Wychodzisz z czymś, czego możesz użyć, a nie z wynikiem punktowym."
           }
         ],
         "closing": "Po drugiej stronie śluzy deszcz nie przestał padać. Czeka na twój krok."

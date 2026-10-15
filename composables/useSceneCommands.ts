@@ -52,6 +52,11 @@ export function useSceneCommands() {
       },
     },
     {
+      name: 'paywall',
+      help: 'ouvre l\'écran de paiement tout de suite, sans la porte ni sa narration',
+      run() { gameStore.triggerPaywall() },
+    },
+    {
       name: 'resolution',
       help: 'force le dénouement : les personnages viennent et tendent l\'objet',
       run() {

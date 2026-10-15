@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 402, statusMessage: `Paiement non abouti : ${intent.status}` })
   }
   if (intent.metadata.product !== 'keepsake'
-    || intent.amount !== paywall.keepsake_cents
+    // Un PDF payé avant la baisse à 4 € (12 €) se retélécharge encore.
+    || intent.amount < paywall.keepsake_cents
     || intent.currency !== paywall.currency.toLowerCase()) {
     throw createError({ statusCode: 402, statusMessage: 'Paiement inattendu' })
   }

@@ -350,6 +350,15 @@
     "home.fig_places": "luoghi inventati per te",
     "home.fig_langs": "lingue",
     "home.fig_night": "notte, mai rigiocata",
+    "home.keep_eyebrow": "Quello che ti resta",
+    "home.keep_title_1": "La città chiude.",
+    "home.keep_title_2": "La tua notte resta.",
+    "home.keep_text": "Allo spuntare del giorno, tutta la tua notte si stampa in un documento illustrato, da leggere e rileggere molto dopo l'alba.",
+    "home.keep_item1": "Lo scopo che la notte ti ha dato",
+    "home.keep_item2": "Ogni luogo attraversato, e cosa vi è successo",
+    "home.keep_item3": "Le risposte che hai trovato",
+    "home.keep_item4": "Ciò che porti con te, e il testo della tua alba",
+    "home.keep_price": "Un PDF da portare via dalla schermata finale: {{price}}.",
     "home.cta_eyebrow": "Prima scena gratis",
     "home.cta_title_1": "Il Bancone",
     "home.cta_title_2": "è aperto.",
@@ -702,7 +711,7 @@
           },
           {
             "label": "Ciò che porti via",
-            "text": "Il nodo che si scioglie nella finzione è lo stesso della tua vita. Ne esci con qualcosa che puoi usare, non con un punteggio."
+            "text": "All'alba, per 4 €, un documento riassume tutta la tua notte: le sue tensioni e le soluzioni che hai trovato. Il nodo che si scioglie nella finzione è lo stesso della tua vita. Ne esci con qualcosa che puoi usare, non con un punteggio."
           }
         ],
         "closing": "Dall'altra parte della paratia, la pioggia non ha smesso di cadere. Aspetta il tuo passo."

@@ -279,6 +279,15 @@
     "home.fig_places": "个为你而造的地方",
     "home.fig_langs": "种语言",
     "home.fig_night": "个夜晚，永不重玩",
+    "home.keep_eyebrow": "留给你的",
+    "home.keep_title_1": "城市关闭。",
+    "home.keep_title_2": "你的夜晚留下。",
+    "home.keep_text": "天亮时，你的整个夜晚会印成一份带插图的文档——在黎明过后很久，仍可一读再读。",
+    "home.keep_item1": "夜晚交给你的目标",
+    "home.keep_item2": "你穿过的每个地方，以及那里发生的事",
+    "home.keep_item3": "你找到的答案",
+    "home.keep_item4": "你带走的东西，以及你的黎明的文字",
+    "home.keep_price": "在最后一屏即可带走的 PDF：{{price}}。",
     "home.cta_eyebrow": "第一幕免费",
     "home.cta_title_1": "吧台",
     "home.cta_title_2": "已经开门。",
@@ -631,7 +640,7 @@
           },
           {
             "label": "你带走什么",
-            "text": "在故事里解开的那个结，和你生活里的是同一个。你带走的是能用的东西，而不是一个分数。"
+            "text": "天亮时，花 4 欧元就能拿到一份文档，记下你整夜的紧张与你找到的解法。在故事里解开的那个结，和你生活里的是同一个。你带走的是能用的东西，而不是一个分数。"
           }
         ],
         "closing": "在气闸的另一边，雨没有停。它在等你迈步。"

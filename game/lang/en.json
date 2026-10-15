@@ -293,6 +293,15 @@
     "home.fig_places": "places invented for you",
     "home.fig_langs": "languages",
     "home.fig_night": "night, never replayed",
+    "home.keep_eyebrow": "What you keep",
+    "home.keep_title_1": "The city closes.",
+    "home.keep_title_2": "Your night stays.",
+    "home.keep_text": "At daybreak, your whole night is printed into an illustrated document — to read, and read again, long after dawn.",
+    "home.keep_item1": "The goal the night gave you",
+    "home.keep_item2": "Every place you crossed, and what happened there",
+    "home.keep_item3": "The answers you found",
+    "home.keep_item4": "What you carry away, and the text of your dawn",
+    "home.keep_price": "A PDF to take home from the final screen: {{price}}.",
     "home.cta_eyebrow": "First scene free",
     "home.cta_title_1": "The Counter",
     "home.cta_title_2": "is open.",
@@ -647,7 +656,7 @@
           },
           {
             "label": "What you take away",
-            "text": "The knot that comes undone in the fiction is the same one as in your life. You leave with something you can use, not with a score."
+            "text": "At dawn, for €4, a document sums up your whole night: its tensions and the solutions you found. The knot that comes undone in the fiction is the same one as in your life. You leave with something you can use, not with a score."
           }
         ],
         "closing": "On the other side of the airlock, the rain has not stopped falling. It is waiting for your step."

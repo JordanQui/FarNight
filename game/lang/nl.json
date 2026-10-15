@@ -303,6 +303,15 @@
     "home.fig_places": "plekken voor jou verzonnen",
     "home.fig_langs": "talen",
     "home.fig_night": "nacht, nooit herspeeld",
+    "home.keep_eyebrow": "Wat je overhoudt",
+    "home.keep_title_1": "De stad gaat dicht.",
+    "home.keep_title_2": "Je nacht blijft.",
+    "home.keep_text": "Bij het ochtendgloren wordt je hele nacht gedrukt in een geïllustreerd document, om te lezen en te herlezen, lang na de dageraad.",
+    "home.keep_item1": "Het doel dat de nacht je gaf",
+    "home.keep_item2": "Elke plek die je doorkruiste, en wat zich daar afspeelde",
+    "home.keep_item3": "De antwoorden die je vond",
+    "home.keep_item4": "Wat je meeneemt, en de tekst van je dageraad",
+    "home.keep_price": "Een pdf om mee te nemen vanaf het laatste scherm: {{price}}.",
     "home.cta_eyebrow": "Eerste scène gratis",
     "home.cta_title_1": "De Toog",
     "home.cta_title_2": "is open.",
@@ -655,7 +664,7 @@
           },
           {
             "label": "Wat je meeneemt",
-            "text": "De knoop die in de fictie losraakt, is dezelfde als in je leven. Je gaat weg met iets wat je kunt gebruiken, niet met een score."
+            "text": "Bij het ochtendgloren vat een document voor € 4 je hele nacht samen: de spanningen en de oplossingen die je hebt gevonden. De knoop die in de fictie losraakt, is dezelfde als in je leven. Je gaat weg met iets wat je kunt gebruiken, niet met een score."
           }
         ],
         "closing": "Aan de andere kant van de sluis is de regen niet opgehouden met vallen. Hij wacht op je stap."

@@ -343,6 +343,15 @@
     "home.fig_places": "lugares inventados para ti",
     "home.fig_langs": "idiomas",
     "home.fig_night": "noche, nunca repetida",
+    "home.keep_eyebrow": "Lo que te queda",
+    "home.keep_title_1": "La ciudad cierra.",
+    "home.keep_title_2": "Tu noche se queda.",
+    "home.keep_text": "Al amanecer, toda tu noche se imprime en un documento ilustrado, para leer y releer mucho después del alba.",
+    "home.keep_item1": "El objetivo que te dio la noche",
+    "home.keep_item2": "Cada lugar que cruzaste, y lo que pasó allí",
+    "home.keep_item3": "Las respuestas que encontraste",
+    "home.keep_item4": "Lo que te llevas, y el texto de tu amanecer",
+    "home.keep_price": "Un PDF para llevarte desde la pantalla final: {{price}}.",
     "home.cta_eyebrow": "Primera escena gratis",
     "home.cta_title_1": "El Mostrador",
     "home.cta_title_2": "está abierto.",
@@ -695,7 +704,7 @@
           },
           {
             "label": "Lo que te llevas",
-            "text": "El nudo que se deshace en la ficción es el mismo que en tu vida. Te vas con algo que puedes usar, no con una puntuación."
+            "text": "Al amanecer, por 4 €, un documento resume toda tu noche: sus tensiones y las soluciones que encontraste. El nudo que se deshace en la ficción es el mismo que en tu vida. Te vas con algo que puedes usar, no con una puntuación."
           }
         ],
         "closing": "Al otro lado de la esclusa, la lluvia no ha dejado de caer. Espera tu paso."

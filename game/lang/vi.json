@@ -278,6 +278,15 @@
     "home.fig_places": "nơi tạo ra cho bạn",
     "home.fig_langs": "ngôn ngữ",
     "home.fig_night": "đêm, không bao giờ chơi lại",
+    "home.keep_eyebrow": "Điều còn lại cho bạn",
+    "home.keep_title_1": "Thành phố đóng cửa.",
+    "home.keep_title_2": "Đêm của bạn ở lại.",
+    "home.keep_text": "Khi trời sáng, cả đêm của bạn được in thành một tài liệu có minh họa — để đọc và đọc lại, rất lâu sau bình minh.",
+    "home.keep_item1": "Mục tiêu mà đêm đã trao cho bạn",
+    "home.keep_item2": "Từng nơi bạn đã đi qua, và những gì đã diễn ra ở đó",
+    "home.keep_item3": "Những câu trả lời bạn đã tìm ra",
+    "home.keep_item4": "Những gì bạn mang theo, và đoạn văn về bình minh của bạn",
+    "home.keep_price": "Một tệp PDF để mang về từ màn hình cuối: {{price}}.",
     "home.cta_eyebrow": "Cảnh đầu tiên miễn phí",
     "home.cta_title_1": "Quầy Rượu",
     "home.cta_title_2": "đã mở cửa.",
@@ -630,7 +639,7 @@
           },
           {
             "label": "Điều bạn mang theo",
-            "text": "Nút thắt được tháo gỡ trong hư cấu cũng chính là nút thắt trong cuộc sống của bạn. Bạn ra về với điều gì đó dùng được, chứ không phải một con số điểm."
+            "text": "Lúc bình minh, với 4 €, một tài liệu tóm tắt cả đêm của bạn: những căng thẳng và những lời giải bạn đã tìm ra. Nút thắt được tháo gỡ trong hư cấu cũng chính là nút thắt trong cuộc sống của bạn. Bạn ra về với điều gì đó dùng được, chứ không phải một con số điểm."
           }
         ],
         "closing": "Ở phía bên kia khoang khí, mưa vẫn chưa ngừng rơi. Nó đang đợi bước chân bạn."

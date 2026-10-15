@@ -338,6 +338,15 @@
     "home.fig_places": "lugares inventados para você",
     "home.fig_langs": "idiomas",
     "home.fig_night": "noite, nunca repetida",
+    "home.keep_eyebrow": "O que fica para você",
+    "home.keep_title_1": "A cidade fecha.",
+    "home.keep_title_2": "Sua noite fica.",
+    "home.keep_text": "Ao raiar do dia, sua noite inteira se imprime num documento ilustrado, para ler e reler muito depois do amanhecer.",
+    "home.keep_item1": "O objetivo que a noite deu a você",
+    "home.keep_item2": "Cada lugar atravessado, e o que aconteceu ali",
+    "home.keep_item3": "As respostas que você encontrou",
+    "home.keep_item4": "O que você leva, e o texto do seu amanhecer",
+    "home.keep_price": "Um PDF para levar a partir da tela final: {{price}}.",
     "home.cta_eyebrow": "Primeira cena grátis",
     "home.cta_title_1": "O Balcão",
     "home.cta_title_2": "está aberto.",
@@ -690,7 +699,7 @@
           },
           {
             "label": "O que você leva",
-            "text": "O nó que se desfaz na ficção é o mesmo da sua vida. Você sai com algo que pode usar, não com uma pontuação."
+            "text": "Ao amanhecer, por 4 €, um documento resume toda a sua noite: as tensões e as soluções que você encontrou. O nó que se desfaz na ficção é o mesmo da sua vida. Você sai com algo que pode usar, não com uma pontuação."
           }
         ],
         "closing": "Do outro lado da comporta, a chuva não parou de cair. Ela espera o seu passo."

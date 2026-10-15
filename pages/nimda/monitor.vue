@@ -346,6 +346,30 @@ const outbound = computed(() => {
     </div>
 
     <main class="wrap">
+      <!-- Le tableau des cotes -->
+      <section class="board" aria-label="Cotations">
+        <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== 'ms' && t.unit !== '$') }">
+          <header class="tile-head">
+            <span class="tile-code">{{ t.code }}</span>
+            <span v-if="move(t)" :class="['tile-move', move(t)!.tone]">{{ move(t)!.arrow }} {{ move(t)!.text }}</span>
+          </header>
+          <p class="tile-value">
+            <span class="led-ghost">{{ ghost(led(t)) }}</span>
+            <span class="led-on">{{ led(t) }}</span>
+            <span v-if="t.unit" class="tile-unit">{{ t.unit }}</span>
+          </p>
+          <p class="tile-label">{{ t.label }}</p>
+          <div v-if="t.spark?.length" class="spark">
+            <span
+              v-for="(v, i) in t.spark" :key="i" class="spark-bar"
+              :style="{ height: `${(v / sparkMax(t.spark)) * 100}%` }"
+              :title="`${t.sparkAt?.[i] ?? bucketLabel(buckets[i]?.at ?? '')} — ${int(v)}`"
+            />
+          </div>
+          <p v-if="t.note" class="tile-note">{{ t.note }}</p>
+        </article>
+      </section>
+
       <!-- Viabilité : chaque pub jugée sur ses ventes -->
       <section class="panel">
         <h2>Viabilité <span>par pub · marge {{ money(MARGIN_EUR * 100) }} par vente · ventes nécessaires = dépense ÷ marge</span></h2>
@@ -374,30 +398,6 @@ const outbound = computed(() => {
             « sans étiquette » réunit les liens sans <code>?c=</code> (les boosts du 14/10) et tout ce qui vient d’ailleurs.
           </p>
         </template>
-      </section>
-
-      <!-- Le tableau des cotes -->
-      <section class="board" aria-label="Cotations">
-        <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== 'ms' && t.unit !== '$') }">
-          <header class="tile-head">
-            <span class="tile-code">{{ t.code }}</span>
-            <span v-if="move(t)" :class="['tile-move', move(t)!.tone]">{{ move(t)!.arrow }} {{ move(t)!.text }}</span>
-          </header>
-          <p class="tile-value">
-            <span class="led-ghost">{{ ghost(led(t)) }}</span>
-            <span class="led-on">{{ led(t) }}</span>
-            <span v-if="t.unit" class="tile-unit">{{ t.unit }}</span>
-          </p>
-          <p class="tile-label">{{ t.label }}</p>
-          <div v-if="t.spark?.length" class="spark">
-            <span
-              v-for="(v, i) in t.spark" :key="i" class="spark-bar"
-              :style="{ height: `${(v / sparkMax(t.spark)) * 100}%` }"
-              :title="`${t.sparkAt?.[i] ?? bucketLabel(buckets[i]?.at ?? '')} — ${int(v)}`"
-            />
-          </div>
-          <p v-if="t.note" class="tile-note">{{ t.note }}</p>
-        </article>
       </section>
 
       <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
