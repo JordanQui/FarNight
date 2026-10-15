@@ -20,12 +20,33 @@ declare global {
 
 type PaymentIntentConfig = { publishableKey: string; paymentIntentId: string; clientSecret: string }
 
+const CAMPAIGN_KEY = 'tg_campaign'
+
+/**
+ * L'étiquette de la pub qui a amené le joueur, le `?c=` de son lien. L'adresse
+ * la garde toute la visite (les écrans ne sont pas des routes), le stockage
+ * pour un retour sans elle. Elle part avec le paiement : /nimda/monitor juge
+ * chaque pub par les ventes qu'elle amène.
+ */
+function campaignTag(): string | undefined {
+  try {
+    const tag = new URLSearchParams(window.location.search).get('c')
+    if (tag) window.localStorage.setItem(CAMPAIGN_KEY, tag)
+    return window.localStorage.getItem(CAMPAIGN_KEY) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function usePaywall() {
   const { t } = useLang()
   const gameStore = useGameStore()
   const playerStore = usePlayerStore()
   const paymentStore = usePaymentStore()
   const progression = useProgression()
+
+  // Retenue dès l'entrée en jeu, pour un joueur qui paiera à une autre visite.
+  if (import.meta.client) campaignTag()
 
   // Le client Stripe et le formulaire monté, qui confirmeront le paiement.
   let stripe: ReturnType<Window['Stripe']> | null = null
@@ -139,7 +160,7 @@ export function usePaywall() {
   async function fetchPaymentIntent(product?: 'keepsake') {
     const data = await $fetch<PaymentIntentConfig>('/api/payment/intent', {
       method: 'POST',
-      body: product ? { product } : {},
+      body: { product, campaign: campaignTag() },
     })
     paymentStore.setIntent({ paymentId: data.paymentIntentId })
     return data

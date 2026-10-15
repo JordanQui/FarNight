@@ -192,193 +192,347 @@ function acceptAndEnroll() {
   startFresh()
   gameStore.setScreen('admission')
 }
+
+/**
+ * Les boutons d'entrée du bas de page font le même geste que celui du haut :
+ * reprendre la nuit si le dossier est connu, sinon l'avertissement.
+ */
+function enter() {
+  if (knownDossier.value) goOut()
+  else openDisclaimer()
+}
+const ctaLabel = computed(() => knownDossier.value ? t('login.dossier_cta') : t('login.enroll_cta'))
+const ctaNote = computed(() => knownDossier.value ? null : t('login.enroll_note', { steps: ADMISSION_STEPS }))
+
+/** Le titre, sur une ligne : barre du haut, pied de page, message de partage. */
+const gameTitle = computed(() => `${t('login.title_line1')} ${t('login.title_line2')}`)
+
+/**
+ * Les réseaux, par de simples liens : aucun script tiers, rien ne part tant
+ * qu'on ne clique pas. Le message est la promesse du jeu, dans la langue
+ * affichée.
+ */
+const shareLinks = computed(() => {
+  const url = encodeURIComponent(`${origin}/`)
+  const text = encodeURIComponent(`${gameTitle.value} — ${t('home.hero_promise')}`)
+  return [
+    { name: 'WhatsApp', href: `https://wa.me/?text=${text}%20${url}` },
+    { name: 'Telegram', href: `https://t.me/share/url?url=${url}&text=${text}` },
+    { name: 'X', href: `https://x.com/intent/post?text=${text}&url=${url}` },
+    { name: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${url}` },
+  ]
+})
+
+/**
+ * LE DÉFILEMENT.
+ *
+ * Deux mécanismes, rien de plus. Chaque `[data-scrub]` reçoit `--p`, sa
+ * progression de 0 à 1 dans l'écran, et le CSS en tire ses mouvements :
+ *   - par défaut, de son entrée par le bas à sa sortie par le haut (0,5 =
+ *     centré) ;
+ *   - `pin` : section plus haute que l'écran dont le contenu reste collé, de
+ *     son arrivée en haut à sa fin ;
+ *   - `exit` : du haut de la page jusqu'à ce que l'élément soit sorti.
+ * Chaque `[data-reveal]` reçoit `is-in` la première fois qu'il paraît.
+ *
+ * Si le système demande moins d'animation, `is-motion` n'est jamais posée :
+ * tout est visible d'emblée et rien ne suit la molette.
+ */
+const root = ref<HTMLElement | null>(null)
+const motion = ref(false)
+const scrolled = ref(false)
+let frame = 0
+let observer: IntersectionObserver | null = null
+
+function progressOf(el: HTMLElement, vh: number): number {
+  const r = el.getBoundingClientRect()
+  const p = el.dataset.scrub === 'pin' ? -r.top / Math.max(1, r.height - vh)
+    : el.dataset.scrub === 'exit' ? -r.top / Math.max(1, r.height)
+      : (vh - r.top) / (vh + r.height)
+  return Math.min(1, Math.max(0, p))
+}
+
+function paint() {
+  frame = 0
+  const vh = window.innerHeight
+  scrolled.value = window.scrollY > vh * 0.5
+  if (!motion.value) return
+  root.value?.querySelectorAll<HTMLElement>('[data-scrub]').forEach((el) => {
+    el.style.setProperty('--p', progressOf(el, vh).toFixed(4))
+  })
+}
+
+function onScroll() {
+  if (!frame) frame = requestAnimationFrame(paint)
+}
+
+function toTop() {
+  window.scrollTo({ top: 0, behavior: motion.value ? 'smooth' : 'auto' })
+}
+
+onMounted(() => {
+  motion.value = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue
+      entry.target.classList.add('is-in')
+      observer?.unobserve(entry.target)
+    }
+  }, { rootMargin: '0px 0px -10% 0px' })
+  root.value?.querySelectorAll('[data-reveal]').forEach(el => observer?.observe(el))
+  window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('resize', onScroll, { passive: true })
+  paint()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('resize', onScroll)
+  if (frame) cancelAnimationFrame(frame)
+  observer?.disconnect()
+})
+
+/**
+ * L'écran suivant (formulaire, scène) tient dans la hauteur de la fenêtre : il
+ * ne doit pas hériter du défilement de l'accueil. Après le fondu de sortie,
+ * avant l'entrée du suivant.
+ */
+onUnmounted(() => window.scrollTo(0, 0))
 </script>
 
 <template>
-  <div class="relative min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center px-6 text-center">
-    <!-- Lueur de la ville, sous l'horizon -->
-    <div
-      class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
-      style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
-    />
+  <div ref="root" class="home relative overflow-x-clip" :class="{ 'is-motion': motion }">
+    <!--
+      LA BARRE DU HAUT : la langue et le partage, à portée de pouce partout
+      dans la page. Transparente sur le premier écran, elle prend un fond dès
+      qu'on descend, et le titre du jeu y apparaît.
+    -->
+    <header class="topbar fixed inset-x-0 top-0 z-40" :class="{ 'is-solid': scrolled }">
+      <div class="max-w-6xl mx-auto h-14 px-4 sm:px-6 flex items-center justify-between gap-4">
+        <button class="flex items-center gap-3 min-w-0" :aria-label="gameTitle" @click="toTop">
+          <svg viewBox="0 0 52 22" class="w-8 h-3.5 shrink-0 fill-neon-500" aria-hidden="true"
+               style="filter: drop-shadow(0 0 4px rgb(var(--neon-500) / 0.8))">
+            <rect x="0" y="16" width="4" height="6" /><rect x="6" y="12" width="4" height="10" />
+            <rect x="12" y="8" width="4" height="14" /><rect x="18" y="4" width="4" height="18" />
+            <rect x="24" y="0" width="4" height="22" /><rect x="30" y="4" width="4" height="18" />
+            <rect x="36" y="8" width="4" height="14" /><rect x="42" y="12" width="4" height="10" />
+            <rect x="48" y="16" width="4" height="6" />
+          </svg>
+          <span class="topbar-title hidden sm:block font-display uppercase text-[11px] tracking-[0.3em] text-ink-100 truncate">
+            {{ gameTitle }}
+          </span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <!--
+            LA LANGUE, sur le tout premier écran.
+            Quelqu'un qui ne lit pas le français doit pouvoir en sortir avant
+            d'avoir à remplir quoi que ce soit. Le menu affiche le nom de la
+            langue DANS cette langue — « Deutsch », « Русский » — parce que
+            c'est le seul libellé qu'un visiteur reconnaîtra à coup sûr. Le
+            choix part dans le cookie, et le formulaire s'ouvrira dessus.
+          -->
+          <label class="lang-pill">
+            <span class="sr-only">{{ t('lang.label') }}</span>
+            <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0" fill="none"
+                 stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <circle cx="10" cy="10" r="8" />
+              <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
+            </svg>
+            <select
+              class="lang-select"
+              :value="lang"
+              @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
+            >
+              <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
+            </select>
+          </label>
+
+          <button class="icon-pill" :aria-label="t('home.share')" @click="shareSite">
+            <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+              <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
+              <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
 
     <!--
-      Skyline à gradins, silhouette plate sur deux plans, tubes néon
-      sur les façades. C'est le décor polygonal de Flashback, pas un dégradé.
+      LE PREMIER ÉCRAN : la couverture du Creator kit. Le Comptoir en fond,
+      qui descend moins vite que la page ; le texte s'efface en remontant.
     -->
-    <div class="absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
-      <svg viewBox="0 0 2400 460" preserveAspectRatio="xMidYMax meet" class="w-full h-auto" aria-hidden="true">
-        <g fill="#1c2537"><rect x="40" y="310" width="86" height="150"/><rect x="52" y="277" width="62" height="183"/><rect x="64" y="244" width="38" height="216"/><rect x="170" y="350" width="58" height="110"/><rect x="178" y="326" width="42" height="134"/><rect x="255" y="270" width="104" height="190"/><rect x="269" y="229" width="76" height="231"/><rect x="283" y="188" width="48" height="272"/><rect x="400" y="330" width="66" height="130"/><rect x="409" y="302" width="48" height="158"/><rect x="500" y="235" width="120" height="225"/><rect x="517" y="186" width="86" height="274"/><rect x="534" y="137" width="52" height="323"/><rect x="551" y="88" width="18" height="372"/><rect x="668" y="315" width="74" height="145"/><rect x="678" y="284" width="54" height="176"/><rect x="688" y="253" width="34" height="207"/><rect x="775" y="285" width="96" height="175"/><rect x="788" y="247" width="70" height="213"/><rect x="801" y="209" width="44" height="251"/><rect x="905" y="340" width="58" height="120"/><rect x="913" y="314" width="42" height="146"/><rect x="1000" y="220" width="128" height="240"/><rect x="1018" y="168" width="92" height="292"/><rect x="1036" y="116" width="56" height="344"/><rect x="1054" y="64" width="20" height="396"/><rect x="1180" y="325" width="70" height="135"/><rect x="1190" y="296" width="50" height="164"/><rect x="1285" y="275" width="92" height="185"/><rect x="1298" y="235" width="66" height="225"/><rect x="1311" y="195" width="40" height="265"/><rect x="1420" y="345" width="60" height="115"/><rect x="1428" y="320" width="44" height="140"/><rect x="1510" y="245" width="116" height="215"/><rect x="1526" y="198" width="84" height="262"/><rect x="1542" y="151" width="52" height="309"/><rect x="1558" y="104" width="20" height="356"/><rect x="1680" y="310" width="78" height="150"/><rect x="1691" y="277" width="56" height="183"/><rect x="1702" y="244" width="34" height="216"/><rect x="1795" y="335" width="64" height="125"/><rect x="1804" y="308" width="46" height="152"/><rect x="1885" y="260" width="108" height="200"/><rect x="1900" y="216" width="78" height="244"/><rect x="1915" y="172" width="48" height="288"/><rect x="1930" y="128" width="18" height="332"/><rect x="2050" y="320" width="72" height="140"/><rect x="2060" y="290" width="52" height="170"/><rect x="2070" y="260" width="32" height="200"/><rect x="2160" y="290" width="90" height="170"/><rect x="2172" y="253" width="66" height="207"/><rect x="2184" y="216" width="42" height="244"/><rect x="2290" y="330" width="70" height="130"/><rect x="2300" y="302" width="50" height="158"/><rect x="548" y="60" width="7" height="400"/><rect x="1962" y="105" width="7" height="355"/></g>
-        <g fill="#0f1626"><rect x="0" y="270" width="96" height="190"/><rect x="13" y="229" width="70" height="231"/><rect x="26" y="188" width="44" height="272"/><rect x="120" y="320" width="68" height="140"/><rect x="129" y="290" width="50" height="170"/><rect x="560" y="205" width="112" height="255"/><rect x="576" y="149" width="80" height="311"/><rect x="592" y="93" width="48" height="367"/><rect x="608" y="37" width="16" height="423"/><rect x="720" y="285" width="80" height="175"/><rect x="731" y="247" width="58" height="213"/><rect x="742" y="209" width="36" height="251"/><rect x="1090" y="170" width="132" height="290"/><rect x="1108" y="107" width="96" height="353"/><rect x="1126" y="44" width="60" height="416"/><rect x="1144" y="-19" width="24" height="479"/><rect x="1270" y="300" width="74" height="160"/><rect x="1280" y="265" width="54" height="195"/><rect x="1620" y="225" width="104" height="235"/><rect x="1634" y="174" width="76" height="286"/><rect x="1648" y="123" width="48" height="337"/><rect x="1662" y="72" width="20" height="388"/><rect x="1770" y="315" width="66" height="145"/><rect x="1779" y="284" width="48" height="176"/><rect x="2110" y="195" width="120" height="265"/><rect x="2127" y="137" width="86" height="323"/><rect x="2144" y="79" width="52" height="381"/><rect x="2161" y="21" width="18" height="439"/><rect x="2300" y="255" width="100" height="205"/><rect x="2314" y="210" width="72" height="250"/><rect x="2328" y="165" width="44" height="295"/><rect x="1150" y="80" width="9" height="380"/><rect x="2168" y="55" width="7" height="405"/></g>
-        <g fill="rgb(var(--neon-500))" opacity="0.9"><rect x="48" y="328" width="70" height="3"/><rect x="263" y="288" width="88" height="3"/><rect x="508" y="253" width="104" height="3"/><rect x="783" y="303" width="80" height="3"/><rect x="1008" y="238" width="112" height="3"/><rect x="1293" y="293" width="76" height="3"/><rect x="1518" y="263" width="100" height="3"/><rect x="1803" y="353" width="48" height="3"/><rect x="2058" y="338" width="56" height="3"/><rect x="2298" y="348" width="54" height="3"/><rect x="10" y="296" width="76" height="4"/><rect x="28" y="230" width="38" height="3"/><rect x="570" y="231" width="92" height="4"/><rect x="593" y="165" width="44" height="3"/><rect x="1100" y="196" width="112" height="4"/><rect x="1129" y="130" width="52" height="3"/><rect x="1630" y="251" width="84" height="4"/><rect x="1651" y="185" width="41" height="3"/><rect x="2120" y="221" width="100" height="4"/><rect x="2146" y="155" width="48" height="3"/><rect x="1148" y="86" width="13" height="52"/><rect x="546" y="64" width="11" height="40"/></g>
-      </svg>
-    </div>
+    <section data-scrub="exit" class="hero relative min-h-[100svh] overflow-hidden flex flex-col items-center justify-center px-6 pt-24 pb-32 text-center">
+      <picture class="hero-image absolute inset-0">
+        <source media="(max-width: 639px)" srcset="/home/portrait/counter.webp">
+        <img src="/home/counter.webp" alt="" width="1920" height="1080" fetchpriority="high" decoding="async"
+             class="w-full h-full object-cover">
+      </picture>
+      <div class="hero-veil absolute inset-0 pointer-events-none" />
 
-    <!-- Pluie -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <span
-        v-for="(drop, i) in raindrops"
-        :key="i"
-        class="rain-drop animate-rain-fall"
-        :style="{
-          left: `${drop.left}%`,
-          height: `${drop.height}px`,
-          animationDelay: `${drop.delay}s`,
-          animationDuration: `${drop.duration}s`,
-          opacity: drop.opacity,
-        }"
-      />
-    </div>
+      <!-- Pluie -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <span
+          v-for="(drop, i) in raindrops"
+          :key="i"
+          class="rain-drop animate-rain-fall"
+          :style="{
+            left: `${drop.left}%`,
+            height: `${drop.height}px`,
+            animationDelay: `${drop.delay}s`,
+            animationDuration: `${drop.duration}s`,
+            opacity: drop.opacity,
+          }"
+        />
+      </div>
 
-    <!-- Voile : le texte doit rester lisible par-dessus les tours -->
-    <div
-      class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(58% 54% at 50% 45%, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, transparent 80%)"
-    />
-
-    <!-- Contenu -->
-    <div class="relative z-10 flex flex-col items-center gap-8 max-w-md w-full">
-      <!-- Ziggourat néon : gradins symétriques, la signature Deco -->
-      <svg viewBox="0 0 52 22" class="w-14 h-6 fill-neon-500 animate-neon-buzz" aria-hidden="true"
-           style="filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.85))">
-        <rect x="0" y="16" width="4" height="6" />
-        <rect x="6" y="12" width="4" height="10" />
-        <rect x="12" y="8" width="4" height="14" />
-        <rect x="18" y="4" width="4" height="18" />
-        <rect x="24" y="0" width="4" height="22" />
-        <rect x="30" y="4" width="4" height="18" />
-        <rect x="36" y="8" width="4" height="14" />
-        <rect x="42" y="12" width="4" height="10" />
-        <rect x="48" y="16" width="4" height="6" />
-      </svg>
-
-      <div class="w-full space-y-5">
+      <div class="hero-content relative z-10 flex flex-col items-center gap-7 max-w-4xl w-full">
         <p class="text-steel-400 text-[10px] uppercase tracking-[0.45em] font-display">
           {{ t('login.eyebrow') }}
         </p>
 
-        <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.95] tracking-[0.05em] text-[2.1rem] sm:text-[2.9rem]">
+        <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.92] tracking-[0.04em] text-[clamp(2.6rem,10vw,6.2rem)]">
           {{ t('login.title_line1') }}<br>{{ t('login.title_line2') }}
         </h1>
 
-        <div class="neon-rule w-40 mx-auto" />
-      </div>
+        <p class="font-serif italic text-ink-50 text-xl sm:text-2xl">{{ t('home.hero_promise') }}</p>
 
-      <!--
-        L'accroche tient en une phrase et pose les deux promesses du jeu : le
-        monde est bâti sur ce joueur-là, et ce qu'il y dénoue lui revient. La
-        coupure tombe avant « vers » : ce que c'est d'un côté, où ça mène de
-        l'autre.
-      -->
-      <p class="text-ink-200/75 text-sm leading-relaxed max-w-xs">
-        {{ t('login.tagline_line1') }}<br>
-        {{ t('login.tagline_line2') }}
-      </p>
+        <div class="neon-rule w-32" />
 
-      <!--
-        Le dossier est déjà au bureau. Personne ne remplit deux fois le même
-        formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
-        scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
-        Le formulaire reste accessible dessous, pour qui veut repartir sous une
-        autre identité.
-      -->
-      <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
-        <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-          <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
-          <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
-          <template v-else>{{ t('login.dossier_known') }}</template>
+        <!-- Les deux lignes de la couverture : ce qu'on donne, ce qu'on reçoit -->
+        <p class="font-display uppercase text-[11px] sm:text-xs tracking-[0.3em] leading-[2.2] max-w-2xl">
+          <span class="block text-ink-100">{{ t('home.hero_line1') }}</span>
+          <span class="block text-neon-400">{{ t('home.hero_line2') }}</span>
         </p>
-        <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
-        <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
-          {{ resumeScene.title }}
-          <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
-        </p>
-        <button
-          class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
-                 hover:text-ink-200 transition-colors pt-1"
-          @click="openDisclaimer"
-        >
-          {{ t('login.dossier_new') }}
-        </button>
-      </div>
 
-      <!--
-        L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
-        que le monde utilisera de lui, et la commission lui répond avant la
-        première scène.
-      -->
-      <div v-else class="w-full space-y-4 flex flex-col items-center">
-        <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
-          {{ t('login.enroll_cta') }}
-        </GlowButton>
-        <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
-          {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
-        </p>
-      </div>
-
-      <!--
-        LA LANGUE, sur le tout premier écran.
-        Elle ne peut pas attendre le formulaire : quelqu'un qui ne lit pas le
-        français doit pouvoir sortir du français avant d'avoir à remplir quoi
-        que ce soit. Le menu affiche le nom de la langue DANS cette langue —
-        « Deutsch », « Русский » — parce que c'est le seul libellé qu'un
-        visiteur reconnaîtra à coup sûr, quelle que soit la langue affichée.
-        Le choix part dans le cookie, et le formulaire s'ouvrira dessus.
-      -->
-      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-1">
-        <label class="flex items-center gap-2">
-          <span class="sr-only">{{ t('lang.label') }}</span>
-          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
-               stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <circle cx="10" cy="10" r="8" />
-            <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
-          </svg>
-          <select
-            class="lang-select"
-            :value="lang"
-            @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
+        <!--
+          Le dossier est déjà au bureau. Personne ne remplit deux fois le même
+          formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
+          scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
+          Le formulaire reste accessible dessous, pour qui veut repartir sous une
+          autre identité.
+        -->
+        <div v-if="knownDossier" class="w-full max-w-sm space-y-4 flex flex-col items-center pt-2">
+          <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
+            <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
+            <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
+            <template v-else>{{ t('login.dossier_known') }}</template>
+          </p>
+          <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
+          <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
+            {{ resumeScene.title }}
+            <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
+          </p>
+          <button
+            class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
+                   hover:text-ink-200 transition-colors pt-1"
+            @click="openDisclaimer"
           >
-            <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
-          </select>
-        </label>
+            {{ t('login.dossier_new') }}
+          </button>
+        </div>
 
-        <!-- Partager l'adresse : le domaine sert de libellé, il se lit dans toutes les langues -->
-        <button class="share-link group flex items-center gap-2" @click="shareSite">
-          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500 group-hover:text-neon-400 transition-colors"
-               fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
-            <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
-          </svg>
-          {{ host }}
-        </button>
-
-        <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
-        <a
-          href="https://instagram.com/farnigt_game"
-          target="_blank"
-          rel="noopener"
-          aria-label="Instagram"
-          class="p-1 text-steel-500 hover:text-neon-400 transition-colors"
-        >
-          <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <rect x="2.5" y="2.5" width="15" height="15" rx="4.5" />
-            <circle cx="10" cy="10" r="3.6" />
-            <circle cx="14.6" cy="5.4" r="0.7" fill="currentColor" stroke="none" />
-          </svg>
-        </a>
+        <!--
+          L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
+          que le monde utilisera de lui, et la commission lui répond avant la
+          première scène.
+        -->
+        <div v-else class="w-full max-w-sm space-y-4 flex flex-col items-center pt-2">
+          <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
+            {{ t('login.enroll_cta') }}
+          </GlowButton>
+          <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
+            {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
+          </p>
+        </div>
       </div>
 
-      <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
-      <NuxtLink
-        to="/mentions-legales"
-        class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/70 hover:text-steel-400 transition-colors"
-      >
-        © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
-      </NuxtLink>
+      <!-- Il y a une suite : un tube qui descend -->
+      <div class="scroll-cue absolute bottom-6 left-1/2 -translate-x-1/2 h-12 w-px bg-steel-600/60 overflow-hidden" aria-hidden="true">
+        <span class="scroll-cue-dot block w-px h-4 bg-neon-400" />
+      </div>
+    </section>
+
+    <LoginPitch :cta-label="ctaLabel" :cta-note="ctaNote" @enter="enter" />
+
+    <!--
+      L'horizon qui monte au-dessus du pied de page. Skyline à gradins,
+      silhouette plate sur deux plans, tubes néon sur les façades. C'est le
+      décor polygonal de Flashback, pas un dégradé.
+    -->
+    <div data-scrub class="horizon relative pointer-events-none" aria-hidden="true">
+      <div
+        class="absolute inset-x-0 bottom-0 h-[160%]"
+        style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
+      />
+      <div class="horizon-city relative opacity-90">
+        <svg viewBox="0 0 2400 460" preserveAspectRatio="xMidYMax meet" class="w-full h-auto" aria-hidden="true">
+        <g fill="#1c2537"><rect x="40" y="310" width="86" height="150"/><rect x="52" y="277" width="62" height="183"/><rect x="64" y="244" width="38" height="216"/><rect x="170" y="350" width="58" height="110"/><rect x="178" y="326" width="42" height="134"/><rect x="255" y="270" width="104" height="190"/><rect x="269" y="229" width="76" height="231"/><rect x="283" y="188" width="48" height="272"/><rect x="400" y="330" width="66" height="130"/><rect x="409" y="302" width="48" height="158"/><rect x="500" y="235" width="120" height="225"/><rect x="517" y="186" width="86" height="274"/><rect x="534" y="137" width="52" height="323"/><rect x="551" y="88" width="18" height="372"/><rect x="668" y="315" width="74" height="145"/><rect x="678" y="284" width="54" height="176"/><rect x="688" y="253" width="34" height="207"/><rect x="775" y="285" width="96" height="175"/><rect x="788" y="247" width="70" height="213"/><rect x="801" y="209" width="44" height="251"/><rect x="905" y="340" width="58" height="120"/><rect x="913" y="314" width="42" height="146"/><rect x="1000" y="220" width="128" height="240"/><rect x="1018" y="168" width="92" height="292"/><rect x="1036" y="116" width="56" height="344"/><rect x="1054" y="64" width="20" height="396"/><rect x="1180" y="325" width="70" height="135"/><rect x="1190" y="296" width="50" height="164"/><rect x="1285" y="275" width="92" height="185"/><rect x="1298" y="235" width="66" height="225"/><rect x="1311" y="195" width="40" height="265"/><rect x="1420" y="345" width="60" height="115"/><rect x="1428" y="320" width="44" height="140"/><rect x="1510" y="245" width="116" height="215"/><rect x="1526" y="198" width="84" height="262"/><rect x="1542" y="151" width="52" height="309"/><rect x="1558" y="104" width="20" height="356"/><rect x="1680" y="310" width="78" height="150"/><rect x="1691" y="277" width="56" height="183"/><rect x="1702" y="244" width="34" height="216"/><rect x="1795" y="335" width="64" height="125"/><rect x="1804" y="308" width="46" height="152"/><rect x="1885" y="260" width="108" height="200"/><rect x="1900" y="216" width="78" height="244"/><rect x="1915" y="172" width="48" height="288"/><rect x="1930" y="128" width="18" height="332"/><rect x="2050" y="320" width="72" height="140"/><rect x="2060" y="290" width="52" height="170"/><rect x="2070" y="260" width="32" height="200"/><rect x="2160" y="290" width="90" height="170"/><rect x="2172" y="253" width="66" height="207"/><rect x="2184" y="216" width="42" height="244"/><rect x="2290" y="330" width="70" height="130"/><rect x="2300" y="302" width="50" height="158"/><rect x="548" y="60" width="7" height="400"/><rect x="1962" y="105" width="7" height="355"/></g>
+        <g fill="#0f1626"><rect x="0" y="270" width="96" height="190"/><rect x="13" y="229" width="70" height="231"/><rect x="26" y="188" width="44" height="272"/><rect x="120" y="320" width="68" height="140"/><rect x="129" y="290" width="50" height="170"/><rect x="560" y="205" width="112" height="255"/><rect x="576" y="149" width="80" height="311"/><rect x="592" y="93" width="48" height="367"/><rect x="608" y="37" width="16" height="423"/><rect x="720" y="285" width="80" height="175"/><rect x="731" y="247" width="58" height="213"/><rect x="742" y="209" width="36" height="251"/><rect x="1090" y="170" width="132" height="290"/><rect x="1108" y="107" width="96" height="353"/><rect x="1126" y="44" width="60" height="416"/><rect x="1144" y="-19" width="24" height="479"/><rect x="1270" y="300" width="74" height="160"/><rect x="1280" y="265" width="54" height="195"/><rect x="1620" y="225" width="104" height="235"/><rect x="1634" y="174" width="76" height="286"/><rect x="1648" y="123" width="48" height="337"/><rect x="1662" y="72" width="20" height="388"/><rect x="1770" y="315" width="66" height="145"/><rect x="1779" y="284" width="48" height="176"/><rect x="2110" y="195" width="120" height="265"/><rect x="2127" y="137" width="86" height="323"/><rect x="2144" y="79" width="52" height="381"/><rect x="2161" y="21" width="18" height="439"/><rect x="2300" y="255" width="100" height="205"/><rect x="2314" y="210" width="72" height="250"/><rect x="2328" y="165" width="44" height="295"/><rect x="1150" y="80" width="9" height="380"/><rect x="2168" y="55" width="7" height="405"/></g>
+        <g fill="rgb(var(--neon-500))" opacity="0.9"><rect x="48" y="328" width="70" height="3"/><rect x="263" y="288" width="88" height="3"/><rect x="508" y="253" width="104" height="3"/><rect x="783" y="303" width="80" height="3"/><rect x="1008" y="238" width="112" height="3"/><rect x="1293" y="293" width="76" height="3"/><rect x="1518" y="263" width="100" height="3"/><rect x="1803" y="353" width="48" height="3"/><rect x="2058" y="338" width="56" height="3"/><rect x="2298" y="348" width="54" height="3"/><rect x="10" y="296" width="76" height="4"/><rect x="28" y="230" width="38" height="3"/><rect x="570" y="231" width="92" height="4"/><rect x="593" y="165" width="44" height="3"/><rect x="1100" y="196" width="112" height="4"/><rect x="1129" y="130" width="52" height="3"/><rect x="1630" y="251" width="84" height="4"/><rect x="1651" y="185" width="41" height="3"/><rect x="2120" y="221" width="100" height="4"/><rect x="2146" y="155" width="48" height="3"/><rect x="1148" y="86" width="13" height="52"/><rect x="546" y="64" width="11" height="40"/></g>
+      </svg>
+      </div>
     </div>
 
-    <!-- Balayage cathodique, tout au-dessus -->
-    <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
+    <!-- LE PIED DE PAGE : toutes les langues du site, et de quoi faire passer l'adresse -->
+    <footer class="relative bg-ink-900 border-t border-neon-600/25">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid gap-14 lg:grid-cols-[1.4fr_1fr] lg:gap-20">
+        <div data-reveal>
+          <p class="foot-eyebrow">{{ t('lang.label') }}</p>
+          <ul class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-x-6">
+            <li v-for="l in languages" :key="l.code">
+              <button
+                class="lang-cell"
+                :class="{ 'is-current': l.code === lang }"
+                :aria-pressed="l.code === lang"
+                :lang="l.code"
+                @click="setLang(l.code)"
+              >
+                {{ l.endonym }}
+              </button>
+            </li>
+          </ul>
+          <p class="mt-5 text-ink-300 text-[13px] leading-relaxed max-w-lg">{{ t('lang.hint') }}</p>
+        </div>
+
+        <div data-reveal style="--d: 1">
+          <p class="foot-eyebrow">{{ t('home.share') }}</p>
+          <!-- L'adresse elle-même : la feuille de partage du système, ou le presse-papiers -->
+          <button class="share-main group mt-5" @click="shareSite">
+            <span class="truncate" dir="ltr">{{ copied ? t('home.copied') : host }}</span>
+            <svg viewBox="0 0 20 20" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+              <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
+              <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
+            </svg>
+          </button>
+          <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+            <li v-for="link in shareLinks" :key="link.name">
+              <a :href="link.href" target="_blank" rel="noopener noreferrer" class="share-link">{{ link.name }}</a>
+            </li>
+            <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
+            <li>
+              <a href="https://instagram.com/farnigt_game" target="_blank" rel="noopener" class="share-link">Instagram</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Licence et mentions légales -->
+      <div class="border-t border-steel-700/50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <span class="font-display text-[10px] uppercase tracking-[0.3em] text-steel-500">{{ gameTitle }}</span>
+          <NuxtLink
+            to="/mentions-legales"
+            class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/80 hover:text-steel-400 transition-colors"
+          >
+            © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
+          </NuxtLink>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Balayage cathodique, sur toute la page, sous la barre du haut -->
+    <div class="crt-scanlines fixed inset-0 z-30 pointer-events-none opacity-30" />
 
     <!--
       Avertissement données. Plus haut que l'écran d'un téléphone : plafonné à
@@ -452,49 +606,65 @@ function acceptAndEnroll() {
   max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
+/* La barre du haut : rien sur la couverture, un fond dès qu'on descend. */
+.topbar {
+  padding-top: env(safe-area-inset-top);
+  transition: background-color 0.35s ease, border-color 0.35s ease;
+  border-bottom: 1px solid transparent;
+}
+.topbar.is-solid {
+  background: rgb(var(--ink-900) / 0.86);
+  border-bottom-color: rgb(var(--neon-600) / 0.22);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.topbar-title { opacity: 0; transition: opacity 0.35s ease; }
+.topbar.is-solid .topbar-title { opacity: 1; }
+
 /*
-  Le menu de langue : la même sobriété que le reste de l'accueil — pas de
-  cadre, un filet sous le mot, et le chevron dessiné plutôt que celui du
-  système, qui casserait la ligne.
+  Le menu de langue et le bouton de partage : deux pastilles biseautées de
+  même hauteur. Le menu reste un <select> du système — au doigt, c'est la
+  roue native, la seule qui marche partout —, seul son habit change.
 */
+.lang-pill,
+.icon-pill {
+  --cut: 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  color: rgb(var(--ink-200));
+  background: rgb(var(--ink-900) / 0.55);
+  box-shadow: inset 0 0 0 1px rgb(var(--steel-500) / 0.7);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition: color 0.2s ease, box-shadow 0.2s ease;
+}
+.lang-pill { gap: 0.5rem; padding-inline: 0.75rem 0.5rem; cursor: pointer; }
+.icon-pill { justify-content: center; width: 2.25rem; }
+.lang-pill:hover,
+.lang-pill:focus-within,
+.icon-pill:hover,
+.icon-pill:focus-visible {
+  color: rgb(var(--neon-300));
+  box-shadow: inset 0 0 0 1px rgb(var(--neon-500) / 0.8);
+}
+
 .lang-select {
   appearance: none;
   background: transparent;
   border: 0;
-  border-bottom: 1px solid rgb(var(--steel-600) / 0.7);
-  color: rgb(var(--ink-300));
+  color: inherit;
   font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0.12em;
-  padding: 0.25rem 1.25rem 0.3rem 0.1rem;
+  padding: 0.25rem 1.1rem 0.25rem 0;
+  max-width: 9.5rem;
+  text-overflow: ellipsis;
   cursor: pointer;
   outline: none;
-  transition: color 0.2s ease, border-color 0.2s ease;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0 L5 6 L10 0 Z' fill='%23718096'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.1rem center;
   background-size: 8px;
-}
-
-.lang-select:hover,
-.lang-select:focus {
-  color: rgb(var(--neon-300));
-  border-bottom-color: rgb(var(--neon-600) / 0.7);
-}
-
-/* Le partage, à la même voix que le menu de langue qu'il accompagne. */
-.share-link {
-  color: rgb(var(--ink-300));
-  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  padding: 0.25rem 0 0.3rem;
-  transition: color 0.2s ease;
-}
-
-.share-link:hover,
-.share-link:focus-visible {
-  color: rgb(var(--neon-300));
 }
 
 /* Le menu déroulé est rendu par le système : il lui faut un fond opaque. */
@@ -503,6 +673,144 @@ function acceptAndEnroll() {
   color: rgb(var(--ink-100));
 }
 
+/*
+  LE PREMIER ÉCRAN. L'image descend moins vite que la page et grossit à peine ;
+  le texte remonte en s'effaçant. --p vaut 0 en haut de page.
+*/
+.hero-image {
+  transform: translateY(calc(var(--p, 0) * 28%)) scale(calc(1.06 + var(--p, 0) * 0.08));
+  will-change: transform;
+}
+.hero-veil {
+  background:
+    linear-gradient(180deg, rgb(var(--ink-900) / 0.75) 0%, transparent 22%, transparent 55%, rgb(var(--ink-900)) 100%),
+    radial-gradient(70% 60% at 50% 50%, rgb(var(--ink-900) / 0.86) 0%, rgb(var(--ink-900) / 0.55) 60%, rgb(var(--ink-900) / 0.25) 100%);
+}
+.hero-content {
+  opacity: calc(1 - var(--p, 0) * 1.7);
+  transform: translateY(calc(var(--p, 0) * -70px));
+}
+.scroll-cue-dot { animation: cue 2.2s cubic-bezier(0.6, 0, 0.4, 1) infinite; }
+@keyframes cue {
+  0% { transform: translateY(-100%); }
+  70%, 100% { transform: translateY(300%); }
+}
+
+/* La skyline monte derrière le dernier écran, et se pose avant le pied de page. */
+.horizon-city { transform: translateY(calc(max(0, 0.55 - var(--p, 0.55)) * 70%)); }
+
+.foot-eyebrow {
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgb(var(--neon-400));
+}
+
+/* Les quinze langues, chacune écrite dans sa propre langue. */
+.lang-cell {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: 0.8rem 0 0.8rem 0.9rem;
+  border-bottom: 1px solid rgb(var(--steel-700) / 0.7);
+  color: rgb(var(--ink-300));
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  transition: color 0.2s ease;
+}
+.lang-cell::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  background: rgb(var(--neon-500));
+  box-shadow: 0 0 8px rgb(var(--neon-500) / 0.8);
+  transform: translateY(-50%);
+  transition: height 0.25s ease;
+}
+.lang-cell:hover,
+.lang-cell:focus-visible { color: rgb(var(--ink-50)); }
+.lang-cell.is-current { color: rgb(var(--neon-300)); }
+.lang-cell.is-current::before { height: 1.1rem; }
+
+/* L'adresse du jeu, en grand : c'est elle qu'on fait passer. */
+.share-main {
+  --cut: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 24rem;
+  padding: 1rem 1.25rem;
+  color: rgb(var(--neon-200));
+  background: rgb(var(--ink-800) / 0.7);
+  box-shadow: inset 0 0 0 1px rgb(var(--neon-500) / 0.55);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.share-main:hover,
+.share-main:focus-visible {
+  background: rgb(var(--neon-500));
+  color: rgb(var(--ink-900));
+}
+
+.share-link {
+  color: rgb(var(--ink-300));
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgb(var(--steel-600) / 0.7);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.share-link:hover,
+.share-link:focus-visible {
+  color: rgb(var(--neon-300));
+  border-bottom-color: rgb(var(--neon-500));
+}
+
+/* L'arabe se lie : l'interlettrage y casse les mots. */
+.home:lang(ar) * { letter-spacing: normal !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-image, .hero-content, .horizon-city { transform: none; opacity: 1; }
+  .scroll-cue-dot { animation: none; }
+}
+
 .modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+</style>
+
+<!--
+  Les apparitions, pour toute la page — `LoginPitch` compris, d'où l'absence de
+  `scoped`. Bornées à `.home.is-motion` : sans JavaScript ou avec moins
+  d'animation demandée, rien n'est jamais caché.
+-->
+<style>
+.home.is-motion [data-reveal] {
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    clip-path 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--d, 0) * 110ms);
+}
+.home.is-motion [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.home.is-motion [data-reveal='wipe']:not(.is-in) {
+  transform: none;
+  clip-path: inset(0 100% 0 0);
+}
+.home.is-motion [data-reveal='wipe'].is-in { clip-path: inset(0 0 0 0); }
 </style>

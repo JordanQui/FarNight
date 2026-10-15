@@ -47,10 +47,17 @@ export default defineEventHandler(async (event) => {
   }
 
   const statuses: Record<string, number> = {}
+  const campaigns = new Map<string | null, { tag: string | null; paywalls: number; sales: number }>()
   for (const pi of intents) {
     statuses[pi.status] = (statuses[pi.status] ?? 0) + 1
     on(pi.created).intents++
     if (pi.metadata.granted_at) on(pi.created).granted++
+    // Le `?c=` de la pub, que le jeu range sur le paiement d'une nuit (le PDF n'en est pas une).
+    if (pi.metadata.product === 'keepsake') continue
+    const tag = pi.metadata.campaign ?? null
+    if (!campaigns.has(tag)) campaigns.set(tag, { tag, paywalls: 0, sales: 0 })
+    campaigns.get(tag)!.paywalls++
+    if (pi.status === 'succeeded') campaigns.get(tag)!.sales++
   }
 
   const refusals: Record<string, number> = {}
@@ -80,6 +87,8 @@ export default defineEventHandler(async (event) => {
     },
     refusals: Object.entries(refusals).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
     daily: [...daily.values()].sort((a, b) => b.day.localeCompare(a.day)),
+    /** Paywalls et ventes de nuits par étiquette de pub, `null` sans étiquette. */
+    campaigns: [...campaigns.values()],
     recent: intents.slice(0, 25).map(pi => ({
       id: pi.id,
       created: pi.created,

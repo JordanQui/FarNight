@@ -480,48 +480,6 @@
       },
       "decor_slots": [
         {
-          "id": "enseigne",
-          "role": "L'enseigne au néon au-dessus de l'entrée, vue de l'intérieur à travers la baie ruisselante de pluie",
-          "source": "origin.hometown",
-          "visual_weight": "secondary"
-        },
-        {
-          "id": "foyer",
-          "role": "Le comptoir rétroéclairé et son mur de tubes néon, coeur de la salle et principale source de lumière",
-          "source": "trajectory.turning_points",
-          "visual_weight": "accent"
-        },
-        {
-          "id": "outils_suspendus",
-          "role": "Des affaires personnelles accrochées aux structures et aux faisceaux de câbles, transposées en équivalents cyberpunk — des choses que quelqu'un a tenu à garder",
-          "source": "imprints.keepsake",
-          "visual_weight": "secondary"
-        },
-        {
-          "id": "mur_de_souvenirs",
-          "role": "Un mur d'écrans cathodiques et de plaques gravées, vues d'un lieu où l'on revient toujours",
-          "source": "imprints.refuge",
-          "visual_weight": "dominant"
-        },
-        {
-          "id": "table_des_habitues",
-          "role": "Le box où se retrouvent les habitués, jonché de ce qu'ils ont gardé d'un moment qui a compté — des choses qu'on ne garde que pour ça",
-          "source": "touchstones.moment",
-          "visual_weight": "dominant"
-        },
-        {
-          "id": "ambiance_sonore",
-          "role": "Ce qu'on entend : une radio derrière le comptoir, une musique derrière une porte, quelqu'un qui fredonne — on croit la reconnaître sans en être sûr",
-          "source": "anthem",
-          "visual_weight": "none"
-        },
-        {
-          "id": "bete",
-          "role": "Une bête dans la salle — vivante, mécanique, peinte ou en hologramme. C'est celle qu'il retrouvera dehors, dans chaque lieu",
-          "source": "touchstones.animal",
-          "visual_weight": "none"
-        },
-        {
           "id": "porte_de_sortie",
           "role": "Le sas blindé vers la rue. Toujours présent, toujours en couleur d'accent, toujours décrit en dernier",
           "source": "static",
@@ -557,7 +515,7 @@
         "source": "trajectory.turning_points"
       },
       "interactables": {
-        "instruction": "Liste les objets manipulables nommés dans la description, avec le verbe attendu. N'y fais JAMAIS figurer l'objet-clé : il n'est pas dans la salle, il est sur un personnage. UN SEUL de ces objets DOIT pouvoir être PRIS : son `verb` est alors « prendre » ou « ramasser », et lui seul porte une `observation`. C'est ce que le joueur emporte de cette scène — il n'ouvre rien, il approfondit la quête, et il se déchiffre à la loupe. Sans lui, la scène n'a rien à fouiller. IL N'OUVRE PAS LE SAS : seule l'augmentation l'ouvre, et le joueur sort dès qu'il la tient, qu'il ait lu cet objet ou non. C'est sur lui qu'il peut s'en servir une première fois, ici. Son `observation` doit donc lui faire COMPRENDRE ce qu'il pourra faire dehors — qu'elle fasse écho à `key_item.resolving_action` sans la recopier ni donner d'ordre. Cet objet est OBLIGATOIRE : sans lui, l'augmentation n'a rien à lire ici. C'EST LE SEUL OBJET À PRENDRE DE CETTE SALLE, ET LE SEUL À DÉCHIFFRER : la première scène reste courte — deux personnes à qui parler, une chose à lire. Il est EN VUE, nommé dans `scene_text` ; rien de cette liste n'en renferme un autre : aucun `contains_id`, aucun `hidden`. Ce qu'on se contente d'examiner, de lire ou d'écouter garde son verbe et laisse `observation` vide.\nIL EST POSÉ DANS LE DÉCOR, jamais dans les mains de quelqu'un : personne ne le tend, personne ne propose de le céder, aucune conversation ne le donne. Le joueur ne peut le repérer QUE par sa Majuscule au milieu du texte — c'est le seul signal qu'il aura, et c'est tout l'intérêt : ce qui s'obtient en parlant et ce qui s'obtient en regardant sont deux choses différentes. Une phrase de la description doit le rendre remarquable sans le désigner : une chose posée là qui n'a pas sa place, un tiroir mal refermé, une trace fraîche sur la poussière.\nL'AUGMENTATION NE SE RAMASSE PAS : elle n'est ni dans cette liste ni dans le décor, elle est sur un personnage qui décide de la céder (voir `key_item`). Les deux voies coexistent donc dès la première salle : ce que le joueur obtient en parlant, et ce qu'il obtient en regardant.\nLA SALLE SE FOUILLE DU REGARD : en plus de l'objet à prendre et du Sas, AU MOINS QUATRE choses de cette liste s'examinent sans s'emporter, tirées du dossier comme tout le reste, et `decor` en nomme AU MOINS TROIS autres. Chacune est écrite en Majuscules dans `scene_text`, et c'est ce qui la met en gras : un texte où l'on ne trouve que deux ou trois mots à regarder est une salle vide. Le contraste vaut toujours : l'ordinaire reste en minuscules.\nUN `label` OU UN `name` SE RETROUVE TEL QUEL DANS LE TEXTE, SANS ARTICLE devant : le texte l'écrit précédé de « le », « du » ou « au » selon la phrase, et seul le nom nu s'y retrouve à chaque fois.",
+        "instruction": "Liste les objets manipulables nommés dans la description, avec le verbe attendu. N'y fais JAMAIS figurer l'objet-clé : il n'est pas dans la salle, il est sur un personnage. UN SEUL de ces objets DOIT pouvoir être PRIS : son `verb` est alors « prendre » ou « ramasser », et lui seul porte une `observation`. C'est ce que le joueur emporte de cette scène — il n'ouvre rien, il approfondit la quête, et il se déchiffre à la loupe. Sans lui, la scène n'a rien à fouiller. IL N'OUVRE PAS LE SAS : seule l'augmentation l'ouvre, et le joueur sort dès qu'il la tient, qu'il ait lu cet objet ou non. C'est sur lui qu'il peut s'en servir une première fois, ici. Son `observation` doit donc lui faire COMPRENDRE ce qu'il pourra faire dehors — qu'elle fasse écho à `key_item.resolving_action` sans la recopier ni donner d'ordre. Cet objet est OBLIGATOIRE : sans lui, l'augmentation n'a rien à lire ici. C'EST LE SEUL OBJET À PRENDRE DE CETTE SALLE, ET LE SEUL À DÉCHIFFRER : la première scène reste courte — deux personnes à qui parler, une chose à lire. Il est EN VUE, nommé dans `scene_text` ; rien de cette liste n'en renferme un autre : aucun `contains_id`, aucun `hidden`.\nIL EST POSÉ DANS LE DÉCOR, jamais dans les mains de quelqu'un : personne ne le tend, personne ne propose de le céder, aucune conversation ne le donne. Le joueur ne peut le repérer QUE par sa Majuscule au milieu du texte — c'est le seul signal qu'il aura, et c'est tout l'intérêt : ce qui s'obtient en parlant et ce qui s'obtient en regardant sont deux choses différentes. Une phrase de la description doit le rendre remarquable sans le désigner : une chose posée là qui n'a pas sa place, un tiroir mal refermé, une trace fraîche sur la poussière.\nL'AUGMENTATION NE SE RAMASSE PAS : elle n'est ni dans cette liste ni dans le décor, elle est sur un personnage qui décide de la céder (voir `key_item`). Les deux voies coexistent donc dès la première salle : ce que le joueur obtient en parlant, et ce qu'il obtient en regardant.\nRIEN D'AUTRE NE SE REGARDE : cette liste ne contient que cet objet et le Sas, et `decor` ne nomme que le Sas. Une Majuscule dans `scene_text` met le mot en gras et le rend cliquable : seuls l'objet à prendre, le Sas, le barman, l'habitué et l'augmentation en portent une. Le comptoir, les tables, la musique et la foule qui danse et boit restent en minuscules, sans nom.\nUN `label` OU UN `name` SE RETROUVE TEL QUEL DANS LE TEXTE, SANS ARTICLE devant : le texte l'écrit précédé de « le », « du » ou « au » selon la phrase, et seul le nom nu s'y retrouve à chaque fois.",
         "always_include": [
           {
             "id": "sas",
@@ -645,7 +603,7 @@
           "1 phrase : LA FÊTE DE CE SOIR — ce qu'on fête ici cette nuit, qui la donne, ce qu'elle a d'unique. Rien sur toi : ni ta vie, ni ce que tu cherches. Jamais une commission — personne ne t'a rien laissé dans cette salle",
           "1 à 2 phrases : ce que la fête fait à la salle — le bruit, la foule, la chaleur contre la pluie — sans jamais dater la soirée, puis le moment où tu entres dans le bar, dernier arrêt avant la pluie. Personne ne t'a encore parlé",
           "1 phrase de localisation",
-          "3 à 5 phrases de description reprenant les slots de décor",
+          "2 à 3 phrases de description : la foule qui danse et boit, serrée au comptoir et aux tables, sans un nom ni une Majuscule — et, posé en vue, l'objet à prendre, la seule chose de la salle écrite en Majuscules",
           "2 à 4 phrases de ce que LE BARMAN te dit en te servant. SA PREMIÈRE PHRASE PARLE DE LA FÊTE : ce qu'elle lui coûte, ce qu'elle lui rapporte, ce qu'il en pense. PUIS IL DIT LE BUT DE TA NUIT — la première moitié de `night.goal` seulement, la chose que tu sors conquérir : jamais pourquoi, ni ce que ça fait cesser dans ta vie, ni comment t'y prendre. Pas de réponse. IL NE FAIT PAS LE POINT : il raconte UNE chose, une seule — quelqu'un qui est sorti sans de quoi lire les noms, et ce que ça lui a coûté. C'est cette histoire qui donne envie d'en trouver une, pas une explication. Il ne récite ni l'état de la ville, ni ce que tu pourras en faire. Le barman est DÉSIGNÉ PAR SON NOM dès la première de ces phrases, sinon le joueur ne pourra jamais lui répondre.",
           "6 à 8 phrases — LE PASSAGE LE PLUS LONG DU TEXTE, et de loin. C'est l'objet qu'il y a à récupérer dans cette salle, et tout ce que le joueur fera ici en dépend : lui consacrer trois phrases revient à le rendre facultatif. Le barman enchaîne, sans reprendre son souffle, dans cet ordre :\n  a. IL LA NOMME. Le nom propre de `key_item.name`, écrit à la lettre près et d'un seul tenant. Le joueur le LIT EN CLAIR : c'est le seul nom de la nuit qui ne se brouille pas, puisque c'est avec elle qu'on déchiffre tout le reste. Ne le recopie ni dans `interactables` ni dans `sealed_object` — elle est sur un personnage, pas posée dans le décor.\n  b. CE QUE C'EST, matériellement : la pièce, sa taille dans une main, sa matière, où elle se met sur le corps. Une chose qu'on pourrait poser sur le comptoir, pas une idée.\n  c. CE QU'ELLE FAIT, dit par un exemple et non par une définition : dehors rien ne porte de nom lisible, et il raconte ce que ça donne — quelqu'un devant une chose qu'il ne peut pas identifier, et ce que ça lui a coûté.\n  d. D'OÙ ELLE VIENT. Deux ou trois phrases, l'histoire de son porteur précédent : à qui elle a été, ce que cette personne n'arrivait pas à tenir, ce qu'elle a fini par en faire. CETTE HISTOIRE EST CELLE DU PORTEUR, PAS CELLE DU JOUEUR : rien n'y renvoie à lui, à sa vie ni à son dossier.\n  e. IL FINIT sur le fait que quelqu'un dans cette salle la porte, sans dire qui — et que dehors, sans elle, on ne va pas loin.\nCe n'est pas un briefing : c'est un homme derrière son comptoir qui raconte, avec des faits, des gens et des dates. Aucune phrase ne commence par « il te faudra » ni par « tu pourras » — la règle des ENJEUX vaut ici comme ailleurs.",
           "2 à 3 phrases présentant l'habitué et POURQUOI il mérite qu'on lui parle pour obtenir l'augmentation : ce qu'il a vécu ou vu qui éclaire cette recherche, sans révéler qu'il la détient. Autour de lui la fête bat son plein, mais personne d'autre ne se détache : la foule reste une foule, sans nom. Il se lit par TROIS CHOSES : SA POSTURE — l'attitude de son corps, où il se tient, ce que font ses mains ; SON CARACTÈRE, montré par un détail — ce qu'il porte, ce qu'il regarde, ce qu'il ne boit plus ; SON RÔLE à la fête, tiré de son champ `role`. CHACUNE EST DÉSIGNÉE PAR SON NOM, écrit exactement comme dans son champ `name`. Le récit est le SEUL endroit où le joueur peut lire un nom : le panneau des personnages n'affiche que des tirets tant qu'il ne leur a pas parlé, et il ne peut leur parler qu'en tapant leur nom. Une personne décrite sans être nommée — « un homme en uniforme gris », « une femme aux lunettes opaques » — est un personnage injouable. Le nom vient EN PREMIER, la description ensuite. Intègre-les à la description : pas d'étiquette, pas de deux-points introductifs, pas d'énumération sèche. On les découvre dans la salle, pas dans une liste",

@@ -81,6 +81,8 @@ export default defineEventHandler(async (event) => {
   if (!body.user?.identity?.name && !isLocal()) {
     throw createError({ statusCode: 400, statusMessage: 'Dossier manquant' })
   }
+  // /nimda/monitor compte les scènes par cette ligne : l'auberge à part, le reste vient après le paywall.
+  console.info(`[scene/${scene.id}] demandée`)
   const user = body.user ?? await loadUserFixture()
   const seed = generationSeed({
     scene_id: scene.id,

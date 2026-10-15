@@ -129,6 +129,33 @@ async function submit() {
   phase.value = 'verdict'
 }
 
+/**
+ * Jouer avec un avatar : le bureau invente l'identité, le joueur ne donne rien.
+ *
+ * Le dossier repart de zéro — une réponse gardée d'avant le trahirait — et les
+ * champs se remplissent sous ses yeux : il voit qui il sera, en redemande un
+ * autre, et dépose lui-même. La langue et l'accord restent les siens.
+ */
+const drawing = ref(false)
+const avatarError = ref('')
+
+async function playAsAvatar() {
+  if (drawing.value) return
+  drawing.value = true
+  avatarError.value = ''
+  try {
+    const avatar = await $fetch<Partial<AdmissionForm>>('/api/user/avatar', {
+      method: 'POST',
+      body: { lang: form.language, agreement: form.agreement },
+    })
+    Object.assign(form, emptyAdmissionForm(form.language), { agreement: form.agreement }, avatar)
+  } catch (err) {
+    avatarError.value = t('errors.server_status', { status: (err as { statusCode?: number }).statusCode ?? '?' })
+  } finally {
+    drawing.value = false
+  }
+}
+
 function enterCity() {
   gameStore.setScreen('scene_build_loading')
 }
@@ -335,6 +362,21 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
                 }) }}
               </span>
             </div>
+
+            <!-- Après l'accord : le nom inventé s'y accorde. -->
+            <div class="space-y-2">
+              <button
+                type="button"
+                class="chip w-full"
+                :class="drawing && 'opacity-50'"
+                :disabled="drawing"
+                @click="playAsAvatar"
+                @keyup.enter.stop
+              >
+                {{ t('admission.avatar') }}
+              </button>
+              <span class="field-hint">{{ avatarError || t('admission.avatar_hint') }}</span>
+            </div>
           </div>
 
           <div class="relative h-px bg-neon-600/25" />
@@ -347,7 +389,7 @@ const displayCity = computed(() => form.currentCity.trim() || t('admission.somew
             >
               {{ step === 0 ? t('common.back') : t('common.previous') }}
             </button>
-            <GlowButton :disabled="!canAdvance || locating" @click="next">
+            <GlowButton :disabled="!canAdvance || locating || drawing" @click="next">
               {{ step === STEPS.length - 1 ? t('admission.submit') : t('common.next') }}
             </GlowButton>
           </div>

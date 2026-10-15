@@ -8,9 +8,11 @@ import { notifyPhone, price } from '~/server/utils/notify'
  * le navigateur monter le formulaire et confirmer le paiement lui-même.
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ product?: string }>(event).catch(() => null)
+  const body = await readBody<{ product?: string; campaign?: string }>(event).catch(() => null)
   // Le PDF de la nuit, vendu sur l'écran de fin : il n'ouvre aucun accès.
   const keepsake = body?.product === 'keepsake'
+  // Le `?c=` du lien de la pub qui a amené le joueur : /nimda/monitor juge chaque pub par ses ventes.
+  const campaign = typeof body?.campaign === 'string' && /^[\w-]{1,40}$/.test(body.campaign) ? body.campaign : null
 
   /**
    * On ne vend pas une porte fermée.
@@ -36,7 +38,7 @@ export default defineEventHandler(async (event) => {
     // Authentifiées, elles passent, et la responsabilité d'une fraude bascule.
     payment_method_options: { card: { request_three_d_secure: 'any' } },
     description: keepsake ? 'PDF de la nuit' : paywall.cta,
-    ...(keepsake ? { metadata: { product: 'keepsake' } } : {}),
+    metadata: { ...(keepsake ? { product: 'keepsake' } : {}), ...(campaign ? { campaign } : {}) },
   }), notifyPhone({
     title: 'Paywall ouvert',
     message: `${price(amount, paywall.currency)} — ${keepsake ? 'PDF de la nuit' : 'une nuit'}`,

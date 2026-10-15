@@ -1430,9 +1430,11 @@ ${lines}`)
     // reste du décor — et tout celui de l'auberge, qui n'a pas de trace — n'est
     // que du mobilier. La reprise redemande d'abord au modèle un petit objet ;
     // le reste du décor ne sert qu'en dernier recours, plutôt qu'une panne.
+    // La porte de l'auberge (slot `static`, son seul décor) ne se ramasse pas.
     const decor = [...(generated.decor ?? [])]
       .filter(d => d.name?.trim() && d.description?.trim() && isNamed(d.name))
       .filter(d => lastTry || d.slot_id === 'trace')
+      .filter(d => this.scene.decor_slots.find(slot => slot.id === d.slot_id)?.source !== 'static')
       .sort((a, b) => rank(a.slot_id) - rank(b.slot_id))
     const keyName = fold(generated.key_item?.name ?? '').trim()
     const takeVerb = this.pack.input.take[0]

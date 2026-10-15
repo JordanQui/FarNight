@@ -3,8 +3,8 @@
  * La prod en direct, présentée comme un tableau de cotations.
  *
  * Tout compte à partir de SINCE, l'ouverture de la séance : chaque bloc
- * transmet ce point de départ à sa route (server/api/admin/monitor/*, et
- * /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, on
+ * transmet ce point de départ à sa route (server/api/admin/monitor/*, dont
+ * meta pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, on
  * change SINCE, et rien d'autre.
  *
  * La page relit tout toutes les deux minutes. Une tuile affiche l'écart avec
@@ -23,11 +23,12 @@ const { data: trafic, error: traficError, status: traficStatus, refresh: refresh
 const { data: journal, error: journalError, status: journalStatus, refresh: refreshJournal } = useFetch('/api/admin/monitor/journal', opts)
 const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = useFetch('/api/admin/monitor/openai', opts)
 const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = useFetch('/api/admin/payments', opts)
+const { data: meta, error: metaError, status: metaStatus, refresh: refreshMeta } = useFetch('/api/admin/monitor/meta', opts)
 
-const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus].some(s => s.value === 'pending'))
+const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus].some(s => s.value === 'pending'))
 function refreshAll() {
   countdown.value = REFRESH_S
-  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe()
+  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe(); refreshMeta()
 }
 
 // L'horloge ne tourne que dans le navigateur : le serveur rend des tirets.
@@ -83,6 +84,17 @@ const ROUTES: Record<string, string> = {
   '/api/dev/forget': 'mémoire vide (test)',
 }
 
+/** ENDED est à nous : Meta laisse une campagne finie en ACTIVE. */
+const CAMPAIGN_STATUS: Record<string, string> = {
+  ACTIVE: 'en cours',
+  ENDED: 'terminée',
+  PAUSED: 'en pause',
+  ARCHIVED: 'archivée',
+  DELETED: 'supprimée',
+  IN_PROCESS: 'en traitement',
+  WITH_ISSUES: 'en erreur',
+}
+
 const STRIPE_STATUS: Record<string, string> = {
   requires_payment_method: 'formulaire ouvert',
   requires_confirmation: 'à confirmer',
@@ -98,12 +110,64 @@ const outboundCount = (host: string, test: (status: number) => boolean) =>
 const buckets = computed(() => trafic.value?.buckets ?? [])
 const bucketLabel = (at: string) => trafic.value?.granularity === '1h' ? `${hhmm(Date.parse(at))}` : dayMonth(Date.parse(at))
 
+/** Les pubs. Meta compte à l'heure du compte : « 2026-10-14 18 » devient « 14/10 18h ». */
+const ads = computed(() => meta.value?.configured ? meta.value : null)
+const metaAt = (at: string) => `${at.slice(8, 10)}/${at.slice(5, 7)}${at.length > 10 ? ` ${at.slice(11)}h` : ''}`
+const adsAt = computed(() => ads.value?.buckets.map(b => metaAt(b.at)))
+/** La dépense pub rapportée à un compte du jeu, tant qu'il y a de quoi diviser. */
+const perAd = (n: number | null | undefined) => ads.value && n ? ads.value.spend / n : null
+/** Ce que les campagnes en cours peuvent encore dépenser sur leur budget total. */
+const adsLeft = computed(() => (ads.value?.campaigns ?? [])
+  .filter(c => c.status === 'ACTIVE' && c.budget != null && !c.daily)
+  .reduce((s, c) => s + Math.max(0, c.budget! - c.lifetime), 0))
+
+/**
+ * La viabilité, pub par pub : une pub est rentable si elle amène au moins
+ * dépense ÷ marge ventes. Les pubs se distinguent par le `?c=` de leur lien,
+ * que le jeu range sur le paiement ; sans lui, tout tombe dans « sans étiquette ».
+ * Marge : 12 € − frais Stripe (~0,43 €) − IA d'une nuit (~1,31 €, /nimda/marge le 07/10).
+ */
+const MARGIN_EUR = 10
+/** Sous ce risque, voir aussi peu de ventes au seuil n'est plus de la malchance. */
+const RISK = 0.05
+const VERDICT: Record<string, string> = { good: 'rentable à ce jour', warn: 'pas encore tranché', bad: 'sous le seuil', muted: 'aucune dépense' }
+
+/** P(X ≤ k) pour X de Poisson de moyenne λ : les ventes attendues au seuil. */
+function poissonAtMost(k: number, lambda: number) {
+  let term = Math.exp(-lambda)
+  let sum = term
+  for (let i = 1; i <= k; i++) { term *= lambda / i; sum += term }
+  return sum
+}
+
+const studies = computed(() => {
+  if (!ads.value || !stripe.value) return null
+  const rows = new Map<string | null, { tag: string | null; spend: number; clicks: number; paywalls: number; sales: number }>()
+  const row = (tag: string | null) => {
+    if (!rows.has(tag)) rows.set(tag, { tag, spend: 0, clicks: 0, paywalls: 0, sales: 0 })
+    return rows.get(tag)!
+  }
+  for (const c of ads.value.campaigns) { row(c.tag).spend += c.spend; row(c.tag).clicks += c.clicks }
+  for (const c of stripe.value.campaigns) { row(c.tag).paywalls += c.paywalls; row(c.tag).sales += c.sales }
+  return [...rows.values()].map((r) => {
+    const need = r.spend / MARGIN_EUR
+    const chance = poissonAtMost(r.sales, need)
+    return { ...r, need, chance, verdict: !need ? 'muted' : r.sales >= need ? 'good' : chance < RISK ? 'bad' : 'warn' }
+  }).sort((a, b) => b.spend - a.spend)
+})
+
 /** Les échecs de scène ne se voient que dans les journaux : la route répond 200 avant d'échouer. */
 const sceneFailures = computed(() => journal.value?.lines.filter(l => l.path === '/api/scene/text').length ?? null)
+/** Les scènes que le journal ne sait pas attribuer : servies sans ligne `[scene/<id>]`, ou sorties de sa rétention. */
+const scenesUnread = computed(() => trafic.value && journal.value
+  ? Math.max(0, (route('/api/scene/text')?.total ?? 0) - journal.value.scenes.auberge - journal.value.scenes.paid)
+  : 0)
 
 type Tile = {
   code: string; label: string; value: number | null
   unit?: string; decimals?: number; bad?: boolean; alert?: boolean; note?: string; spark?: number[]
+  /** Les tranches du spark, quand ce ne sont pas celles du trafic. */
+  sparkAt?: string[]
 }
 
 /** Le crédit OpenAI : le solde saisi, moins ce que les coûts ont avancé depuis. */
@@ -121,7 +185,11 @@ const tiles = computed<Tile[]>(() => [
   { code: 'VIS', label: 'Visiteurs uniques', value: trafic.value?.visitors ?? null, spark: buckets.value.map(b => b.visitors), note: 'Web Analytics' },
   { code: 'PGV', label: 'Pages vues', value: trafic.value?.views ?? null, spark: buckets.value.map(b => b.views) },
   { code: 'REQ', label: 'Requêtes serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.ok + b.refused + b.failed, 0) : null, spark: buckets.value.map(b => b.ok + b.refused + b.failed), note: 'robots compris' },
-  { code: 'SCN', label: 'Scènes demandées', value: trafic.value ? route('/api/scene/text')?.total ?? 0 : null },
+  { code: 'AUB', label: 'Scènes auberge', value: journal.value?.scenes.auberge ?? null, note: 'gratuites, lues au journal' },
+  {
+    code: 'PAY', label: 'Scènes après paywall', value: journal.value?.scenes.paid ?? null,
+    note: scenesUnread.value ? `${scenesUnread.value} autre(s) demandée(s), scène inconnue` : 'personnalisées, épilogue compris',
+  },
   { code: 'KO', label: 'Scènes ratées', value: sceneFailures.value, bad: true, note: journal.value?.gaveUpAfter ? 'journal muet' : 'lues au journal' },
   { code: 'TRN', label: 'Tours de conversation', value: trafic.value ? route('/api/narrative/turn')?.total ?? 0 : null },
   { code: 'IMG', label: 'Images de scène', value: trafic.value ? route('/api/scene/image')?.total ?? 0 : null },
@@ -129,6 +197,23 @@ const tiles = computed<Tile[]>(() => [
   { code: 'CNF', label: 'Confirmations Stripe', value: stripe.value?.browser ?? null, note: 'POST /confirm du navigateur, reconstitué' },
   { code: 'VTE', label: 'Nuits vendues', value: stripe.value?.statuses.succeeded ?? (stripe.value ? 0 : null) },
   { code: 'CA', label: 'Encaissé', value: stripe.value ? stripe.value.revenue / 100 : null, unit: '€', decimals: 2 },
+  {
+    code: 'PUB', label: 'Dépense pub Meta', value: ads.value?.spend ?? null, unit: '€', decimals: 2, bad: true, alert: false,
+    spark: ads.value?.buckets.map(b => b.spend), sparkAt: adsAt.value,
+    note: !meta.value ? undefined : ads.value ? `boosts Instagram, depuis ${metaAt(ads.value.from)}` : 'jeton Meta absent',
+  },
+  { code: 'IMP', label: 'Impressions pub', value: ads.value?.impressions ?? null, spark: ads.value?.buckets.map(b => b.impressions), sparkAt: adsAt.value },
+  { code: 'CVT', label: 'Personnes touchées', value: ads.value?.reach ?? null, note: ads.value ? `depuis minuit le ${metaAt(ads.value.from.slice(0, 10))}` : undefined },
+  {
+    code: 'CLK', label: 'Clics sur la pub', value: ads.value?.clicks ?? null, spark: ads.value?.buckets.map(b => b.clicks), sparkAt: adsAt.value,
+    note: ads.value ? `${int(ads.value.visits)} pages chargées derrière` : undefined,
+  },
+  { code: 'CPC', label: 'Coût par clic', value: perAd(ads.value?.clicks), unit: '€', decimals: 2, bad: true, alert: false },
+  { code: 'CPP', label: 'Pub par paywall ouvert', value: perAd(stripe.value?.server.creates), unit: '€', decimals: 2, bad: true, alert: false, note: 'paywalls de toute provenance' },
+  {
+    code: 'CPA', label: 'Pub par nuit vendue', value: perAd(stripe.value?.statuses.succeeded), unit: '€', decimals: 2, bad: true, alert: false,
+    note: stripe.value && !stripe.value.statuses.succeeded ? 'aucune vente encore' : 'ventes de toute provenance',
+  },
   { code: 'OAI', label: 'Appels OpenAI réussis', value: trafic.value ? outboundCount('api.openai.com', s => s < 400) : null },
   { code: '429', label: 'Refus OpenAI', value: trafic.value ? outboundCount('api.openai.com', s => s === 429) : null, bad: true },
   { code: '$AI', label: 'Dépense OpenAI', value: openai.value?.configured ? openai.value.total : null, unit: '$', decimals: 2, bad: true, note: !openai.value ? undefined : openai.value.configured ? `jour UTC entier, depuis ${dayMonth(Date.parse(openai.value.costsFrom))} ${hhmm(Date.parse(openai.value.costsFrom))}` : 'clé admin absente' },
@@ -261,6 +346,36 @@ const outbound = computed(() => {
     </div>
 
     <main class="wrap">
+      <!-- Viabilité : chaque pub jugée sur ses ventes -->
+      <section class="panel">
+        <h2>Viabilité <span>par pub · marge {{ money(MARGIN_EUR * 100) }} par vente · ventes nécessaires = dépense ÷ marge</span></h2>
+        <p v-if="!studies" class="muted">lecture de Meta et de Stripe…</p>
+        <template v-else>
+          <table class="tbl">
+            <thead><tr><th>Pub</th><th class="num">Dépense</th><th class="num">Clics</th><th class="num">Paywalls</th><th class="num">Ventes</th><th class="num">Nécessaires</th><th>Verdict</th></tr></thead>
+            <tr v-for="s in studies" :key="s.tag ?? ''">
+              <td><code v-if="s.tag">?c={{ s.tag }}</code><span v-else class="muted">sans étiquette</span></td>
+              <td class="num">{{ money(s.spend * 100) }}</td>
+              <td class="num">{{ int(s.clicks) }}</td>
+              <td class="num">{{ int(s.paywalls) }}</td>
+              <td class="num">{{ int(s.sales) }}</td>
+              <td class="num">{{ s.need.toFixed(1) }}</td>
+              <td :class="s.verdict">
+                <span class="pill" />{{ VERDICT[s.verdict] }}{{ s.verdict === 'bad' ? ` — ${Math.round(s.chance * 100)} % de chances au seuil` : '' }}
+              </td>
+            </tr>
+          </table>
+          <p class="muted small">
+            Toutes pubs confondues : {{ int(ads?.visits ?? 0) }} pages chargées derrière les clics → {{ int(route('/api/scene/text')?.total ?? 0) }} scènes écrites
+            → {{ int(studies.reduce((n, s) => n + s.paywalls, 0)) }} paywalls → {{ int(studies.reduce((n, s) => n + s.sales, 0)) }} ventes. Seules les deux dernières étapes se lisent par pub.
+          </p>
+          <p class="muted small">
+            Rouge quand, au seuil, voir aussi peu de ventes arriverait moins d’une fois sur 20. Une pub s’étiquette par son lien, <code>farnight.online/?c=e2</code> ;
+            « sans étiquette » réunit les liens sans <code>?c=</code> (les boosts du 14/10) et tout ce qui vient d’ailleurs.
+          </p>
+        </template>
+      </section>
+
       <!-- Le tableau des cotes -->
       <section class="board" aria-label="Cotations">
         <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== 'ms' && t.unit !== '$') }">
@@ -278,14 +393,14 @@ const outbound = computed(() => {
             <span
               v-for="(v, i) in t.spark" :key="i" class="spark-bar"
               :style="{ height: `${(v / sparkMax(t.spark)) * 100}%` }"
-              :title="`${bucketLabel(buckets[i]?.at ?? '')} — ${int(v)}`"
+              :title="`${t.sparkAt?.[i] ?? bucketLabel(buckets[i]?.at ?? '')} — ${int(v)}`"
             />
           </div>
           <p v-if="t.note" class="tile-note">{{ t.note }}</p>
         </article>
       </section>
 
-      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
+      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
       <p v-for="(msg, name) in { ...(etat?.errors ?? {}), ...(trafic?.errors ?? {}) }" :key="name" class="err">{{ name }} — {{ msg }}</p>
 
       <div class="cols">
@@ -415,6 +530,38 @@ const outbound = computed(() => {
         </section>
       </div>
 
+      <!-- Publicité : Meta -->
+      <section class="panel">
+        <h2>Publicité <span>Meta{{ ads ? ` · compte ${ads.account.name} · depuis ${metaAt(ads.from)}` : '' }}</span></h2>
+        <p v-if="metaError" class="bad">{{ reason(metaError) }}</p>
+        <p v-else-if="!meta" class="muted">lecture de Meta…</p>
+        <p v-else-if="!ads" class="muted small">
+          Les pubs se lisent avec le jeton de l’utilisateur système « monitor » du portfolio FarNight, <code>ads_read</code> seul,
+          dans le <code>.env</code> local : <code>META_ADS_TOKEN=EAA…</code>. Relancer le dev ensuite.
+        </p>
+        <template v-else>
+          <p v-if="!ads.campaigns.length" class="muted">Aucune campagne en cours.</p>
+          <table v-else class="tbl">
+            <thead><tr><th>Campagne</th><th class="num">Budget</th><th class="num">Dépensé</th><th class="num">Depuis l’ouverture</th></tr></thead>
+            <tr v-for="c in ads.campaigns" :key="c.id">
+              <td>
+                {{ c.title }}
+                <span class="t">{{ dayMonth(Date.parse(c.start)) }} {{ hhmm(Date.parse(c.start)) }}{{ c.stop ? ` → ${dayMonth(Date.parse(c.stop))}` : '' }}</span>
+                <span v-if="c.status !== 'ACTIVE'" class="tag muted">{{ CAMPAIGN_STATUS[c.status] ?? c.status }}</span>
+              </td>
+              <td class="num">{{ c.budget == null ? '' : `${money(c.budget * 100, ads.account.currency)}${c.daily ? ' / jour' : ''}` }}</td>
+              <td class="num">{{ money(c.lifetime * 100, ads.account.currency) }}</td>
+              <td class="num">{{ money(c.spend * 100, ads.account.currency) }}</td>
+            </tr>
+          </table>
+          <p v-if="adsLeft" class="muted small">
+            Les campagnes en cours peuvent encore dépenser {{ money(adsLeft * 100, ads.account.currency) }}, dans la limite des fonds prépayés.
+            Ces fonds ne se lisent pas avec <code>ads_read</code> : Instagram → Paiements publicitaires.
+          </p>
+          <p class="muted small">Meta met ces chiffres à jour avec un peu de retard et les corrige parfois après coup.</p>
+        </template>
+      </section>
+
       <!-- Infrastructure -->
       <section v-if="etat" class="panel">
         <h2>
@@ -481,6 +628,7 @@ const outbound = computed(() => {
 .bourse {
   --up: #3ddc84;
   --down: #ff5c5c;
+  --warn: #ffb547;
   --led: rgb(var(--neon-300));
   --panel: rgba(255, 255, 255, 0.025);
   --line: rgba(255, 255, 255, 0.09);
@@ -539,8 +687,10 @@ const outbound = computed(() => {
 .good { color: var(--up); }
 .bad { color: var(--down); }
 .flat, .muted { color: var(--muted); }
+.warn { color: var(--warn); }
+.pill { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; margin-right: 8px; }
 
-.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 40px; display: grid; gap: 20px; }
+.wrap { padding: 20px 24px 40px; display: grid; gap: 20px; }
 
 /* Le tableau des cotes */
 .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
