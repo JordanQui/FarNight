@@ -156,11 +156,10 @@ export function usePaywall() {
     })
   }
 
-  /** `keepsake` : le PDF de la nuit, vendu sur l'écran de fin. */
-  async function fetchPaymentIntent(product?: 'keepsake') {
+  async function fetchPaymentIntent() {
     const data = await $fetch<PaymentIntentConfig>('/api/payment/intent', {
       method: 'POST',
-      body: { product, campaign: campaignTag() },
+      body: { campaign: campaignTag() },
     })
     paymentStore.setIntent({ paymentId: data.paymentIntentId })
     return data

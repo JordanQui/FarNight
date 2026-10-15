@@ -17,7 +17,7 @@ defineProps<{
 }>()
 defineEmits<{ enter: [] }>()
 
-const { lang, t, languages } = useLang()
+const { lang, t } = useLang()
 
 /**
  * Trois lieux du kit — pas plus — et leur néon.
@@ -47,7 +47,8 @@ const reasons = computed(() => [1, 2, 3, 4].map(n => ({
 const figures = computed(() => [
   { n: 2, label: t('home.fig_lines') },
   { n: 6, label: t('home.fig_places') },
-  { n: languages.length, label: t('home.fig_langs') },
+  // Somme des `npcs.count` de script.json : auberge 2, puis 2 + 2 + 2 + 2 + 3 + 1
+  { n: 14, label: t('home.fig_npcs') },
   { n: 1, label: t('home.fig_night') },
 ])
 
@@ -56,8 +57,8 @@ const keepItems = computed(() => [1, 2, 3, 4].map(n => t(`home.keep_item${n}`)))
 
 const gameTitle = computed(() => `${t('login.title_line1')} ${t('login.title_line2')}`)
 
-/** Les prix du script — la nuit, le PDF —, écrits à la façon de la langue affichée. */
-const paywallPrice = useRuntimeConfig().public.paywallPrice as { amount: number; currency: string; keepsake: number }
+/** Le prix de la nuit, écrit à la façon de la langue affichée. */
+const paywallPrice = useRuntimeConfig().public.paywallPrice as { amount: number; currency: string }
 function money(amount: number): string {
   return new Intl.NumberFormat(pack(lang.value).tag, {
     style: 'currency',
@@ -66,7 +67,6 @@ function money(amount: number): string {
   }).format(amount)
 }
 const price = computed(() => money(paywallPrice.amount))
-const keepsakePrice = computed(() => money(paywallPrice.keepsake))
 </script>
 
 <template>
@@ -305,7 +305,7 @@ const keepsakePrice = computed(() => money(paywallPrice.keepsake))
         </ul>
 
         <p data-reveal class="text-center font-display uppercase text-[11px] tracking-[0.28em] leading-loose text-neon-300 mt-14">
-          {{ t('home.keep_price', { price: keepsakePrice }) }}
+          {{ t('home.keep_price') }}
         </p>
       </div>
     </section>

@@ -5,7 +5,7 @@ import { resolveLang } from '~/utils/languages'
 import { sanitizeHtml } from '~/utils/sanitize-html'
 
 /**
- * Le carnet de la nuit : ce que le PDF vendu sur l'écran de fin met en pages.
+ * Le carnet de la nuit : ce que le PDF offert sur l'écran de fin met en pages.
  *
  * Rien n'y est généré. C'est la partie déjà jouée, relue — le but, les lieux,
  * les réponses trouvées, ce qu'il emporte, le texte de fin et son aube. Le
@@ -41,8 +41,6 @@ export interface Keepsake {
   image?: string
   /** La palette de l'aube : le PDF prend les couleurs de l'écran de fin. */
   palette: InterfaceSource
-  /** Le paiement passé. Il suffit pour retélécharger. */
-  payment_id?: string
 }
 
 /** Les lieux du journal, sans les notes d'auteur qu'il transporte aussi. */

@@ -198,8 +198,6 @@ export default defineNuxtConfig({
       paywallPrice: {
         amount: script.paywall.amount_cents / 100,
         currency: script.paywall.currency,
-        /** Le PDF de la nuit, vendu sur l'écran de fin. */
-        keepsake: script.paywall.keepsake_cents / 100,
       },
       /**
        * Bouton « lever la limite » sur l'écran de fermeture, en production.

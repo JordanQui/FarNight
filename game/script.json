@@ -1541,7 +1541,6 @@
     "sub_cta": "Débloquez la suite de {{quest_title}}",
     "amount_cents": 1200,
     "currency": "EUR",
-    "keepsake_cents": 400,
     "pitch": {
       "eyebrow": "Ce qui se joue pour vous",
       "generative": {
@@ -1564,7 +1563,7 @@
         },
         {
           "label": "Ce que vous en emportez",
-          "text": "À l'aube, pour 4 €, un document résume toute votre nuit : ses tensions et les solutions que vous avez trouvées. Le nœud qui se défait dans la fiction est le même que dans votre vie. On en repart avec quelque chose d'utilisable, pas avec un score."
+          "text": "À l'aube, un document offert résume toute votre nuit : ses tensions et les solutions que vous avez trouvées. Le nœud qui se défait dans la fiction est le même que dans votre vie. On en repart avec quelque chose d'utilisable, pas avec un score."
         }
       ],
       "closing": "De l'autre côté du sas, la pluie n'a pas cessé de tomber. Elle attend votre pas."

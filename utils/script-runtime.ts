@@ -2635,7 +2635,6 @@ export class ScriptRuntime {
       // Jamais surchargés : le paiement est en euros où qu'on joue.
       amount_cents: this.script.paywall.amount_cents,
       currency: this.script.paywall.currency,
-      keepsake_cents: this.script.paywall.keepsake_cents,
     }
   }
 

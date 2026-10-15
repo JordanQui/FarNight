@@ -7,18 +7,13 @@
  * les recopier ici garantirait qu'ils finissent par diverger.
  */
 const config = useRuntimeConfig().public
-const price = config.paywallPrice as { amount: number; currency: string; keepsake: number }
+const price = config.paywallPrice as { amount: number; currency: string }
 const days = config.memoryDays as number
 const priceLabel = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: price.currency,
   minimumFractionDigits: Number.isInteger(price.amount) ? 0 : 2,
 }).format(price.amount)
-const keepsakeLabel = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: price.currency,
-  minimumFractionDigits: Number.isInteger(price.keepsake) ? 0 : 2,
-}).format(price.keepsake)
 
 /**
  * Ce que la loi exige et que le dépôt ne connaît pas. Les crochets restent
@@ -119,7 +114,7 @@ useHead({
         </p>
         <p>
           À la fin de la nuit, son récit — les lieux traversés, les réponses trouvées, le texte de fin — peut être
-          emporté en PDF, par un paiement unique de {{ keepsakeLabel }} TTC. Il reste téléchargeable pendant
+          emporté en PDF, offert. Il reste téléchargeable pendant
           {{ days }} jours dans le navigateur utilisé.
         </p>
         <p>
@@ -127,7 +122,7 @@ useHead({
           de carte ne passent pas par nos serveurs.
         </p>
         <p>
-          Le jeu et son PDF sont des contenus numériques fournis dès le paiement. En payant, vous demandez leur
+          Le jeu est un contenu numérique fourni dès le paiement. En payant, vous demandez son
           exécution immédiate et renoncez expressément à votre droit de rétractation (article L221-28 13° du Code de la consommation).
         </p>
         <p>

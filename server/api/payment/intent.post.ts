@@ -8,9 +8,7 @@ import { notifyPhone, price } from '~/server/utils/notify'
  * le navigateur monter le formulaire et confirmer le paiement lui-même.
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ product?: string; campaign?: string }>(event).catch(() => null)
-  // Le PDF de la nuit, vendu sur l'écran de fin : il n'ouvre aucun accès.
-  const keepsake = body?.product === 'keepsake'
+  const body = await readBody<{ campaign?: string }>(event).catch(() => null)
   // Le `?c=` du lien de la pub qui a amené le joueur : /nimda/monitor juge chaque pub par ses ventes.
   const campaign = typeof body?.campaign === 'string' && /^[\w-]{1,40}$/.test(body.campaign) ? body.campaign : null
 
@@ -20,14 +18,14 @@ export default defineEventHandler(async (event) => {
    * La fenêtre payante court à partir du paiement, pas de la première scène :
    * payer pendant les 24 h de fermeture reviendrait à acheter huit jours dont
    * le premier est déjà perdu. Et après l'épilogue, ce serait payer pour une
-   * histoire qui ne se rejoue pas. Le PDF, lui, se vend justement là.
+   * histoire qui ne se rejoue pas.
    */
-  if (!keepsake) assertNotLocked(event)
+  assertNotLocked(event)
 
   const runtime = await ScriptRuntime.load()
   const paywall = runtime.paywall
 
-  const amount = keepsake ? paywall.keepsake_cents : paywall.amount_cents
+  const amount = paywall.amount_cents
   // Rien qui renvoie hors de la page : le jeu ne saurait pas y revenir.
   const [intent] = await Promise.all([stripeClient().paymentIntents.create({
     amount,
@@ -37,11 +35,11 @@ export default defineEventHandler(async (event) => {
     // (CIC, néobanques…) et les bloquait « highest risk » avant même la banque.
     // Authentifiées, elles passent, et la responsabilité d'une fraude bascule.
     payment_method_options: { card: { request_three_d_secure: 'any' } },
-    description: keepsake ? 'PDF de la nuit' : paywall.cta,
-    metadata: { ...(keepsake ? { product: 'keepsake' } : {}), ...(campaign ? { campaign } : {}) },
+    description: paywall.cta,
+    metadata: campaign ? { campaign } : {},
   }), notifyPhone({
     title: 'Paywall ouvert',
-    message: `${price(amount, paywall.currency)} — ${keepsake ? 'PDF de la nuit' : 'une nuit'}`,
+    message: `${price(amount, paywall.currency)} — une nuit`,
     tags: ['credit_card'],
   })])
 
