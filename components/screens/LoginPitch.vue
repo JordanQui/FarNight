@@ -216,13 +216,13 @@ const keepsakePrice = computed(() => money(paywallPrice.keepsake))
     -->
     <section class="relative overflow-x-clip pt-28 pb-24 sm:pt-40 sm:pb-32">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
-        <div class="text-center max-w-2xl mx-auto">
+        <div class="text-center max-w-4xl mx-auto">
           <p data-reveal class="eyebrow text-neon-400">{{ t('home.keep_eyebrow') }}</p>
           <h2 data-reveal class="font-display uppercase leading-[0.98] text-[clamp(2.4rem,7vw,5.5rem)] mt-6" style="--d: 1">
             <span class="block text-ink-50">{{ t('home.keep_title_1') }}</span>
             <span class="block neon-text">{{ t('home.keep_title_2') }}</span>
           </h2>
-          <p data-reveal class="lead mt-8" style="--d: 2">{{ t('home.keep_text') }}</p>
+          <p data-reveal class="lead mt-8 max-w-2xl mx-auto" style="--d: 2">{{ t('home.keep_text') }}</p>
         </div>
 
         <div data-scrub class="doc-stack" aria-hidden="true">
@@ -529,7 +529,7 @@ const keepsakePrice = computed(() => money(paywallPrice.keepsake))
   pages sont déjà ouvertes. Le néon des pages est celui d'une aube orangée.
 */
 .doc-stack {
-  --doc-w: clamp(150px, 30vw, 290px);
+  --doc-w: clamp(132px, 30vw, 290px);
   --f: clamp(0, (var(--p, 0.5) - 0.2) * 4, 1);
   --neon-200: 255 226 204;
   --neon-300: 255 176 120;
@@ -554,17 +554,22 @@ const keepsakePrice = computed(() => money(paywallPrice.keepsake))
   font-size: calc(var(--doc-w) / 20);
   will-change: transform;
 }
-.doc-cover {
-  z-index: 3;
-  transform: translateX(calc(var(--f) * -66%)) rotate(calc(var(--f) * -7deg + (1 - var(--f)) * -1deg));
-}
+/*
+  La page des lieux reste dessus : c'est elle qui dit ce qu'on garde. La
+  couverture dépasse déjà à gauche quand la pile est fermée, pour que l'aube
+  se voie tout de suite.
+*/
 .doc-places {
+  z-index: 3;
+  transform: translateY(calc(var(--f) * -4%));
+}
+.doc-cover {
   z-index: 2;
-  transform: translateY(calc(var(--f) * -4%)) rotate(calc((1 - var(--f)) * 2.5deg));
+  transform: translateX(calc(-12% - var(--f) * 60%)) rotate(calc(-4deg - var(--f) * 4deg));
 }
 .doc-end {
   z-index: 1;
-  transform: translateX(calc(var(--f) * 66%)) rotate(calc(var(--f) * 7deg + (1 - var(--f)) * -3deg));
+  transform: translateX(calc(10% + var(--f) * 62%)) rotate(calc(3deg + var(--f) * 4deg));
 }
 
 .doc-veil {
