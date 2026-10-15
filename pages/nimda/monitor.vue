@@ -4,8 +4,9 @@
  *
  * Tout compte à partir de SINCE, l'ouverture de la séance : chaque bloc
  * transmet ce point de départ à sa route (server/api/admin/monitor/*, dont
- * meta pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, on
- * change SINCE, et rien d'autre.
+ * meta pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, le
+ * bouton en bas à droite enregistre maintenant (server/api/admin/monitor/since.ts) ;
+ * la plus récente des deux, cette remise ou SINCE, ouvre la séance.
  *
  * La page relit tout toutes les deux minutes. Une tuile affiche l'écart avec
  * la cotation précédente. Rien ici n'appelle un modèle.
@@ -14,16 +15,34 @@
 // Voir middleware/admin.ts : la page n'existe qu'en local.
 definePageMeta({ middleware: 'admin' })
 
-const SINCE = '2026-10-14T18:00:00+02:00'
+const SINCE = '2026-10-15T11:48:00+02:00'
 const REFRESH_S = 120
 
-const opts = { lazy: true, server: false, query: { since: SINCE } } as const
-const { data: etat, error: etatError, status: etatStatus, refresh: refreshEtat } = useFetch('/api/admin/monitor/etat', opts)
-const { data: trafic, error: traficError, status: traficStatus, refresh: refreshTrafic } = useFetch('/api/admin/monitor/trafic', opts)
-const { data: journal, error: journalError, status: journalStatus, refresh: refreshJournal } = useFetch('/api/admin/monitor/journal', opts)
-const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = useFetch('/api/admin/monitor/openai', opts)
-const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = useFetch('/api/admin/payments', opts)
-const { data: meta, error: metaError, status: metaStatus, refresh: refreshMeta } = useFetch('/api/admin/monitor/meta', opts)
+const { data: reset } = await useFetch('/api/admin/monitor/since')
+const saved = reset.value?.since
+const since = ref(saved && Date.parse(saved) > Date.parse(SINCE) ? saved : SINCE)
+
+// Le compte à rebours attend que tout soit rentré : une requête restée sans réponse
+// (serveur de dev relancé pendant la lecture) figeait la page pour toujours. Le
+// serveur abandonne de lui-même avant 45 s, le navigateur à 90 s.
+// `since` est une ref : la changer relance chaque lecture.
+const opts = { lazy: true, server: false, query: { since }, timeout: 90_000 } as const
+/**
+ * Une cotation ratée remet `data` à null (Nuxt le fait sur erreur) : les tuiles
+ * retombaient en tirets jusqu'à la suivante. On garde la dernière bonne, l'erreur
+ * s'affiche au-dessus des dépêches.
+ */
+function kept<R extends { data: Ref<unknown> }>(r: R): R {
+  const last = shallowRef(r.data.value)
+  watch(r.data, (v) => { if (v != null) last.value = v }, { flush: 'sync' })
+  return { ...r, data: last }
+}
+const { data: etat, error: etatError, status: etatStatus, refresh: refreshEtat } = kept(useFetch('/api/admin/monitor/etat', opts))
+const { data: trafic, error: traficError, status: traficStatus, refresh: refreshTrafic } = kept(useFetch('/api/admin/monitor/trafic', opts))
+const { data: journal, error: journalError, status: journalStatus, refresh: refreshJournal } = kept(useFetch('/api/admin/monitor/journal', opts))
+const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = kept(useFetch('/api/admin/monitor/openai', opts))
+const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = kept(useFetch('/api/admin/payments', opts))
+const { data: meta, error: metaError, status: metaStatus, refresh: refreshMeta } = kept(useFetch('/api/admin/monitor/meta', opts))
 
 const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus].some(s => s.value === 'pending'))
 function refreshAll() {
@@ -46,7 +65,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => clearInterval(tick))
 
-const opening = new Date(SINCE).getTime()
+const opening = computed(() => new Date(since.value).getTime())
 const pad = (n: number) => String(n).padStart(2, '0')
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour12: false })
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
@@ -285,6 +304,21 @@ async function saveBalance() {
     await refreshOpenai()
   } finally {
     savingBalance.value = false
+  }
+}
+
+/** Remise à zéro : la séance s'ouvre maintenant, les écarts repartent de rien. */
+const resetting = ref(false)
+async function resetSession() {
+  if (!confirm('Remettre le tableau à zéro ? Tout comptera à partir de maintenant.')) return
+  resetting.value = true
+  try {
+    since.value = (await $fetch('/api/admin/monitor/since', { method: 'POST' })).since!
+    previous.value = {}
+    deltas.value = {}
+    countdown.value = REFRESH_S
+  } finally {
+    resetting.value = false
   }
 }
 
@@ -612,6 +646,10 @@ const outbound = computed(() => {
         <NuxtLink to="/nimda/monitorpaiement" class="link">Requêtes Stripe</NuxtLink>
       </nav>
     </main>
+
+    <ClientOnly>
+      <button type="button" class="btn reset" :disabled="resetting" @click="resetSession()">{{ resetting ? 'remise à zéro…' : 'Remise à zéro' }}</button>
+    </ClientOnly>
   </div>
 </template>
 
@@ -743,6 +781,9 @@ code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9);
 .balance input { width: 120px; background: #05070a; border: 1px solid var(--line); padding: 4px 8px; color: rgb(var(--ink-100)); font-variant-numeric: tabular-nums; }
 .balance input:focus { outline: none; border-color: rgb(var(--neon-500) / 0.6); }
 .balance .btn { margin-top: 0; }
+
+.reset { position: fixed; right: 16px; bottom: 16px; z-index: 10; margin: 0; background: #0a0d12; }
+.reset:hover:not(:disabled) { border-color: rgb(255 92 92 / 0.6); color: var(--down); }
 
 @keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes pulse { 50% { opacity: 0.35; } }
