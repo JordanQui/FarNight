@@ -4,6 +4,7 @@ const { t } = useLang()
 import { useGameStore } from '~/stores/game'
 import { useProgression } from '~/composables/useProgression'
 import { readKeepsake, type Keepsake } from '~/utils/keepsake'
+import { spaceParagraphs } from '~/utils/paragraphs'
 
 /**
  * La ville fermée.
@@ -89,7 +90,7 @@ const remaining = computed(() => {
       <p
         v-if="lock?.text"
         class="narrative-text text-parchment/90 text-[15px] sm:text-sm leading-relaxed whitespace-pre-line text-left"
-      >{{ lock.text }}</p>
+      >{{ spaceParagraphs(lock.text) }}</p>
       <p v-else class="text-ink-200/70 text-sm leading-relaxed">
         {{ definitive
           ? t('locked.fallback_end')

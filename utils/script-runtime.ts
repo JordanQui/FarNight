@@ -858,6 +858,7 @@ ${s.narrative.opening}
 ${s.narrative.stakes_rule ?? ''}
 Structure imposée :
 ${s.narrative.structure.map((x, i) => `  ${i + 1}. ${x}`).join('\n')}
+Écris en paragraphes séparés par une ligne vide (\\n\\n dans le JSON) — l'arrivée et le lieu, la description, ce qui ne va pas, les personnes, la sortie : jamais un bloc d'un seul tenant.
 Maximum ${s.narrative.max_words} mots. Interdit : ${s.narrative.forbidden.join(', ')}.
 Le champ "interactables" doit lister exactement les objets nommés dans le texte, et inclure impérativement la sortie.
 

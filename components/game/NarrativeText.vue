@@ -4,6 +4,7 @@ import type { Term } from '~/utils/glitch'
 import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { analyzables, visible } from '~/utils/interactables'
+import { spaceParagraphs } from '~/utils/paragraphs'
 
 const props = defineProps<{ entries: NarrativeEntry[] }>()
 
@@ -65,6 +66,11 @@ const names = computed<Term[]>(() => {
 
   return [...marks, ...people, ...things]
 })
+
+/** Le récit est aéré entre ses paragraphes ; les répliques et le reste, non. */
+function display(entry: NarrativeEntry) {
+  return entry.type === 'narration' ? spaceParagraphs(entry.text) : entry.text
+}
 
 const emit = defineEmits<{ typing: [boolean] }>()
 
@@ -128,11 +134,11 @@ watch(
         <span v-if="entry.type === 'player_command'" class="text-neon-600/50 mr-1">&gt;</span>
         <TypewriterText
           v-if="entry === entries[entries.length - 1] && ['narration', 'npc_speech'].includes(entry.type)"
-          :text="entry.text"
+          :text="display(entry)"
           :names="names"
           @typing="onTyping(entry.id, $event)"
         />
-        <GlitchText v-else :text="entry.text" :names="names" />
+        <GlitchText v-else :text="display(entry)" :names="names" />
       </div>
     </TransitionGroup>
   </div>
