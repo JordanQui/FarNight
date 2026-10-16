@@ -639,8 +639,16 @@
             "text": "Dengan bermain, tidak lebih. Tak seorang pun akan menjelaskan ketegangan ini kepadamu, atau cara mengurainya: yang menentukan adalah apa yang kau pilih untuk lakukan. Permainan membaca setiap gerakmu dan membangun kelanjutannya di atasnya."
           },
           {
-            "label": "Yang kau bawa pulang",
-            "text": "Saat fajar, sebuah dokumen gratis merangkum seluruh malammu: ketegangannya dan solusi yang kau temukan. Simpul yang terurai dalam fiksi adalah simpul yang sama dengan yang ada dalam hidupmu. Kau pergi membawa sesuatu yang bisa kau pakai, bukan skor."
+            "label": "Teka-teki untuk dipecahkan",
+            "text": "Frekuensi untuk disetel, kode untuk dibobol, kartu untuk ditemukan: setiap pintu punya teka-tekinya. Jawabannya selalu tertulis di suatu tempat; tinggal kamu melihatnya."
+          },
+          {
+            "label": "Yang kamu pungut",
+            "text": "Saat fajar, sebuah PDF gratis menyimpan setiap benda yang kamu pungut. Tak ada yang dititipkan malam kepadamu yang hilang."
+          },
+          {
+            "label": "Tempat yang kamu lalui",
+            "text": "Setiap tempat yang kamu lalui tersimpan di sana, bersama gambar yang dibuat malam itu untukmu. Buku perjalanan yang tak akan dimiliki orang lain."
           }
         ],
         "closing": "Di sisi lain sekat udara, hujan tak pernah berhenti turun. Ia menunggu langkahmu."

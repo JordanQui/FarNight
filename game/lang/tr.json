@@ -662,8 +662,16 @@
             "text": "Oynayarak, başka hiçbir şeyle değil. Kimse sana bu gerilimi ya da onu nasıl çözeceğini açıklamayacak: ne yapmayı seçtiğin karar verir. Oyun her hareketini okur ve devamını onun üzerine kurar."
           },
           {
-            "label": "Yanında götürdüğün",
-            "text": "Şafakta, ücretsiz bir belge bütün geceni özetliyor: gerilimlerini ve bulduğun çözümleri. Kurguda çözülen düğüm, hayatındakiyle aynı düğüm. Buradan bir puanla değil, işine yarayacak bir şeyle ayrılırsın."
+            "label": "Çözülecek bulmacalar",
+            "text": "Ayarlanacak frekanslar, kırılacak şifreler, bulunacak kartlar: her kapının bir bulmacası var. Cevap her zaman mekânda bir yerde yazılı; yeter ki görün."
+          },
+          {
+            "label": "Topladıklarınız",
+            "text": "Şafakta, hediye bir PDF topladığınız her nesneyi saklar. Gecenin size emanet ettiği hiçbir şey kaybolmaz."
+          },
+          {
+            "label": "Geçtiğiniz yerler",
+            "text": "Geçtiğiniz her yer, gecenin sizin için ürettiği görsellerle birlikte orada kalır. Başka kimsenin asla sahip olmayacağı bir seyir defteri."
           }
         ],
         "closing": "Hava kilidinin öbür yanında yağmur hiç dinmedi. Adımını bekliyor."

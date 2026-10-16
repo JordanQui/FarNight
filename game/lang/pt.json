@@ -695,8 +695,16 @@
             "text": "Jogando, e nada mais. Ninguém vai explicar essa tensão a você, nem como desfazê-la: é o que você escolhe fazer que decide. O jogo lê cada gesto seu e constrói o que vem depois a partir dele."
           },
           {
-            "label": "O que você leva",
-            "text": "Ao amanhecer, um documento gratuito resume toda a sua noite: as tensões e as soluções que você encontrou. O nó que se desfaz na ficção é o mesmo da sua vida. Você sai com algo que pode usar, não com uma pontuação."
+            "label": "Enigmas para decifrar",
+            "text": "Frequências para sintonizar, códigos para quebrar, cartões para encontrar: cada porta tem o seu enigma. A resposta está sempre escrita em algum lugar; resta vê-la."
+          },
+          {
+            "label": "O que você recolheu",
+            "text": "Ao amanhecer, um PDF oferecido guarda cada objeto que você recolheu. Nada do que a noite lhe confiou se perde."
+          },
+          {
+            "label": "Os lugares percorridos",
+            "text": "Cada lugar percorrido fica nele, com as imagens que a noite gerou para você. Um diário de bordo que ninguém mais terá."
           }
         ],
         "closing": "Do outro lado da comporta, a chuva não parou de cair. Ela espera o seu passo."

@@ -700,8 +700,16 @@
             "text": "Jugando, y nada más. Nadie te explicará esta tensión ni cómo deshacerla: lo que eliges hacer es lo que decide. El juego lee cada uno de tus gestos y construye lo que sigue sobre ellos."
           },
           {
-            "label": "Lo que te llevas",
-            "text": "Al amanecer, un documento gratuito resume toda tu noche: sus tensiones y las soluciones que encontraste. El nudo que se deshace en la ficción es el mismo que en tu vida. Te vas con algo que puedes usar, no con una puntuación."
+            "label": "Enigmas que descifrar",
+            "text": "Frecuencias que ajustar, códigos que romper, tarjetas que encontrar: cada puerta tiene su enigma. La respuesta siempre está escrita en algún lugar; solo hay que verla."
+          },
+          {
+            "label": "Lo que has recogido",
+            "text": "Al amanecer, un PDF de regalo guarda cada objeto que has recogido. Nada de lo que la noche te confió se pierde."
+          },
+          {
+            "label": "Los lugares recorridos",
+            "text": "Cada lugar recorrido queda en él, con las imágenes que la noche generó para ti. Un cuaderno de ruta que nadie más tendrá jamás."
           }
         ],
         "closing": "Al otro lado de la esclusa, la lluvia no ha dejado de caer. Espera tu paso."

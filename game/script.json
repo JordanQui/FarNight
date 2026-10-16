@@ -1562,8 +1562,16 @@
           "text": "En jouant, et rien d'autre. Personne ne vous expliquera cette tension ni comment la dénouer : c'est ce que vous choisissez de faire qui en décide. Le jeu lit chacun de vos gestes et construit la suite dessus."
         },
         {
-          "label": "Ce que vous en emportez",
-          "text": "À l'aube, un document offert résume toute votre nuit : ses tensions et les solutions que vous avez trouvées. Le nœud qui se défait dans la fiction est le même que dans votre vie. On en repart avec quelque chose d'utilisable, pas avec un score."
+          "label": "Des énigmes à casser",
+          "text": "Des fréquences à caler, des codes à casser, des cartes à retrouver : chaque porte a son énigme. La réponse est toujours écrite quelque part dans le lieu, encore faut-il la voir."
+        },
+        {
+          "label": "Ce que vous avez ramassé",
+          "text": "À l'aube, un PDF offert garde chaque objet que vous avez ramassé. Rien de ce que la nuit vous a confié ne se perd."
+        },
+        {
+          "label": "Les lieux traversés",
+          "text": "Chaque lieu traversé y reste, avec les images que la nuit a générées pour vous. Un carnet de route que personne d'autre n'aura jamais."
         }
       ],
       "closing": "De l'autre côté du sas, la pluie n'a pas cessé de tomber. Elle attend votre pas."

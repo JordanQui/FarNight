@@ -664,8 +664,16 @@
             "text": "Grając, i niczym więcej. Nikt nie wytłumaczy ci tego napięcia ani tego, jak je rozwiązać: decyduje to, co postanowisz zrobić. Gra czyta każdy twój gest i na nim buduje dalszy ciąg."
           },
           {
-            "label": "Co z tego wyniesiesz",
-            "text": "O świcie darmowy dokument podsumowuje całą twoją noc: jej napięcia i rozwiązania, które udało ci się znaleźć. Węzeł, który rozplątuje się w fikcji, jest tym samym węzłem co w twoim życiu. Wychodzisz z czymś, czego możesz użyć, a nie z wynikiem punktowym."
+            "label": "Zagadki do złamania",
+            "text": "Częstotliwości do dostrojenia, kody do złamania, karty do odnalezienia: każde drzwi mają swoją zagadkę. Odpowiedź zawsze jest gdzieś zapisana; trzeba ją tylko zobaczyć."
+          },
+          {
+            "label": "Co zebrałeś",
+            "text": "O świcie darmowy PDF zachowuje każdy przedmiot, który podniosłeś. Nic, co powierzyła ci noc, nie przepada."
+          },
+          {
+            "label": "Przemierzone miejsca",
+            "text": "Każde przemierzone miejsce zostaje w nim, z obrazami, które noc wygenerowała dla ciebie. Dziennik podróży, jakiego nikt inny nigdy nie będzie miał."
           }
         ],
         "closing": "Po drugiej stronie śluzy deszcz nie przestał padać. Czeka na twój krok."
