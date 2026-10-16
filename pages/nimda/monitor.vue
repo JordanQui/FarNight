@@ -256,7 +256,6 @@ const tiles = computed<Tile[]>(() => [
   { code: '429', label: 'Refus OpenAI', value: trafic.value ? outboundCount('api.openai.com', s => s === 429) : null, bad: true },
   { code: '$AI', label: 'Dépense OpenAI', value: openai.value?.configured ? openai.value.total : null, unit: '$', decimals: 2, bad: true, note: !openai.value ? undefined : openai.value.configured ? `jour UTC entier, depuis ${dayMonth(Date.parse(openai.value.costsFrom))} ${hhmm(Date.parse(openai.value.costsFrom))}` : 'clé admin absente' },
   { code: '5XX', label: 'Échecs serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.failed, 0) : null, bad: true, spark: buckets.value.map(b => b.failed) },
-  { code: 'LAT', label: 'Réponse du site', value: etat.value?.ping?.ms ?? null, unit: 'ms', bad: true },
   { code: 'VRC', label: 'Vercel consommé', value: etat.value?.usage?.consumption ?? null, unit: '$', decimals: 2, bad: true, note: 'jour entier, heure de Los Angeles' },
 ])
 
@@ -303,7 +302,7 @@ const healthy = computed(() => {
 const ticker = computed(() => {
   const items = tiles.value.map((t) => {
     const m = move(t)
-    return { key: t.code, code: t.code, value: t.value == null ? '—' : `${t.unit === '$' ? usd(t.value) : t.unit === '€' ? money(t.value * 100) : int(t.value)}${t.unit === 'ms' ? ' ms' : ''}`, move: m }
+    return { key: t.code, code: t.code, value: t.value == null ? '—' : `${t.unit === '$' ? usd(t.value) : t.unit === '€' ? money(t.value * 100) : int(t.value)}`, move: m }
   })
   for (const s of etat.value?.status ?? []) {
     items.push({ key: s.name, code: s.name.toUpperCase(), value: INDICATOR[s.indicator] ?? s.indicator, move: { arrow: '●', text: '', tone: s.indicator === 'none' ? 'good' : 'bad' } })
@@ -434,7 +433,7 @@ const outbound = computed(() => {
     <main class="wrap">
       <!-- Le tableau des cotes -->
       <section class="board" aria-label="Cotations">
-        <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== 'ms' && t.unit !== '$') }">
+        <article v-for="t in tiles" :key="t.code" class="tile" :class="{ alert: t.alert ?? (t.bad && (t.value ?? 0) > 0 && t.unit !== '$') }">
           <header class="tile-head">
             <span class="tile-code">{{ t.code }}</span>
             <span v-if="move(t)" :class="['tile-move', move(t)!.tone]">{{ move(t)!.arrow }} {{ move(t)!.text }}</span>
@@ -709,7 +708,7 @@ const outbound = computed(() => {
           <div>
             <p class="k">Site</p>
             <p :class="etat.ping && etat.ping.status < 400 ? 'good' : 'bad'">
-              {{ etat.host ?? '—' }} · {{ etat.ping ? `${etat.ping.status} en ${etat.ping.ms} ms` : etat.errors.site ?? 'pas de réponse' }}
+              {{ etat.host ?? '—' }} · {{ etat.ping ? etat.ping.status : etat.errors.site ?? 'pas de réponse' }}
             </p>
             <p class="k">En ligne</p>
             <p v-if="etat.prod">{{ etat.prod.message }} <code>{{ etat.prod.sha }}</code></p>

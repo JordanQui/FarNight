@@ -35,11 +35,10 @@ async function statusPage(name: string, url: string) {
   return { name, url, indicator: r.status.indicator, description: r.status.description }
 }
 
-/** Depuis ce poste : la latence comprend notre propre connexion. */
+/** Le site répond-il ? Le code HTTP seul, sans latence. */
 async function probe(url: string) {
-  const t0 = performance.now()
   const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })
-  return { url, status: res.status, ms: Math.round(performance.now() - t0) }
+  return { url, status: res.status }
 }
 
 export default defineEventHandler(async (event) => {

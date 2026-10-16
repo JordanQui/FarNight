@@ -1509,6 +1509,28 @@ ${lines}`)
   }
 
   /**
+   * Les emplacements du décor, recalés avant d'être jugés.
+   *
+   * L'auberge n'a plus qu'un emplacement, la porte : le modèle la décrit bien,
+   * mais sous un id à lui — celui du Sas, de la sortie. Chaque auberge partait
+   * en reprise pour un seul id, et la reprise, dépensée là, ne restait plus
+   * pour l'objet à prendre. Pire : hors de son slot `static`, la porte devenait
+   * l'objet ramassé. Un élément sous un id qu'aucun slot ne déclare prend la
+   * place du slot requis absent ; la porte, décrite en dernier, part d'abord.
+   */
+  alignDecorSlots(generated: GeneratedScene): void {
+    const declared = new Set(this.scene.decor_slots.map(slot => slot.id))
+    const stray = (generated.decor ?? []).filter(d => !declared.has(d.slot_id))
+    for (const slot of this.scene.decor_slots) {
+      if (!slot.required || generated.decor?.some(d => d.slot_id === slot.id)) continue
+      const d = stray.pop()
+      if (!d) return
+      console.warn(`[scene/${this.scene.id}] décor : "${d.slot_id}" recalé en "${slot.id}"`)
+      d.slot_id = slot.id
+    }
+  }
+
+  /**
    * Le nom de l'augmentation, ressoudé avant d'être jugé.
    *
    * La consigne exige un nom sans accent, et le modèle écrit en français :
@@ -1666,11 +1688,17 @@ ${lines}`)
     // absent du texte, il n'y aurait rien à brouiller — à l'auberge, plus rien
     // du tout, puisque c'est le seul.
     const text = fold(generated.scene_text)
+    // Ce qui est arrivé, dans le motif même : la reprise sait quel objet
+    // corriger, et le journal dit pourquoi la scène a été refusée.
+    const seen = () => (generated.interactables ?? [])
+      .map(o => `${o.id}/${o.item_kind || '—'}/${o.verb || '—'}/${o.card_color || '—'}/« ${o.label} »`
+        + `${o.label?.trim() && this.namedIn(o.label, text) ? '' : ' (absent du texte)'}${o.hidden ? ' (caché)' : ''}`)
+      .join(' ; ')
     if (!takeable.some(o => !o.hidden && Boolean(o.label?.trim()) && text.includes(fold(o.label)))) {
       throw new Error(
         'Scène invalide : aucun objet à ramasser — un objet au moins doit être posé dans le '
         + `décor avec pour verbe ${this.takeVerbs}, en plus de ce que les personnages donnent, `
-        + 'en vue (pas hidden), son label tel quel en Majuscules dans scene_text')
+        + `en vue (pas hidden), son label tel quel en Majuscules dans scene_text. Reçu : ${seen() || 'aucun objet'}`)
     }
     // LA MOITIÉ DE CARTE FERME LA SORTIE : sans elle dans le texte, le joueur
     // resterait devant une porte qui réclame une chose que la scène n'a pas.
@@ -1682,14 +1710,10 @@ ${lines}`)
         && colored(o) && Boolean(o.observation?.trim())
         && Boolean(o.label?.trim()) && this.namedIn(o.label, written))
       if (!half) {
-        const seen = (generated.interactables ?? [])
-          .map(o => `${o.id}/${o.item_kind || '—'}/${o.verb || '—'}/${o.card_color || '—'}/« ${o.label} »`
-            + `${o.label?.trim() && this.namedIn(o.label, written) ? '' : ' (absent du texte)'}${o.hidden ? ' (caché)' : ''}`)
-          .join(' ; ')
         throw new Error(
           'Scène invalide : aucune moitié de carte — un objet de `interactables` doit être la carte cassée '
           + `posée dans le décor : item_kind "carte", un card_color, une observation, un verbe ${this.takeVerbs}, `
-          + `et son label exact en Majuscules dans scene_text. Reçu : ${seen || 'aucun objet'}`)
+          + `et son label exact en Majuscules dans scene_text. Reçu : ${seen() || 'aucun objet'}`)
       }
     }
     // CE QU'UN ÉCHANGE DÉCOUVRE DOIT EXISTER. Un `reveals_id` qui ne désigne

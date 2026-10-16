@@ -251,6 +251,7 @@ export default defineEventHandler(async (event) => {
      * trois centimes — et il n'est payé que sur un échec.
      */
     scene.dropUnreachable(generated)
+    scene.alignDecorSlots(generated)
     scene.ensurePuzzleObjects(generated)
     scene.bindOffering(generated)
     scene.alignPlanIds(generated)
@@ -271,6 +272,7 @@ export default defineEventHandler(async (event) => {
       ])
       generated = parseScene(repaired)
       scene.dropUnreachable(generated)
+      scene.alignDecorSlots(generated)
       scene.ensurePuzzleObjects(generated, true)
       scene.bindOffering(generated)
       scene.alignPlanIds(generated)
