@@ -192,360 +192,189 @@ function acceptAndEnroll() {
   startFresh()
   gameStore.setScreen('admission')
 }
-
-/**
- * Les boutons d'entrée du bas de page font le même geste que celui du haut :
- * reprendre la nuit si le dossier est connu, sinon l'avertissement.
- */
-function enter() {
-  if (knownDossier.value) goOut()
-  else openDisclaimer()
-}
-const ctaLabel = computed(() => knownDossier.value ? t('login.dossier_cta') : t('login.enroll_cta'))
-const ctaNote = computed(() => knownDossier.value ? null : t('login.enroll_note', { steps: ADMISSION_STEPS }))
-
-/** Le titre, sur une ligne : barre du haut, pied de page, message de partage. */
-const gameTitle = computed(() => `${t('login.title_line1')} ${t('login.title_line2')}`)
-
-/**
- * Les réseaux, par de simples liens : aucun script tiers, rien ne part tant
- * qu'on ne clique pas. Le message est la promesse du jeu, dans la langue
- * affichée.
- */
-const shareLinks = computed(() => {
-  const url = encodeURIComponent(`${origin}/`)
-  const text = encodeURIComponent(`${gameTitle.value} — ${t('home.hero_promise')}`)
-  return [
-    { name: 'WhatsApp', href: `https://wa.me/?text=${text}%20${url}` },
-    { name: 'Telegram', href: `https://t.me/share/url?url=${url}&text=${text}` },
-    { name: 'X', href: `https://x.com/intent/post?text=${text}&url=${url}` },
-    { name: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${url}` },
-  ]
-})
-
-/**
- * LE DÉFILEMENT.
- *
- * Deux mécanismes, rien de plus. Chaque `[data-scrub]` reçoit `--p`, sa
- * progression de 0 à 1 dans l'écran, et le CSS en tire ses mouvements :
- *   - par défaut, de son entrée par le bas à sa sortie par le haut (0,5 =
- *     centré) ;
- *   - `pin` : section plus haute que l'écran dont le contenu reste collé, de
- *     son arrivée en haut à sa fin ;
- *   - `exit` : du haut de la page jusqu'à ce que l'élément soit sorti.
- * Chaque `[data-reveal]` reçoit `is-in` la première fois qu'il paraît.
- *
- * Si le système demande moins d'animation, `is-motion` n'est jamais posée :
- * tout est visible d'emblée et rien ne suit la molette.
- */
-const root = ref<HTMLElement | null>(null)
-const motion = ref(false)
-const scrolled = ref(false)
-let frame = 0
-let observer: IntersectionObserver | null = null
-
-function progressOf(el: HTMLElement, vh: number): number {
-  const r = el.getBoundingClientRect()
-  const p = el.dataset.scrub === 'pin' ? -r.top / Math.max(1, r.height - vh)
-    : el.dataset.scrub === 'exit' ? -r.top / Math.max(1, r.height)
-      : (vh - r.top) / (vh + r.height)
-  return Math.min(1, Math.max(0, p))
-}
-
-function paint() {
-  frame = 0
-  const vh = window.innerHeight
-  scrolled.value = window.scrollY > vh * 0.5
-  if (!motion.value) return
-  root.value?.querySelectorAll<HTMLElement>('[data-scrub]').forEach((el) => {
-    el.style.setProperty('--p', progressOf(el, vh).toFixed(4))
-  })
-}
-
-function onScroll() {
-  if (!frame) frame = requestAnimationFrame(paint)
-}
-
-function toTop() {
-  window.scrollTo({ top: 0, behavior: motion.value ? 'smooth' : 'auto' })
-}
-
-/** Le chevron du premier écran : on descend jusqu'au pied de la couverture, là où commence le pitch. */
-function toNext(e: MouseEvent) {
-  const hero = (e.currentTarget as HTMLElement).closest('section')
-  const top = hero ? hero.offsetTop + hero.offsetHeight : window.innerHeight
-  window.scrollTo({ top, behavior: motion.value ? 'smooth' : 'auto' })
-}
-
-onMounted(() => {
-  motion.value = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue
-      entry.target.classList.add('is-in')
-      observer?.unobserve(entry.target)
-    }
-  }, { rootMargin: '0px 0px -10% 0px' })
-  root.value?.querySelectorAll('[data-reveal]').forEach(el => observer?.observe(el))
-  window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('resize', onScroll, { passive: true })
-  paint()
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', onScroll)
-  window.removeEventListener('resize', onScroll)
-  if (frame) cancelAnimationFrame(frame)
-  observer?.disconnect()
-})
-
-/**
- * L'écran suivant (formulaire, scène) tient dans la hauteur de la fenêtre : il
- * ne doit pas hériter du défilement de l'accueil. Après le fondu de sortie,
- * avant l'entrée du suivant.
- */
-onUnmounted(() => window.scrollTo(0, 0))
 </script>
 
 <template>
-  <div ref="root" class="home relative overflow-x-clip" :class="{ 'is-motion': motion }">
-    <!--
-      LA BARRE DU HAUT : la langue et le partage, à portée de pouce partout
-      dans la page. Transparente sur le premier écran, elle prend un fond dès
-      qu'on descend, et le titre du jeu y apparaît.
-    -->
-    <header class="topbar fixed inset-x-0 top-0 z-40" :class="{ 'is-solid': scrolled }">
-      <div class="max-w-6xl mx-auto h-14 px-4 sm:px-6 flex items-center justify-between gap-4">
-        <button class="flex items-center gap-3 min-w-0" :aria-label="gameTitle" @click="toTop">
-          <svg viewBox="0 0 52 22" class="w-8 h-3.5 shrink-0 fill-neon-500" aria-hidden="true"
-               style="filter: drop-shadow(0 0 4px rgb(var(--neon-500) / 0.8))">
-            <rect x="0" y="16" width="4" height="6" /><rect x="6" y="12" width="4" height="10" />
-            <rect x="12" y="8" width="4" height="14" /><rect x="18" y="4" width="4" height="18" />
-            <rect x="24" y="0" width="4" height="22" /><rect x="30" y="4" width="4" height="18" />
-            <rect x="36" y="8" width="4" height="14" /><rect x="42" y="12" width="4" height="10" />
-            <rect x="48" y="16" width="4" height="6" />
-          </svg>
-          <span class="topbar-title hidden sm:block font-display uppercase text-[11px] tracking-[0.3em] text-ink-100 truncate">
-            {{ gameTitle }}
-          </span>
-        </button>
-
-        <div class="flex items-center gap-2">
-          <!--
-            LA LANGUE, sur le tout premier écran.
-            Quelqu'un qui ne lit pas le français doit pouvoir en sortir avant
-            d'avoir à remplir quoi que ce soit. Le menu affiche le nom de la
-            langue DANS cette langue — « Deutsch », « Русский » — parce que
-            c'est le seul libellé qu'un visiteur reconnaîtra à coup sûr. Le
-            choix part dans le cookie, et le formulaire s'ouvrira dessus.
-          -->
-          <label class="lang-pill">
-            <span class="sr-only">{{ t('lang.label') }}</span>
-            <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0" fill="none"
-                 stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <circle cx="10" cy="10" r="8" />
-              <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
-            </svg>
-            <select
-              class="lang-select"
-              :value="lang"
-              @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
-            >
-              <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
-            </select>
-          </label>
-
-          <button class="icon-pill" :aria-label="t('home.share')" @click="shareSite">
-            <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
-              <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
-              <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </header>
+  <div class="relative min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center px-6 text-center">
+    <!-- Lueur de la ville, sous l'horizon -->
+    <div
+      class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
+      style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
+    />
 
     <!--
-      LE PREMIER ÉCRAN : la couverture du Creator kit. Les tours sous la pluie,
-      qui s'enfoncent à mesure qu'on descend ; le texte s'efface en remontant.
-      (L'image du Comptoir reste dans public/home, gardée pour plus tard.)
+      Skyline à gradins, silhouette plate sur deux plans, tubes néon
+      sur les façades. C'est le décor polygonal de Flashback, pas un dégradé.
     -->
-    <section data-scrub="exit" class="hero relative min-h-[100svh] overflow-hidden flex flex-col items-center justify-center px-6 pt-24 pb-32 text-center">
-      <!-- Lueur de la ville, sous l'horizon -->
-      <div
-        class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
-        style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
+    <div class="absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
+      <HomeSkyline />
+    </div>
+
+    <!-- Pluie -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <span
+        v-for="(drop, i) in raindrops"
+        :key="i"
+        class="rain-drop animate-rain-fall"
+        :style="{
+          left: `${drop.left}%`,
+          height: `${drop.height}px`,
+          animationDelay: `${drop.delay}s`,
+          animationDuration: `${drop.duration}s`,
+          opacity: drop.opacity,
+        }"
       />
-      <div class="hero-city absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
-        <HomeSkyline />
-      </div>
+    </div>
 
-      <!-- Pluie -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <span
-          v-for="(drop, i) in raindrops"
-          :key="i"
-          class="rain-drop animate-rain-fall"
-          :style="{
-            left: `${drop.left}%`,
-            height: `${drop.height}px`,
-            animationDelay: `${drop.delay}s`,
-            animationDuration: `${drop.duration}s`,
-            opacity: drop.opacity,
-          }"
-        />
-      </div>
+    <!-- Voile : le texte doit rester lisible par-dessus les tours -->
+    <div
+      class="absolute inset-0 pointer-events-none"
+      style="background: radial-gradient(58% 54% at 50% 45%, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, transparent 80%)"
+    />
 
-      <!-- Voile : le texte doit rester lisible par-dessus les tours -->
-      <div class="hero-veil absolute inset-0 pointer-events-none" />
+    <!-- Contenu -->
+    <div class="relative z-10 flex flex-col items-center gap-8 max-w-md w-full">
+      <!-- Ziggourat néon : gradins symétriques, la signature Deco -->
+      <svg viewBox="0 0 52 22" class="w-14 h-6 fill-neon-500 animate-neon-buzz" aria-hidden="true"
+           style="filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.85))">
+        <rect x="0" y="16" width="4" height="6" />
+        <rect x="6" y="12" width="4" height="10" />
+        <rect x="12" y="8" width="4" height="14" />
+        <rect x="18" y="4" width="4" height="18" />
+        <rect x="24" y="0" width="4" height="22" />
+        <rect x="30" y="4" width="4" height="18" />
+        <rect x="36" y="8" width="4" height="14" />
+        <rect x="42" y="12" width="4" height="10" />
+        <rect x="48" y="16" width="4" height="6" />
+      </svg>
 
-      <div class="hero-content relative z-10 flex flex-col items-center gap-7 max-w-4xl w-full">
+      <div class="w-full space-y-5">
         <p class="text-steel-400 text-[10px] uppercase tracking-[0.45em] font-display">
           {{ t('login.eyebrow') }}
         </p>
 
-        <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.92] tracking-[0.04em] text-[clamp(2.6rem,10vw,6.2rem)]">
+        <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.95] tracking-[0.05em] text-[2.1rem] sm:text-[2.9rem]">
           {{ t('login.title_line1') }}<br>{{ t('login.title_line2') }}
         </h1>
 
-        <p class="font-serif italic text-ink-50 text-xl sm:text-2xl">{{ t('home.hero_promise') }}</p>
+        <div class="neon-rule w-40 mx-auto" />
+      </div>
 
-        <div class="neon-rule w-32" />
+      <!--
+        L'accroche tient en une phrase et pose les deux promesses du jeu : le
+        monde est bâti sur ce joueur-là, et ce qu'il y dénoue lui revient. La
+        coupure tombe avant « vers » : ce que c'est d'un côté, où ça mène de
+        l'autre.
+      -->
+      <p class="text-ink-200/75 text-sm leading-relaxed max-w-xs">
+        {{ t('login.tagline_line1') }}<br>
+        {{ t('login.tagline_line2') }}
+      </p>
 
-        <!-- Les deux lignes de la couverture : ce qu'on donne, ce qu'on reçoit -->
-        <p class="font-display uppercase text-[11px] sm:text-xs tracking-[0.3em] leading-[2.2] max-w-2xl">
-          <span class="block text-ink-100">{{ t('home.hero_line1') }}</span>
-          <span class="block text-neon-400">{{ t('home.hero_line2') }}</span>
+      <!--
+        Le dossier est déjà au bureau. Personne ne remplit deux fois le même
+        formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
+        scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
+        Le formulaire reste accessible dessous, pour qui veut repartir sous une
+        autre identité.
+      -->
+      <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
+        <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
+          <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
+          <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
+          <template v-else>{{ t('login.dossier_known') }}</template>
         </p>
+        <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
+        <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
+          {{ resumeScene.title }}
+          <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
+        </p>
+        <button
+          class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
+                 hover:text-ink-200 transition-colors pt-1"
+          @click="openDisclaimer"
+        >
+          {{ t('login.dossier_new') }}
+        </button>
+      </div>
 
-        <!--
-          Le dossier est déjà au bureau. Personne ne remplit deux fois le même
-          formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
-          scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
-          Le formulaire reste accessible dessous, pour qui veut repartir sous une
-          autre identité.
-        -->
-        <div v-if="knownDossier" class="w-full max-w-sm space-y-4 flex flex-col items-center pt-2">
-          <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-            <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
-            <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
-            <template v-else>{{ t('login.dossier_known') }}</template>
-          </p>
-          <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
-          <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
-            {{ resumeScene.title }}
-            <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
-          </p>
-          <button
-            class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
-                   hover:text-ink-200 transition-colors pt-1"
-            @click="openDisclaimer"
+      <!--
+        L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
+        que le monde utilisera de lui, et la commission lui répond avant la
+        première scène.
+      -->
+      <div v-else class="w-full space-y-4 flex flex-col items-center">
+        <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
+          {{ t('login.enroll_cta') }}
+        </GlowButton>
+        <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
+          {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
+        </p>
+      </div>
+
+      <!--
+        LA LANGUE, sur le tout premier écran.
+        Elle ne peut pas attendre le formulaire : quelqu'un qui ne lit pas le
+        français doit pouvoir sortir du français avant d'avoir à remplir quoi
+        que ce soit. Le menu affiche le nom de la langue DANS cette langue —
+        « Deutsch », « Русский » — parce que c'est le seul libellé qu'un
+        visiteur reconnaîtra à coup sûr, quelle que soit la langue affichée.
+        Le choix part dans le cookie, et le formulaire s'ouvrira dessus.
+      -->
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-1">
+        <label class="flex items-center gap-2">
+          <span class="sr-only">{{ t('lang.label') }}</span>
+          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
+               stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" />
+            <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
+          </svg>
+          <select
+            class="lang-select"
+            :value="lang"
+            @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
           >
-            {{ t('login.dossier_new') }}
-          </button>
-        </div>
+            <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
+          </select>
+        </label>
 
-        <!--
-          L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
-          que le monde utilisera de lui, et la commission lui répond avant la
-          première scène.
-        -->
-        <div v-else class="w-full max-w-sm space-y-4 flex flex-col items-center pt-2">
-          <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
-            {{ t('login.enroll_cta') }}
-          </GlowButton>
-          <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
-            {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
-          </p>
-        </div>
+        <!-- Partager l'adresse : le domaine sert de libellé, il se lit dans toutes les langues -->
+        <button class="share-link group flex items-center gap-2" @click="shareSite">
+          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500 group-hover:text-neon-400 transition-colors"
+               fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
+            <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
+          </svg>
+          {{ host }}
+        </button>
+
+        <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
+        <a
+          href="https://instagram.com/farnight_game"
+          target="_blank"
+          rel="noopener"
+          aria-label="Instagram"
+          class="p-1 text-steel-500 hover:text-neon-400 transition-colors"
+        >
+          <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="15" height="15" rx="4.5" />
+            <circle cx="10" cy="10" r="3.6" />
+            <circle cx="14.6" cy="5.4" r="0.7" fill="currentColor" stroke="none" />
+          </svg>
+        </a>
       </div>
 
-      <!-- Il y a une suite : un chevron qui descend, et qui y mène d'un clic -->
-      <button class="scroll-cue absolute bottom-6 left-1/2 -translate-x-1/2 z-10 p-3 text-neon-400"
-              tabindex="-1" aria-hidden="true" @click="toNext">
-        <svg viewBox="0 0 24 14" class="scroll-cue-chevron w-7 h-4" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="square">
-          <path d="M2 2l10 10L22 2" />
-        </svg>
-      </button>
-    </section>
-
-    <LoginPitch :cta-label="ctaLabel" :cta-note="ctaNote" @enter="enter" />
-
-    <!--
-      L'horizon qui monte au-dessus du pied de page. Skyline à gradins,
-      silhouette plate sur deux plans, tubes néon sur les façades. C'est le
-      décor polygonal de Flashback, pas un dégradé.
-    -->
-    <div data-scrub class="horizon relative pointer-events-none" aria-hidden="true">
-      <div
-        class="absolute inset-x-0 bottom-0 h-[160%]"
-        style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
-      />
-      <div class="horizon-city relative opacity-90">
-        <HomeSkyline />
-      </div>
+      <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
+      <NuxtLink
+        to="/mentions-legales"
+        class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/70 hover:text-steel-400 transition-colors"
+      >
+        © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
+      </NuxtLink>
     </div>
 
-    <!-- LE PIED DE PAGE : toutes les langues du site, et de quoi faire passer l'adresse -->
-    <footer class="relative bg-ink-900 border-t border-neon-600/25">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid gap-14 lg:grid-cols-[1.4fr_1fr] lg:gap-20">
-        <div data-reveal>
-          <p class="foot-eyebrow">{{ t('lang.label') }}</p>
-          <ul class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-x-6">
-            <li v-for="l in languages" :key="l.code">
-              <button
-                class="lang-cell"
-                :class="{ 'is-current': l.code === lang }"
-                :aria-pressed="l.code === lang"
-                :lang="l.code"
-                @click="setLang(l.code)"
-              >
-                {{ l.endonym }}
-              </button>
-            </li>
-          </ul>
-          <p class="mt-5 text-ink-300 text-[13px] leading-relaxed max-w-lg">{{ t('lang.hint') }}</p>
-        </div>
-
-        <div data-reveal style="--d: 1">
-          <p class="foot-eyebrow">{{ t('home.share') }}</p>
-          <!-- L'adresse elle-même : la feuille de partage du système, ou le presse-papiers -->
-          <button class="share-main group mt-5" @click="shareSite">
-            <span class="truncate" dir="ltr">{{ copied ? t('home.copied') : host }}</span>
-            <svg viewBox="0 0 20 20" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
-              <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
-              <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
-            </svg>
-          </button>
-          <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-            <li v-for="link in shareLinks" :key="link.name">
-              <a :href="link.href" target="_blank" rel="noopener noreferrer" class="share-link">{{ link.name }}</a>
-            </li>
-            <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
-            <li>
-              <a href="https://instagram.com/farnight_game" target="_blank" rel="noopener" class="share-link">Instagram</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Licence et mentions légales -->
-      <div class="border-t border-steel-700/50">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <span class="font-display text-[10px] uppercase tracking-[0.3em] text-steel-500">{{ gameTitle }}</span>
-          <NuxtLink
-            to="/mentions-legales"
-            class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/80 hover:text-steel-400 transition-colors"
-          >
-            © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
-          </NuxtLink>
-        </div>
-      </div>
-    </footer>
-
-    <!-- Balayage cathodique, sur toute la page, sous la barre du haut -->
-    <div class="crt-scanlines fixed inset-0 z-30 pointer-events-none opacity-30" />
+    <!-- Balayage cathodique, tout au-dessus -->
+    <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
 
     <!--
       Avertissement données. Plus haut que l'écran d'un téléphone : plafonné à
@@ -619,65 +448,49 @@ onUnmounted(() => window.scrollTo(0, 0))
   max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
-/* La barre du haut : rien sur la couverture, un fond dès qu'on descend. */
-.topbar {
-  padding-top: env(safe-area-inset-top);
-  transition: background-color 0.35s ease, border-color 0.35s ease;
-  border-bottom: 1px solid transparent;
-}
-.topbar.is-solid {
-  background: rgb(var(--ink-900) / 0.86);
-  border-bottom-color: rgb(var(--neon-600) / 0.22);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-.topbar-title { opacity: 0; transition: opacity 0.35s ease; }
-.topbar.is-solid .topbar-title { opacity: 1; }
-
 /*
-  Le menu de langue et le bouton de partage : deux pastilles biseautées de
-  même hauteur. Le menu reste un <select> du système — au doigt, c'est la
-  roue native, la seule qui marche partout —, seul son habit change.
+  Le menu de langue : la même sobriété que le reste de l'accueil — pas de
+  cadre, un filet sous le mot, et le chevron dessiné plutôt que celui du
+  système, qui casserait la ligne.
 */
-.lang-pill,
-.icon-pill {
-  --cut: 6px;
-  display: inline-flex;
-  align-items: center;
-  height: 2.25rem;
-  color: rgb(var(--ink-200));
-  background: rgb(var(--ink-900) / 0.55);
-  box-shadow: inset 0 0 0 1px rgb(var(--steel-500) / 0.7);
-  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-  transition: color 0.2s ease, box-shadow 0.2s ease;
-}
-.lang-pill { gap: 0.5rem; padding-inline: 0.75rem 0.5rem; cursor: pointer; }
-.icon-pill { justify-content: center; width: 2.25rem; }
-.lang-pill:hover,
-.lang-pill:focus-within,
-.icon-pill:hover,
-.icon-pill:focus-visible {
-  color: rgb(var(--neon-300));
-  box-shadow: inset 0 0 0 1px rgb(var(--neon-500) / 0.8);
-}
-
 .lang-select {
   appearance: none;
   background: transparent;
   border: 0;
-  color: inherit;
+  border-bottom: 1px solid rgb(var(--steel-600) / 0.7);
+  color: rgb(var(--ink-300));
   font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0.12em;
-  padding: 0.25rem 1.1rem 0.25rem 0;
-  max-width: 9.5rem;
-  text-overflow: ellipsis;
+  padding: 0.25rem 1.25rem 0.3rem 0.1rem;
   cursor: pointer;
   outline: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0 L5 6 L10 0 Z' fill='%23718096'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.1rem center;
   background-size: 8px;
+}
+
+.lang-select:hover,
+.lang-select:focus {
+  color: rgb(var(--neon-300));
+  border-bottom-color: rgb(var(--neon-600) / 0.7);
+}
+
+/* Le partage, à la même voix que le menu de langue qu'il accompagne. */
+.share-link {
+  color: rgb(var(--ink-300));
+  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  padding: 0.25rem 0 0.3rem;
+  transition: color 0.2s ease;
+}
+
+.share-link:hover,
+.share-link:focus-visible {
+  color: rgb(var(--neon-300));
 }
 
 /* Le menu déroulé est rendu par le système : il lui faut un fond opaque. */
@@ -686,146 +499,6 @@ onUnmounted(() => window.scrollTo(0, 0))
   color: rgb(var(--ink-100));
 }
 
-/*
-  LE PREMIER ÉCRAN. Les tours s'enfoncent moins vite que la page ; le texte
-  remonte en s'effaçant. --p vaut 0 en haut de page.
-*/
-.hero-city {
-  transform: translateY(calc(var(--p, 0) * 28%));
-  will-change: transform;
-}
-.hero-veil {
-  background: radial-gradient(70% 58% at 50% 45%, rgb(var(--ink-900) / 0.94) 0%, rgb(var(--ink-900) / 0.78) 48%, transparent 80%);
-}
-.hero-content {
-  opacity: calc(1 - var(--p, 0) * 1.7);
-  transform: translateY(calc(var(--p, 0) * -70px));
-}
-.scroll-cue { opacity: calc(1 - var(--p, 0) * 4); }
-.scroll-cue-chevron {
-  filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.8));
-  animation: cue 1.8s ease-in-out infinite;
-}
-@keyframes cue {
-  0%, 100% { transform: translateY(0); opacity: 0.55; }
-  50% { transform: translateY(8px); opacity: 1; }
-}
-
-/* La skyline monte derrière le dernier écran, et se pose avant le pied de page. */
-.horizon-city { transform: translateY(calc(max(0, 0.55 - var(--p, 0.55)) * 70%)); }
-
-.foot-eyebrow {
-  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  color: rgb(var(--neon-400));
-}
-
-/* Les quinze langues, chacune écrite dans sa propre langue. */
-.lang-cell {
-  position: relative;
-  display: block;
-  width: 100%;
-  text-align: start;
-  padding: 0.8rem 0 0.8rem 0.9rem;
-  border-bottom: 1px solid rgb(var(--steel-700) / 0.7);
-  color: rgb(var(--ink-300));
-  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  transition: color 0.2s ease;
-}
-.lang-cell::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: 0;
-  top: 50%;
-  width: 3px;
-  height: 0;
-  background: rgb(var(--neon-500));
-  box-shadow: 0 0 8px rgb(var(--neon-500) / 0.8);
-  transform: translateY(-50%);
-  transition: height 0.25s ease;
-}
-.lang-cell:hover,
-.lang-cell:focus-visible { color: rgb(var(--ink-50)); }
-.lang-cell.is-current { color: rgb(var(--neon-300)); }
-.lang-cell.is-current::before { height: 1.1rem; }
-
-/* L'adresse du jeu, en grand : c'est elle qu'on fait passer. */
-.share-main {
-  --cut: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  width: 100%;
-  max-width: 24rem;
-  padding: 1rem 1.25rem;
-  color: rgb(var(--neon-200));
-  background: rgb(var(--ink-800) / 0.7);
-  box-shadow: inset 0 0 0 1px rgb(var(--neon-500) / 0.55);
-  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.share-main:hover,
-.share-main:focus-visible {
-  background: rgb(var(--neon-500));
-  color: rgb(var(--ink-900));
-}
-
-.share-link {
-  color: rgb(var(--ink-300));
-  font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid rgb(var(--steel-600) / 0.7);
-  transition: color 0.2s ease, border-color 0.2s ease;
-}
-.share-link:hover,
-.share-link:focus-visible {
-  color: rgb(var(--neon-300));
-  border-bottom-color: rgb(var(--neon-500));
-}
-
-/* L'arabe se lie : l'interlettrage y casse les mots. */
-.home:lang(ar) * { letter-spacing: normal !important; }
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-city, .hero-content, .horizon-city { transform: none; opacity: 1; }
-  .scroll-cue-chevron { animation: none; }
-}
-
 .modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
-</style>
-
-<!--
-  Les apparitions, pour toute la page — `LoginPitch` compris, d'où l'absence de
-  `scoped`. Bornées à `.home.is-motion` : sans JavaScript ou avec moins
-  d'animation demandée, rien n'est jamais caché.
--->
-<style>
-.home.is-motion [data-reveal] {
-  transition:
-    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
-    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
-    clip-path 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: calc(var(--d, 0) * 110ms);
-}
-.home.is-motion [data-reveal]:not(.is-in) {
-  opacity: 0;
-  transform: translateY(28px);
-}
-.home.is-motion [data-reveal='wipe']:not(.is-in) {
-  transform: none;
-  clip-path: inset(0 100% 0 0);
-}
-.home.is-motion [data-reveal='wipe'].is-in { clip-path: inset(0 0 0 0); }
 </style>

@@ -1,7 +1,7 @@
 <!--
   La skyline de la ville : gradins symétriques, silhouette plate sur deux
   plans, tubes néon sur les façades. C'est le décor polygonal de Flashback,
-  pas un dégradé. Sous la pluie du premier écran, et au-dessus du pied de page.
+  pas un dégradé. Sous la pluie de l'accueil.
 -->
 <template>
   <svg viewBox="0 0 2400 460" preserveAspectRatio="xMidYMax meet" class="w-full h-auto" aria-hidden="true">
