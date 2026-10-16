@@ -3,15 +3,16 @@ import type { InterfaceSource } from '~/utils/ui-theme'
 import { nightOf, type JournalEntry } from '~/utils/journal'
 import { resolveLang } from '~/utils/languages'
 import { sanitizeHtml } from '~/utils/sanitize-html'
+import { readPlaceImage, thumbnail } from '~/utils/night-album'
 
 /**
  * Le carnet de la nuit : ce que le PDF offert sur l'écran de fin met en pages.
  *
- * Rien n'y est généré. C'est la partie déjà jouée, relue — le but, les lieux,
- * les réponses trouvées, ce qu'il emporte, le texte de fin et son aube. Le
- * serveur ne tient aucune base : tout part du navigateur, qui le garde avec
- * l'écran de fin, pour que l'offre survive au rechargement tant que la ville
- * reste fermée.
+ * Rien n'y est généré. C'est la partie déjà jouée, relue — le but, les lieux
+ * et leurs images, les réponses trouvées, ce qu'il emporte, le texte de fin et
+ * son aube. Le serveur ne tient aucune base : tout part du navigateur, qui le
+ * garde avec l'écran de fin, pour que l'offre survive au rechargement tant que
+ * la ville reste fermée.
  */
 export interface KeepsakePlace {
   place: string
@@ -21,6 +22,8 @@ export interface KeepsakePlace {
   who: string[]
   carried: string | null
   answer?: string
+  /** Le lieu tel qu'il l'a vu, en miniature JPEG (`utils/night-album.ts`). */
+  image?: string
 }
 
 export interface Keepsake {
@@ -55,6 +58,14 @@ export function placesOf(journal: JournalEntry[]): KeepsakePlace[] {
   }))
 }
 
+/** Les lieux, chacun avec l'image que l'album a gardée de lui. */
+export async function placesWithImagesOf(journal: JournalEntry[]): Promise<KeepsakePlace[]> {
+  return Promise.all(placesOf(journal).map(async (p, i) => ({
+    ...p,
+    image: await readPlaceImage(journal[i]!.scene_title),
+  })))
+}
+
 /** Le titre et le but de la nuit, tels que l'auberge les a fixés. */
 export function nightHeadOf(journal: JournalEntry[]): { title?: string; goal?: string } {
   const night = nightOf(journal)
@@ -65,22 +76,19 @@ export function nightHeadOf(journal: JournalEntry[]): { title?: string; goal?: s
  * L'aube repassée en JPEG.
  *
  * L'image arrive en base64 de plusieurs mégaoctets : telle quelle, elle
- * saturerait le stockage du navigateur et dépasserait ce que Vercel accepte en
- * entrée. Un échec la laisse hors du PDF, qui tient sans elle.
+ * saturerait le stockage du navigateur et, avec les images des lieux, dépasserait
+ * ce que Vercel accepte en entrée. 1600 px suffisent à une couverture A4. Un
+ * échec la laisse hors du PDF, qui tient sans elle.
  */
-export async function asJpeg(dataUrl: string): Promise<string | undefined> {
-  try {
-    const img = new Image()
-    img.src = dataUrl
-    await img.decode()
-    const canvas = document.createElement('canvas')
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    canvas.getContext('2d')?.drawImage(img, 0, 0)
-    return canvas.toDataURL('image/jpeg', 0.85)
-  } catch {
-    return undefined
-  }
+export function asJpeg(dataUrl: string): Promise<string | undefined> {
+  return thumbnail(dataUrl, 1600, 0.85)
+}
+
+const IMAGE_DATA_URL = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/
+
+/** Une image en data URL sous `max` caractères, ou rien. */
+function dataImage(v: unknown, max: number): string | undefined {
+  return typeof v === 'string' && v.length < max && IMAGE_DATA_URL.test(v) ? v : undefined
 }
 
 /**
@@ -100,10 +108,7 @@ export function clampKeepsake(input: unknown): Keepsake | null {
   const ending = sanitizeHtml(cut(k.ending_html, 12_000))
   if (!ending) return null
 
-  const image = typeof k.image === 'string' && k.image.length < 3_000_000
-    && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(k.image)
-    ? k.image
-    : undefined
+  const image = dataImage(k.image, 3_000_000)
 
   return {
     lang: resolveLang(k.lang),
@@ -118,6 +123,7 @@ export function clampKeepsake(input: unknown): Keepsake | null {
       who: (Array.isArray(p?.who) ? p.who : []).slice(0, 6).map(n => cut(n, 60)).filter(Boolean),
       carried: cut(p?.carried, 120) || null,
       answer: cut(p?.answer, 200) || undefined,
+      image: dataImage(p?.image, 400_000),
     })),
     augmentation: cut(k.augmentation, 80) || undefined,
     kept: (Array.isArray(k.kept) ? k.kept : []).slice(0, 24).map(n => cut(n, 80)).filter(Boolean),
@@ -141,11 +147,14 @@ export function storeKeepsake(keepsake: Keepsake): void {
   if (!import.meta.client) return
   const write = (k: Keepsake) =>
     window.localStorage.setItem(KEEPSAKE_KEY, JSON.stringify({ ...k, saved_at: Date.now() }))
+  const bare = keepsake.places.map(p => ({ ...p, image: undefined }))
   try {
     write(keepsake)
   } catch {
-    // Stockage plein : sans l'aube, le carnet tient encore.
-    try { write({ ...keepsake, image: undefined }) } catch { /* rien à garder */ }
+    // Stockage plein : sans les lieux, puis sans l'aube, le carnet tient encore.
+    try { write({ ...keepsake, places: bare }) } catch {
+      try { write({ ...keepsake, places: bare, image: undefined }) } catch { /* rien à garder */ }
+    }
   }
 }
 

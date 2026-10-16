@@ -7,6 +7,7 @@ import { useGameStore } from '~/stores/game'
 import { usePlayerStore } from '~/stores/player'
 import { useImageGen } from '~/composables/useImageGen'
 import { readSceneImage, storeSceneImage, forgetSceneImage } from '~/utils/scene-image-memory'
+import { forgetAlbum, keepPlaceImage } from '~/utils/night-album'
 
 /**
  * Une scène de l'auberge prend 50 à 80 s : environ 18 000 jetons de prompt, et
@@ -424,6 +425,7 @@ export function forgetStoredScene(): void {
  */
 export function forgetRun(): void {
   forgetStoredScene()
+  void forgetAlbum()
   try { memory()?.removeItem(CARRY_KEY) } catch { /* sans conséquence */ }
 }
 
@@ -638,6 +640,7 @@ export function useScene() {
     if (res.static_image) {
       gameStore.setSceneImage(res.static_image)
       gameStore.finishSceneImage()
+      void keepPlaceImage(res.scene_title, res.static_image)
       return res.static_image
     }
 
@@ -653,6 +656,7 @@ export function useScene() {
     if (kept && !isPlaceholder(kept)) {
       gameStore.setSceneImage(kept)
       gameStore.finishSceneImage()
+      void keepPlaceImage(res.scene_title, kept)
       return kept
     }
 
@@ -664,7 +668,11 @@ export function useScene() {
       // Le lieu vient du plan de la nuit : c'est lui que l'image dessine.
       planned: res.planned,
     })
-    if (image && !isPlaceholder(image)) void storeSceneImage(stamp, image)
+    if (image && !isPlaceholder(image)) {
+      void storeSceneImage(stamp, image)
+      // Et pour l'aube : le PDF de la nuit montre chaque lieu tel qu'il a été vu.
+      void keepPlaceImage(res.scene_title, image)
+    }
     return image
   }
 

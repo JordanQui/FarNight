@@ -5,7 +5,7 @@ import { usePlayerStore } from '~/stores/player'
 import { useGameStore } from '~/stores/game'
 import { useInterfacePalette } from '~/composables/useInterfacePalette'
 import type { EndingResponse } from '~/types/scene'
-import { asJpeg, nightHeadOf, placesOf, storeKeepsake, type Keepsake } from '~/utils/keepsake'
+import { asJpeg, nightHeadOf, placesWithImagesOf, storeKeepsake, type Keepsake } from '~/utils/keepsake'
 import { pack } from '~/utils/languages'
 import { saveFile } from '~/utils/save-file'
 
@@ -89,7 +89,7 @@ async function keepNight(end: EndingResponse): Promise<Keepsake> {
     date: new Intl.DateTimeFormat(pack(lang).tag, { dateStyle: 'long' }).format(new Date()),
     title: head.title || end.scene_title,
     goal: head.goal,
-    places: placesOf(playerStore.journal),
+    places: await placesWithImagesOf(playerStore.journal),
     augmentation: gameStore.augmentation?.name,
     kept: gameStore.inventory.filter(o => gameStore.decryptedObjectIds.includes(o.id)).map(o => o.label),
     ending_html: end.ending_html,

@@ -85,6 +85,7 @@ export function keepsakeHtml(k: Keepsake): string {
 
   const places = k.places.map((p, i) => `
     <article class="place">
+      ${p.image ? `<img class="shot" src="${p.image}" alt="">` : ''}
       <p class="num">${String(i + 1).padStart(2, '0')}</p>
       <div>
         <h3>${esc(p.place)}</h3>
@@ -146,6 +147,8 @@ section { margin-bottom: 12mm; }
 
 .place { display: grid; grid-template-columns: 12mm 1fr; gap: 0 4mm; padding: 6mm 0;
   border-top: 1px solid rgb(var(--steel-600) / 0.5); break-inside: avoid; }
+.place .shot { grid-column: 1 / -1; width: 100%; height: 92mm; object-fit: cover; margin-bottom: 5mm;
+  border: 1px solid rgb(var(--neon-600) / 0.4); }
 .place .num { font-family: var(--display); font-size: 14pt; color: rgb(var(--neon-400)); line-height: 1.2; }
 h3 { font-family: var(--display); font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em;
   font-size: 11.5pt; color: rgb(var(--ink-50)); line-height: 1.3; }
