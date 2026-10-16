@@ -270,6 +270,13 @@ function toTop() {
   window.scrollTo({ top: 0, behavior: motion.value ? 'smooth' : 'auto' })
 }
 
+/** Le chevron du premier écran : on descend jusqu'au pied de la couverture, là où commence le pitch. */
+function toNext(e: MouseEvent) {
+  const hero = (e.currentTarget as HTMLElement).closest('section')
+  const top = hero ? hero.offsetTop + hero.offsetHeight : window.innerHeight
+  window.scrollTo({ top, behavior: motion.value ? 'smooth' : 'auto' })
+}
+
 onMounted(() => {
   motion.value = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   observer = new IntersectionObserver((entries) => {
@@ -359,16 +366,19 @@ onUnmounted(() => window.scrollTo(0, 0))
     </header>
 
     <!--
-      LE PREMIER ÉCRAN : la couverture du Creator kit. Le Comptoir en fond,
-      qui descend moins vite que la page ; le texte s'efface en remontant.
+      LE PREMIER ÉCRAN : la couverture du Creator kit. Les tours sous la pluie,
+      qui s'enfoncent à mesure qu'on descend ; le texte s'efface en remontant.
+      (L'image du Comptoir reste dans public/home, gardée pour plus tard.)
     -->
     <section data-scrub="exit" class="hero relative min-h-[100svh] overflow-hidden flex flex-col items-center justify-center px-6 pt-24 pb-32 text-center">
-      <picture class="hero-image absolute inset-0">
-        <source media="(max-width: 639px)" srcset="/home/portrait/counter.webp">
-        <img src="/home/counter.webp" alt="" width="1920" height="1080" fetchpriority="high" decoding="async"
-             class="w-full h-full object-cover">
-      </picture>
-      <div class="hero-veil absolute inset-0 pointer-events-none" />
+      <!-- Lueur de la ville, sous l'horizon -->
+      <div
+        class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
+        style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
+      />
+      <div class="hero-city absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
+        <HomeSkyline />
+      </div>
 
       <!-- Pluie -->
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -385,6 +395,9 @@ onUnmounted(() => window.scrollTo(0, 0))
           }"
         />
       </div>
+
+      <!-- Voile : le texte doit rester lisible par-dessus les tours -->
+      <div class="hero-veil absolute inset-0 pointer-events-none" />
 
       <div class="hero-content relative z-10 flex flex-col items-center gap-7 max-w-4xl w-full">
         <p class="text-steel-400 text-[10px] uppercase tracking-[0.45em] font-display">
@@ -447,10 +460,14 @@ onUnmounted(() => window.scrollTo(0, 0))
         </div>
       </div>
 
-      <!-- Il y a une suite : un tube qui descend -->
-      <div class="scroll-cue absolute bottom-6 left-1/2 -translate-x-1/2 h-12 w-px bg-steel-600/60 overflow-hidden" aria-hidden="true">
-        <span class="scroll-cue-dot block w-px h-4 bg-neon-400" />
-      </div>
+      <!-- Il y a une suite : un chevron qui descend, et qui y mène d'un clic -->
+      <button class="scroll-cue absolute bottom-6 left-1/2 -translate-x-1/2 z-10 p-3 text-neon-400"
+              tabindex="-1" aria-hidden="true" @click="toNext">
+        <svg viewBox="0 0 24 14" class="scroll-cue-chevron w-7 h-4" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="square">
+          <path d="M2 2l10 10L22 2" />
+        </svg>
+      </button>
     </section>
 
     <LoginPitch :cta-label="ctaLabel" :cta-note="ctaNote" @enter="enter" />
@@ -466,11 +483,7 @@ onUnmounted(() => window.scrollTo(0, 0))
         style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
       />
       <div class="horizon-city relative opacity-90">
-        <svg viewBox="0 0 2400 460" preserveAspectRatio="xMidYMax meet" class="w-full h-auto" aria-hidden="true">
-        <g fill="#1c2537"><rect x="40" y="310" width="86" height="150"/><rect x="52" y="277" width="62" height="183"/><rect x="64" y="244" width="38" height="216"/><rect x="170" y="350" width="58" height="110"/><rect x="178" y="326" width="42" height="134"/><rect x="255" y="270" width="104" height="190"/><rect x="269" y="229" width="76" height="231"/><rect x="283" y="188" width="48" height="272"/><rect x="400" y="330" width="66" height="130"/><rect x="409" y="302" width="48" height="158"/><rect x="500" y="235" width="120" height="225"/><rect x="517" y="186" width="86" height="274"/><rect x="534" y="137" width="52" height="323"/><rect x="551" y="88" width="18" height="372"/><rect x="668" y="315" width="74" height="145"/><rect x="678" y="284" width="54" height="176"/><rect x="688" y="253" width="34" height="207"/><rect x="775" y="285" width="96" height="175"/><rect x="788" y="247" width="70" height="213"/><rect x="801" y="209" width="44" height="251"/><rect x="905" y="340" width="58" height="120"/><rect x="913" y="314" width="42" height="146"/><rect x="1000" y="220" width="128" height="240"/><rect x="1018" y="168" width="92" height="292"/><rect x="1036" y="116" width="56" height="344"/><rect x="1054" y="64" width="20" height="396"/><rect x="1180" y="325" width="70" height="135"/><rect x="1190" y="296" width="50" height="164"/><rect x="1285" y="275" width="92" height="185"/><rect x="1298" y="235" width="66" height="225"/><rect x="1311" y="195" width="40" height="265"/><rect x="1420" y="345" width="60" height="115"/><rect x="1428" y="320" width="44" height="140"/><rect x="1510" y="245" width="116" height="215"/><rect x="1526" y="198" width="84" height="262"/><rect x="1542" y="151" width="52" height="309"/><rect x="1558" y="104" width="20" height="356"/><rect x="1680" y="310" width="78" height="150"/><rect x="1691" y="277" width="56" height="183"/><rect x="1702" y="244" width="34" height="216"/><rect x="1795" y="335" width="64" height="125"/><rect x="1804" y="308" width="46" height="152"/><rect x="1885" y="260" width="108" height="200"/><rect x="1900" y="216" width="78" height="244"/><rect x="1915" y="172" width="48" height="288"/><rect x="1930" y="128" width="18" height="332"/><rect x="2050" y="320" width="72" height="140"/><rect x="2060" y="290" width="52" height="170"/><rect x="2070" y="260" width="32" height="200"/><rect x="2160" y="290" width="90" height="170"/><rect x="2172" y="253" width="66" height="207"/><rect x="2184" y="216" width="42" height="244"/><rect x="2290" y="330" width="70" height="130"/><rect x="2300" y="302" width="50" height="158"/><rect x="548" y="60" width="7" height="400"/><rect x="1962" y="105" width="7" height="355"/></g>
-        <g fill="#0f1626"><rect x="0" y="270" width="96" height="190"/><rect x="13" y="229" width="70" height="231"/><rect x="26" y="188" width="44" height="272"/><rect x="120" y="320" width="68" height="140"/><rect x="129" y="290" width="50" height="170"/><rect x="560" y="205" width="112" height="255"/><rect x="576" y="149" width="80" height="311"/><rect x="592" y="93" width="48" height="367"/><rect x="608" y="37" width="16" height="423"/><rect x="720" y="285" width="80" height="175"/><rect x="731" y="247" width="58" height="213"/><rect x="742" y="209" width="36" height="251"/><rect x="1090" y="170" width="132" height="290"/><rect x="1108" y="107" width="96" height="353"/><rect x="1126" y="44" width="60" height="416"/><rect x="1144" y="-19" width="24" height="479"/><rect x="1270" y="300" width="74" height="160"/><rect x="1280" y="265" width="54" height="195"/><rect x="1620" y="225" width="104" height="235"/><rect x="1634" y="174" width="76" height="286"/><rect x="1648" y="123" width="48" height="337"/><rect x="1662" y="72" width="20" height="388"/><rect x="1770" y="315" width="66" height="145"/><rect x="1779" y="284" width="48" height="176"/><rect x="2110" y="195" width="120" height="265"/><rect x="2127" y="137" width="86" height="323"/><rect x="2144" y="79" width="52" height="381"/><rect x="2161" y="21" width="18" height="439"/><rect x="2300" y="255" width="100" height="205"/><rect x="2314" y="210" width="72" height="250"/><rect x="2328" y="165" width="44" height="295"/><rect x="1150" y="80" width="9" height="380"/><rect x="2168" y="55" width="7" height="405"/></g>
-        <g fill="rgb(var(--neon-500))" opacity="0.9"><rect x="48" y="328" width="70" height="3"/><rect x="263" y="288" width="88" height="3"/><rect x="508" y="253" width="104" height="3"/><rect x="783" y="303" width="80" height="3"/><rect x="1008" y="238" width="112" height="3"/><rect x="1293" y="293" width="76" height="3"/><rect x="1518" y="263" width="100" height="3"/><rect x="1803" y="353" width="48" height="3"/><rect x="2058" y="338" width="56" height="3"/><rect x="2298" y="348" width="54" height="3"/><rect x="10" y="296" width="76" height="4"/><rect x="28" y="230" width="38" height="3"/><rect x="570" y="231" width="92" height="4"/><rect x="593" y="165" width="44" height="3"/><rect x="1100" y="196" width="112" height="4"/><rect x="1129" y="130" width="52" height="3"/><rect x="1630" y="251" width="84" height="4"/><rect x="1651" y="185" width="41" height="3"/><rect x="2120" y="221" width="100" height="4"/><rect x="2146" y="155" width="48" height="3"/><rect x="1148" y="86" width="13" height="52"/><rect x="546" y="64" width="11" height="40"/></g>
-      </svg>
+        <HomeSkyline />
       </div>
     </div>
 
@@ -511,7 +524,7 @@ onUnmounted(() => window.scrollTo(0, 0))
             </li>
             <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
             <li>
-              <a href="https://instagram.com/farnigt_game" target="_blank" rel="noopener" class="share-link">Instagram</a>
+              <a href="https://instagram.com/farnight_game" target="_blank" rel="noopener" class="share-link">Instagram</a>
             </li>
           </ul>
         </div>
@@ -674,26 +687,28 @@ onUnmounted(() => window.scrollTo(0, 0))
 }
 
 /*
-  LE PREMIER ÉCRAN. L'image descend moins vite que la page et grossit à peine ;
-  le texte remonte en s'effaçant. --p vaut 0 en haut de page.
+  LE PREMIER ÉCRAN. Les tours s'enfoncent moins vite que la page ; le texte
+  remonte en s'effaçant. --p vaut 0 en haut de page.
 */
-.hero-image {
-  transform: translateY(calc(var(--p, 0) * 28%)) scale(calc(1.06 + var(--p, 0) * 0.08));
+.hero-city {
+  transform: translateY(calc(var(--p, 0) * 28%));
   will-change: transform;
 }
 .hero-veil {
-  background:
-    linear-gradient(180deg, rgb(var(--ink-900) / 0.75) 0%, transparent 22%, transparent 55%, rgb(var(--ink-900)) 100%),
-    radial-gradient(70% 60% at 50% 50%, rgb(var(--ink-900) / 0.86) 0%, rgb(var(--ink-900) / 0.55) 60%, rgb(var(--ink-900) / 0.25) 100%);
+  background: radial-gradient(70% 58% at 50% 45%, rgb(var(--ink-900) / 0.94) 0%, rgb(var(--ink-900) / 0.78) 48%, transparent 80%);
 }
 .hero-content {
   opacity: calc(1 - var(--p, 0) * 1.7);
   transform: translateY(calc(var(--p, 0) * -70px));
 }
-.scroll-cue-dot { animation: cue 2.2s cubic-bezier(0.6, 0, 0.4, 1) infinite; }
+.scroll-cue { opacity: calc(1 - var(--p, 0) * 4); }
+.scroll-cue-chevron {
+  filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.8));
+  animation: cue 1.8s ease-in-out infinite;
+}
 @keyframes cue {
-  0% { transform: translateY(-100%); }
-  70%, 100% { transform: translateY(300%); }
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(8px); opacity: 1; }
 }
 
 /* La skyline monte derrière le dernier écran, et se pose avant le pied de page. */
@@ -783,8 +798,8 @@ onUnmounted(() => window.scrollTo(0, 0))
 .home:lang(ar) * { letter-spacing: normal !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-image, .hero-content, .horizon-city { transform: none; opacity: 1; }
-  .scroll-cue-dot { animation: none; }
+  .hero-city, .hero-content, .horizon-city { transform: none; opacity: 1; }
+  .scroll-cue-chevron { animation: none; }
 }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }

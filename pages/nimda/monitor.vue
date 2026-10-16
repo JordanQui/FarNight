@@ -4,7 +4,7 @@
  *
  * Tout compte à partir de SINCE, l'ouverture de la séance : chaque bloc
  * transmet ce point de départ à sa route (server/api/admin/monitor/*, dont
- * meta pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, le
+ * meta et tiktok pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, le
  * bouton en bas à droite enregistre maintenant (server/api/admin/monitor/since.ts) ;
  * la plus récente des deux, cette remise ou SINCE, ouvre la séance.
  *
@@ -43,11 +43,12 @@ const { data: journal, error: journalError, status: journalStatus, refresh: refr
 const { data: openai, error: openaiError, status: openaiStatus, refresh: refreshOpenai } = kept(useFetch('/api/admin/monitor/openai', opts))
 const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = kept(useFetch('/api/admin/payments', opts))
 const { data: meta, error: metaError, status: metaStatus, refresh: refreshMeta } = kept(useFetch('/api/admin/monitor/meta', opts))
+const { data: tiktok, error: tiktokError, status: tiktokStatus, refresh: refreshTiktok } = kept(useFetch('/api/admin/monitor/tiktok', opts))
 
-const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus].some(s => s.value === 'pending'))
+const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus, tiktokStatus].some(s => s.value === 'pending'))
 function refreshAll() {
   countdown.value = REFRESH_S
-  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe(); refreshMeta()
+  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe(); refreshMeta(); refreshTiktok()
 }
 
 // L'horloge ne tourne que dans le navigateur : le serveur rend des tirets.
@@ -133,12 +134,17 @@ const bucketLabel = (at: string) => trafic.value?.granularity === '1h' ? `${hhmm
 const ads = computed(() => meta.value?.configured ? meta.value : null)
 const metaAt = (at: string) => `${at.slice(8, 10)}/${at.slice(5, 7)}${at.length > 10 ? ` ${at.slice(11)}h` : ''}`
 const adsAt = computed(() => ads.value?.buckets.map(b => metaAt(b.at)))
+/** TikTok répond dans la même forme que Meta, à l'heure de son compte. */
+const tt = computed(() => tiktok.value?.configured ? tiktok.value : null)
+const ttAt = computed(() => tt.value?.buckets.map(b => metaAt(b.at)))
+/** Toute la dépense pub, Meta et TikTok, dès que l'une des deux est lue. */
+const adSpend = computed(() => ads.value || tt.value ? (ads.value?.spend ?? 0) + (tt.value?.spend ?? 0) : null)
 /** La dépense pub rapportée à un compte du jeu, tant qu'il y a de quoi diviser. */
-const perAd = (n: number | null | undefined) => ads.value && n ? ads.value.spend / n : null
+const perAd = (n: number | null | undefined) => adSpend.value != null && n ? adSpend.value / n : null
 /** Ce que les campagnes en cours peuvent encore dépenser sur leur budget total. */
-const adsLeft = computed(() => (ads.value?.campaigns ?? [])
+const budgetLeft = (campaigns: { status: string; budget: number | null; daily: boolean; lifetime: number }[]) => campaigns
   .filter(c => c.status === 'ACTIVE' && c.budget != null && !c.daily)
-  .reduce((s, c) => s + Math.max(0, c.budget! - c.lifetime), 0))
+  .reduce((s, c) => s + Math.max(0, c.budget! - c.lifetime), 0)
 
 /**
  * La viabilité, pub par pub : une pub est rentable si elle amène au moins
@@ -160,13 +166,13 @@ function poissonAtMost(k: number, lambda: number) {
 }
 
 const studies = computed(() => {
-  if (!ads.value || !stripe.value) return null
+  if (!stripe.value || (!ads.value && !tt.value)) return null
   const rows = new Map<string | null, { tag: string | null; spend: number; clicks: number; paywalls: number; sales: number }>()
   const row = (tag: string | null) => {
     if (!rows.has(tag)) rows.set(tag, { tag, spend: 0, clicks: 0, paywalls: 0, sales: 0 })
     return rows.get(tag)!
   }
-  for (const c of ads.value.campaigns) { row(c.tag).spend += c.spend; row(c.tag).clicks += c.clicks }
+  for (const c of [...ads.value?.campaigns ?? [], ...tt.value?.campaigns ?? []]) { row(c.tag).spend += c.spend; row(c.tag).clicks += c.clicks }
   for (const c of stripe.value.campaigns) { row(c.tag).paywalls += c.paywalls; row(c.tag).sales += c.sales }
   return [...rows.values()].map((r) => {
     const need = r.spend / MARGIN_EUR
@@ -222,16 +228,29 @@ const tiles = computed<Tile[]>(() => [
     note: !meta.value ? undefined : ads.value ? `boosts Instagram, depuis ${metaAt(ads.value.from)}` : 'jeton Meta absent',
   },
   { code: 'IMP', label: 'Impressions pub', value: ads.value?.impressions ?? null, spark: ads.value?.buckets.map(b => b.impressions), sparkAt: adsAt.value },
-  { code: 'CVT', label: 'Personnes touchées', value: ads.value?.reach ?? null, note: ads.value ? `depuis minuit le ${metaAt(ads.value.from.slice(0, 10))}` : undefined },
+  { code: 'CVT', label: 'Personnes touchées', value: ads.value?.reach ?? null, note: !ads.value ? undefined : ads.value.reachSinceReset ? `nouvelles depuis ${hhmm(opening.value)}` : `depuis minuit le ${metaAt(ads.value.from.slice(0, 10))}` },
   {
     code: 'CLK', label: 'Clics sur la pub', value: ads.value?.clicks ?? null, spark: ads.value?.buckets.map(b => b.clicks), sparkAt: adsAt.value,
     note: ads.value ? `${int(ads.value.visits)} pages chargées derrière` : undefined,
   },
-  { code: 'CPC', label: 'Coût par clic', value: perAd(ads.value?.clicks), unit: '€', decimals: 2, bad: true, alert: false },
-  { code: 'CPP', label: 'Pub par paywall ouvert', value: perAd(stripe.value?.server.creates), unit: '€', decimals: 2, bad: true, alert: false, note: 'paywalls de toute provenance' },
+  { code: 'CPC', label: 'Coût par clic Meta', value: ads.value?.clicks ? ads.value.spend / ads.value.clicks : null, unit: '€', decimals: 2, bad: true, alert: false },
+  {
+    code: 'TTK', label: 'Dépense pub TikTok', value: tt.value?.spend ?? null, unit: '€', decimals: 2, bad: true, alert: false,
+    spark: tt.value?.buckets.map(b => b.spend), sparkAt: ttAt.value,
+    note: !tiktok.value ? undefined : tt.value ? `depuis ${metaAt(tt.value.from)}` : 'compte TikTok à brancher',
+  },
+  {
+    code: 'TIM', label: 'Impressions TikTok', value: tt.value?.impressions ?? null, spark: tt.value?.buckets.map(b => b.impressions), sparkAt: ttAt.value,
+    note: tt.value ? `${int(tt.value.reach)} personnes depuis minuit le ${metaAt(tt.value.from.slice(0, 10))}` : undefined,
+  },
+  {
+    code: 'TCL', label: 'Clics TikTok', value: tt.value?.clicks ?? null, spark: tt.value?.buckets.map(b => b.clicks), sparkAt: ttAt.value,
+    note: tt.value?.clicks ? `${money((tt.value.spend / tt.value.clicks) * 100, tt.value.account.currency)} le clic` : undefined,
+  },
+  { code: 'CPP', label: 'Pub par paywall ouvert', value: perAd(stripe.value?.server.creates), unit: '€', decimals: 2, bad: true, alert: false, note: 'Meta + TikTok, paywalls de toute provenance' },
   {
     code: 'CPA', label: 'Pub par nuit vendue', value: perAd(stripe.value?.statuses.succeeded), unit: '€', decimals: 2, bad: true, alert: false,
-    note: stripe.value && !stripe.value.statuses.succeeded ? 'aucune vente encore' : 'ventes de toute provenance',
+    note: stripe.value && !stripe.value.statuses.succeeded ? 'aucune vente encore' : 'Meta + TikTok, ventes de toute provenance',
   },
   { code: 'OAI', label: 'Appels OpenAI réussis', value: trafic.value ? outboundCount('api.openai.com', s => s < 400) : null },
   { code: '429', label: 'Refus OpenAI', value: trafic.value ? outboundCount('api.openai.com', s => s === 429) : null, bad: true },
@@ -322,6 +341,39 @@ async function resetSession() {
   }
 }
 
+/**
+ * Brancher le compte TikTok : son autorisation revient ici avec un `auth_code`
+ * valable une heure, échangé aussitôt contre le jeton puis retiré de l'adresse.
+ * Le formulaire du panneau fait pareil avec une adresse de retour collée.
+ */
+const redirect = `${useRequestURL().origin}/nimda/monitor`
+const authorize = computed(() => tiktok.value && !tiktok.value.configured && tiktok.value.appId
+  ? `https://business-api.tiktok.com/portal/auth?app_id=${tiktok.value.appId}&state=monitor&redirect_uri=${encodeURIComponent(redirect)}`
+  : null)
+const authInput = ref('')
+const connecting = ref(false)
+const connectError = ref('')
+async function connectTiktok(code: string) {
+  connecting.value = true
+  connectError.value = ''
+  try {
+    await $fetch('/api/admin/monitor/tiktok', { method: 'POST', body: { code } })
+    authInput.value = ''
+    await refreshTiktok()
+  } catch (e) {
+    connectError.value = reason(e as { statusMessage?: string; message?: string })
+  } finally {
+    connecting.value = false
+  }
+}
+const returned = useRoute().query.auth_code
+const router = useRouter()
+onMounted(() => {
+  if (typeof returned !== 'string') return
+  router.replace({ query: {} })
+  connectTiktok(returned)
+})
+
 const outbound = computed(() => {
   const hosts = new Map<string, { host: string; ok: number; failures: { status: number; count: number }[] }>()
   for (const r of trafic.value?.outbound ?? []) {
@@ -407,7 +459,7 @@ const outbound = computed(() => {
       <!-- Viabilité : chaque pub jugée sur ses ventes -->
       <section class="panel">
         <h2>Viabilité <span>par pub · marge {{ money(MARGIN_EUR * 100) }} par vente · ventes nécessaires = dépense ÷ marge</span></h2>
-        <p v-if="!studies" class="muted">lecture de Meta et de Stripe…</p>
+        <p v-if="!studies" class="muted">lecture des pubs et de Stripe…</p>
         <template v-else>
           <table class="tbl">
             <thead><tr><th>Pub</th><th class="num">Dépense</th><th class="num">Clics</th><th class="num">Paywalls</th><th class="num">Ventes</th><th class="num">Nécessaires</th><th>Verdict</th></tr></thead>
@@ -424,7 +476,7 @@ const outbound = computed(() => {
             </tr>
           </table>
           <p class="muted small">
-            Toutes pubs confondues : {{ int(ads?.visits ?? 0) }} pages chargées derrière les clics → {{ int(route('/api/scene/text')?.total ?? 0) }} scènes écrites
+            Toutes pubs confondues : {{ int(ads?.visits ?? 0) }} pages chargées derrière les clics Meta{{ tt ? `, ${int(tt.clicks)} clics TikTok` : '' }} → {{ int(route('/api/scene/text')?.total ?? 0) }} scènes écrites
             → {{ int(studies.reduce((n, s) => n + s.paywalls, 0)) }} paywalls → {{ int(studies.reduce((n, s) => n + s.sales, 0)) }} ventes. Seules les deux dernières étapes se lisent par pub.
           </p>
           <p class="muted small">
@@ -434,7 +486,7 @@ const outbound = computed(() => {
         </template>
       </section>
 
-      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
+      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError, tiktokError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
       <p v-for="(msg, name) in { ...(etat?.errors ?? {}), ...(trafic?.errors ?? {}) }" :key="name" class="err">{{ name }} — {{ msg }}</p>
 
       <div class="cols">
@@ -588,11 +640,62 @@ const outbound = computed(() => {
               <td class="num">{{ money(c.spend * 100, ads.account.currency) }}</td>
             </tr>
           </table>
-          <p v-if="adsLeft" class="muted small">
-            Les campagnes en cours peuvent encore dépenser {{ money(adsLeft * 100, ads.account.currency) }}, dans la limite des fonds prépayés.
+          <p v-if="budgetLeft(ads.campaigns)" class="muted small">
+            Les campagnes en cours peuvent encore dépenser {{ money(budgetLeft(ads.campaigns) * 100, ads.account.currency) }}, dans la limite des fonds prépayés.
             Ces fonds ne se lisent pas avec <code>ads_read</code> : Instagram → Paiements publicitaires.
           </p>
           <p class="muted small">Meta met ces chiffres à jour avec un peu de retard et les corrige parfois après coup.</p>
+        </template>
+      </section>
+
+      <!-- Publicité : TikTok -->
+      <section class="panel">
+        <h2>Publicité <span>TikTok{{ tt ? ` · compte ${tt.account.name} · depuis ${metaAt(tt.from)}` : '' }}</span></h2>
+        <p v-if="tiktokError" class="bad">{{ reason(tiktokError) }}</p>
+        <p v-else-if="!tiktok" class="muted">lecture de TikTok…</p>
+        <div v-else-if="!tt" class="muted small">
+          <p v-if="!authorize">
+            Les pubs TikTok se lisent par une app développeur, créée une fois sur
+            <a href="https://business-api.tiktok.com/portal" target="_blank" rel="noopener" class="link">TikTok API for Business</a>
+            (Become a Developer, puis My Apps → Create an app) : permissions « Ad Account Management », « Ads Management » et « Reporting »,
+            adresse de retour (Advertiser redirect URL) <code>{{ redirect }}</code>. TikTok valide l’app en deux ou trois jours ouvrés.
+            Son App ID et son Secret vont dans le <code>.env</code> local seulement : <code>TIKTOK_APP_ID=…</code> et <code>TIKTOK_APP_SECRET=…</code>. Relancer le dev ensuite.
+          </p>
+          <template v-else>
+            <p>
+              L’app est prête, reste à lui ouvrir le compte publicitaire :
+              <a :href="authorize" class="link">autoriser sur TikTok →</a>
+              TikTok revient ici et le compte se branche seul. S’il revient ailleurs, coller l’adresse où il a atterri :
+            </p>
+            <form class="balance" @submit.prevent="connectTiktok(authInput)">
+              <input v-model="authInput" class="wide" placeholder="adresse de retour ou auth_code" autocomplete="off">
+              <button type="submit" class="btn" :disabled="connecting || !authInput">{{ connecting ? '…' : 'Brancher' }}</button>
+            </form>
+          </template>
+          <p v-if="connectError" class="bad">{{ connectError }}</p>
+        </div>
+        <template v-else>
+          <p v-if="!tt.campaigns.length" class="muted">Aucune campagne en cours.</p>
+          <table v-else class="tbl">
+            <thead><tr><th>Campagne</th><th class="num">Budget</th><th class="num">Dépensé</th><th class="num">Depuis l’ouverture</th></tr></thead>
+            <tr v-for="c in tt.campaigns" :key="c.id">
+              <td>
+                {{ c.title }}
+                <span class="t">{{ dayMonth(Date.parse(c.start)) }} {{ hhmm(Date.parse(c.start)) }}{{ c.stop ? ` → ${dayMonth(Date.parse(c.stop))}` : '' }}</span>
+                <span v-if="c.status !== 'ACTIVE'" class="tag muted">{{ CAMPAIGN_STATUS[c.status] ?? c.status }}</span>
+              </td>
+              <td class="num">{{ c.budget == null ? '' : `${money(c.budget * 100, tt.account.currency)}${c.daily ? ' / jour' : ''}` }}</td>
+              <td class="num">{{ money(c.lifetime * 100, tt.account.currency) }}</td>
+              <td class="num">{{ money(c.spend * 100, tt.account.currency) }}</td>
+            </tr>
+          </table>
+          <p v-if="budgetLeft(tt.campaigns)" class="muted small">
+            Les campagnes en cours peuvent encore dépenser {{ money(budgetLeft(tt.campaigns) * 100, tt.account.currency) }}, dans la limite du solde du compte.
+          </p>
+          <p class="muted small">
+            Seules les campagnes du Gestionnaire de publicités TikTok se lisent ici, Spark Ads compris ; « Promouvoir », dans l’appli, n’y passe pas.
+            Une pub s’étiquette par son lien de destination, <code>farnight.online/?c=t1</code>.
+          </p>
         </template>
       </section>
 
@@ -781,6 +884,7 @@ code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9);
 .balance input { width: 120px; background: #05070a; border: 1px solid var(--line); padding: 4px 8px; color: rgb(var(--ink-100)); font-variant-numeric: tabular-nums; }
 .balance input:focus { outline: none; border-color: rgb(var(--neon-500) / 0.6); }
 .balance .btn { margin-top: 0; }
+.balance input.wide { width: min(100%, 360px); }
 
 .reset { position: fixed; right: 16px; bottom: 16px; z-index: 10; margin: 0; background: #0a0d12; }
 .reset:hover:not(:disabled) { border-color: rgb(255 92 92 / 0.6); color: var(--down); }

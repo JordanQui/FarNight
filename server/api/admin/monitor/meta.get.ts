@@ -10,12 +10,16 @@
  * Meta compte à l'heure du compte (Europe/Paris). Dépense, impressions et
  * clics partent de l'heure du point de départ ; la couverture, des personnes
  * uniques qui ne s'additionnent pas d'une heure à l'autre, part de minuit le
- * même jour, et la page le dit. Les fonds prépayés restent hors de portée de
+ * même jour, et la page le dit. Après une remise à zéro, la première lecture
+ * note la couverture du jour et les suivantes la retranchent : restent les
+ * personnes touchées depuis. Les fonds prépayés restent hors de portée de
  * `ads_read`.
  */
 
 const GRAPH = 'https://graph.facebook.com/v26.0'
 const HOUR = 'hourly_stats_aggregated_by_advertiser_time_zone'
+/** La couverture relevée à la remise à zéro ; `monitor:since` est celle de since.ts. */
+const REACH_KEY = 'monitor:meta-reach'
 
 type Page<T> = { data: T[]; paging?: { next?: string } }
 type Action = { action_type: string; value: string }
@@ -47,7 +51,8 @@ export default defineEventHandler(async (event) => {
   const token = process.env.META_ADS_TOKEN?.trim()
   if (!token) return { configured: false as const }
 
-  const since = new Date(String(getQuery(event).since))
+  const raw = String(getQuery(event).since)
+  const since = new Date(raw)
   if (Number.isNaN(since.getTime())) throw createError({ statusCode: 400, statusMessage: 'since manquant ou illisible' })
 
   const get = async <T>(path: string, query: Record<string, string | number> = {}) => {
@@ -92,6 +97,15 @@ export default defineEventHandler(async (event) => {
     }),
   ])
 
+  // Relevé pris à la première lecture qui suit la remise à zéro, jamais pour une remise ancienne.
+  const storage = useStorage('data')
+  let base = await storage.getItem<{ since: string; reach: number }>(REACH_KEY)
+  if (base?.since !== raw && raw === await storage.getItem<string>('monitor:since') && Date.now() - since.getTime() < 10 * 60_000) {
+    base = { since: raw, reach: num(whole?.reach) }
+    await storage.setItem(REACH_KEY, base)
+  }
+  const reachBase = base?.since === raw ? base.reach : null
+
   // Tranches d'une heure sur les deux premiers jours, d'un jour ensuite, comme le trafic.
   const byDay = Date.now() - since.getTime() > 48 * 3600_000
   const buckets = new Map<string, { at: string; spend: number; impressions: number; clicks: number }>()
@@ -122,7 +136,9 @@ export default defineEventHandler(async (event) => {
     /** Heure locale du compte, « 2026-10-14 18 ». */
     from,
     ...total,
-    reach: num(whole?.reach),
+    reach: Math.max(0, num(whole?.reach) - (reachBase ?? 0)),
+    /** Couverture comptée depuis la remise à zéro ; sinon depuis minuit le jour du départ. */
+    reachSinceReset: reachBase !== null,
     buckets: [...buckets.values()].sort((a, b) => a.at.localeCompare(b.at)),
     // Une campagne reste ACTIVE chez Meta après sa date de fin : c'est stop_time qui dit qu'elle est finie.
     campaigns: campaigns
