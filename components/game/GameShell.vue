@@ -311,7 +311,7 @@ function retryImage() {
 
 <template>
   <div
-    class="flex flex-col h-[100dvh] overflow-hidden bg-ink-900 tool-cursor"
+    class="flex flex-col h-[100dvh] overflow-hidden bg-ink-900 tool-cursor lg:[--text-col:clamp(380px,36vw,560px)] lg:w-[var(--text-col)]"
     :class="gameStore.activeTool === 'lens' ? 'cursor-lens' : gameStore.eyeActive && 'cursor-eye'"
   >
     <!--
@@ -327,8 +327,10 @@ function retryImage() {
          largeur. Desktop : c'est la hauteur qui le dimensionne, et il se centre
          — un 16/9 pleine largeur y ferait 810px de haut, sans place pour le
          texte. Quand la place manque, c'est lui qui cède — rogné au centre —
-         pour que l'écran tienne en 100dvh sans ascenseur. -->
-    <div class="min-h-0 overflow-hidden flex items-center justify-center">
+         pour que l'écran tienne en 100dvh sans ascenseur. Écran large : il
+         sort de la colonne et prend toute la hauteur à droite, le texte à
+         gauche dans une colonne de lecture (`--text-col`). -->
+    <div class="min-h-0 overflow-hidden flex items-center justify-center lg:fixed lg:inset-y-0 lg:right-0 lg:left-[var(--text-col)]">
       <SceneImage
         :src="gameStore.currentSceneImageUrl"
         :loading="gameStore.sceneImageLoading"

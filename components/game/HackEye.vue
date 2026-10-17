@@ -74,7 +74,7 @@ const style = computed(() => ({
          reste fermé, et part avec lui. -->
     <div
       v-if="!enabled && !reopening"
-      class="fixed top-3 left-3 z-40 flex items-center gap-2"
+      class="fixed top-3 left-3 z-40 flex items-center gap-2 lg:left-[calc(var(--text-col,0px)+0.75rem)]"
     >
       <button
         class="flex items-center gap-2 px-3 py-2

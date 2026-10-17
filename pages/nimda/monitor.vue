@@ -4,7 +4,7 @@
  *
  * Tout compte à partir de SINCE, l'ouverture de la séance : chaque bloc
  * transmet ce point de départ à sa route (server/api/admin/monitor/*, dont
- * meta et tiktok pour les pubs, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, le
+ * meta et tiktok pour les pubs, x pour les posts X, et /api/admin/payments pour Stripe). Pour remettre le tableau à zéro, le
  * bouton en bas à droite enregistre maintenant (server/api/admin/monitor/since.ts) ;
  * la plus récente des deux, cette remise ou SINCE, ouvre la séance.
  *
@@ -44,11 +44,12 @@ const { data: openai, error: openaiError, status: openaiStatus, refresh: refresh
 const { data: stripe, error: stripeError, status: stripeStatus, refresh: refreshStripe } = kept(useFetch('/api/admin/payments', opts))
 const { data: meta, error: metaError, status: metaStatus, refresh: refreshMeta } = kept(useFetch('/api/admin/monitor/meta', opts))
 const { data: tiktok, error: tiktokError, status: tiktokStatus, refresh: refreshTiktok } = kept(useFetch('/api/admin/monitor/tiktok', opts))
+const { data: xData, error: xError, status: xStatus, refresh: refreshX } = kept(useFetch('/api/admin/monitor/x', opts))
 
-const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus, tiktokStatus].some(s => s.value === 'pending'))
+const busy = computed(() => [etatStatus, traficStatus, journalStatus, openaiStatus, stripeStatus, metaStatus, tiktokStatus, xStatus].some(s => s.value === 'pending'))
 function refreshAll() {
   countdown.value = REFRESH_S
-  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe(); refreshMeta(); refreshTiktok()
+  refreshEtat(); refreshTrafic(); refreshJournal(); refreshOpenai(); refreshStripe(); refreshMeta(); refreshTiktok(); refreshX()
 }
 
 // L'horloge ne tourne que dans le navigateur : le serveur rend des tirets.
@@ -137,6 +138,10 @@ const adsAt = computed(() => ads.value?.buckets.map(b => metaAt(b.at)))
 /** TikTok répond dans la même forme que Meta, à l'heure de son compte. */
 const tt = computed(() => tiktok.value?.configured ? tiktok.value : null)
 const ttAt = computed(() => tt.value?.buckets.map(b => metaAt(b.at)))
+/** Les posts X publiés depuis l'ouverture, une barre de spark chacun. */
+const xOk = computed(() => xData.value?.configured ? xData.value : null)
+const xAt = computed(() => xOk.value?.posts.map(p => `${dayMonth(Date.parse(p.at))} ${hhmm(Date.parse(p.at))} « ${p.excerpt} »`))
+const xSum = (k: 'impressions' | 'engagements' | 'clicks' | 'profile') => xOk.value?.posts.reduce((s, p) => s + p[k], 0) ?? null
 /** Toute la dépense pub, Meta et TikTok, dès que l'une des deux est lue. */
 const adSpend = computed(() => ads.value || tt.value ? (ads.value?.spend ?? 0) + (tt.value?.spend ?? 0) : null)
 /** La dépense pub rapportée à un compte du jeu, tant qu'il y a de quoi diviser. */
@@ -247,6 +252,14 @@ const tiles = computed<Tile[]>(() => [
     code: 'TCL', label: 'Clics TikTok', value: tt.value?.clicks ?? null, spark: tt.value?.buckets.map(b => b.clicks), sparkAt: ttAt.value,
     note: tt.value?.clicks ? `${money((tt.value.spend / tt.value.clicks) * 100, tt.value.account.currency)} le clic` : undefined,
   },
+  {
+    code: 'XPO', label: 'Posts X', value: xOk.value?.posts.length ?? null,
+    note: !xData.value ? undefined : xOk.value ? `${xOk.value.account}, publiés depuis l’ouverture` : 'compte X à brancher dans /nimda/socials',
+  },
+  { code: 'XIM', label: 'Impressions X', value: xSum('impressions'), spark: xOk.value?.posts.map(p => p.impressions), sparkAt: xAt.value, note: xOk.value ? 'une barre par post' : undefined },
+  { code: 'XEN', label: 'Interactions X', value: xSum('engagements'), spark: xOk.value?.posts.map(p => p.engagements), sparkAt: xAt.value, note: xOk.value ? 'J’aime, reposts, réponses, citations, signets' : undefined },
+  { code: 'XCL', label: 'Clics X sur le lien', value: xSum('clicks'), spark: xOk.value?.posts.map(p => p.clicks), sparkAt: xAt.value, note: xOk.value ? `${int(xSum('profile') ?? 0)} clics sur le profil` : undefined },
+  { code: 'XAB', label: 'Abonnés X', value: xOk.value?.followers ?? null, note: xOk.value ? 'au moment de la cotation' : undefined },
   { code: 'CPP', label: 'Pub par paywall ouvert', value: perAd(stripe.value?.server.creates), unit: '€', decimals: 2, bad: true, alert: false, note: 'Meta + TikTok, paywalls de toute provenance' },
   {
     code: 'CPA', label: 'Pub par nuit vendue', value: perAd(stripe.value?.statuses.succeeded), unit: '€', decimals: 2, bad: true, alert: false,
@@ -486,7 +499,7 @@ const outbound = computed(() => {
         </template>
       </section>
 
-      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError, tiktokError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
+      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError, tiktokError, xError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
       <p v-for="(msg, name) in { ...(etat?.errors ?? {}), ...(trafic?.errors ?? {}) }" :key="name" class="err">{{ name }} — {{ msg }}</p>
 
       <div class="cols">

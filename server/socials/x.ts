@@ -48,6 +48,9 @@ const auth = oauth({
   refresh: s => token({ grant_type: 'refresh_token', refresh_token: s.refresh! }),
 })
 
+/** Le moniteur lit les posts avec le même jeton, renouvelé au besoin. */
+export const xToken = auth.token
+
 type Processing = { state: 'pending' | 'in_progress' | 'succeeded' | 'failed'; check_after_secs?: number; error?: { message?: string } }
 
 async function upload(m: Media) {

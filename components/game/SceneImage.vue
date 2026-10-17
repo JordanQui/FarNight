@@ -34,7 +34,7 @@ const message = computed(() => {
 </script>
 
 <template>
-  <div class="relative w-full max-w-[1600px] mx-auto aspect-[16/9] max-h-[62dvh] overflow-hidden bg-ink-900">
+  <div class="relative w-full max-w-[1600px] mx-auto aspect-[16/9] max-h-[62dvh] overflow-hidden bg-ink-900 lg:h-full lg:max-w-none lg:max-h-none lg:aspect-auto">
     <div v-if="!src" class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6">
       <div v-if="loading" class="absolute inset-0 shimmer-bg" />
       <p
@@ -64,7 +64,8 @@ const message = computed(() => {
       />
     </Transition>
 
-    <div class="absolute bottom-0 left-0 right-0 h-16 sm:h-24 bg-gradient-to-t from-ink-900 to-transparent pointer-events-none" />
+    <!-- Écran large : le fondu passe sur le bord gauche, côté texte. -->
+    <div class="absolute bottom-0 left-0 right-0 h-16 sm:h-24 bg-gradient-to-t from-ink-900 to-transparent pointer-events-none lg:top-0 lg:right-auto lg:h-auto lg:w-24 lg:bg-gradient-to-r" />
   </div>
 </template>
 
