@@ -669,7 +669,7 @@
     },
     "paywall": {
       "gate_text": "Deine Hand schließt sich um den stählernen Griff der Schleuse. Das Metall ist kalt. Dahinter der Regen und der Rest deiner Nacht.\n\nDie Schleuse öffnet sich noch nicht.",
-      "cta": "Durch die Schleuse — 12 €",
+      "cta": "Durch die Schleuse — 9 €",
       "sub_cta": "Schalte die Fortsetzung von {{quest_title}} frei",
       "pitch": {
         "eyebrow": "Was für dich auf dem Spiel steht",

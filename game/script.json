@@ -1537,9 +1537,9 @@
   ],
   "paywall": {
     "gate_text": "Ta main se referme sur la poignée d'acier du sas. Le métal est froid. Derrière, la pluie, et le reste de ta nuit.\n\nLe sas ne s'ouvre pas encore.",
-    "cta": "Franchir le sas — 12 €",
+    "cta": "Franchir le sas — 9 €",
     "sub_cta": "Débloquez la suite de {{quest_title}}",
-    "amount_cents": 1200,
+    "amount_cents": 900,
     "currency": "EUR",
     "pitch": {
       "eyebrow": "Ce qui se joue pour vous",

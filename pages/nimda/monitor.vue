@@ -150,9 +150,9 @@ const budgetLeft = (campaigns: { status: string; budget: number | null; daily: b
  * La viabilité, pub par pub : une pub est rentable si elle amène au moins
  * dépense ÷ marge ventes. Les pubs se distinguent par le `?c=` de leur lien,
  * que le jeu range sur le paiement ; sans lui, tout tombe dans « sans étiquette ».
- * Marge : 12 € − frais Stripe (~0,43 €) − IA d'une nuit (~1,31 €, /nimda/marge le 07/10).
+ * Marge : 9 € − frais Stripe (~0,39 €) − IA d'une nuit (~1,31 €, /nimda/marge le 07/10).
  */
-const MARGIN_EUR = 10
+const MARGIN_EUR = 7.3
 /** Sous ce risque, voir aussi peu de ventes au seuil n'est plus de la malchance. */
 const RISK = 0.05
 const VERDICT: Record<string, string> = { good: 'rentable à ce jour', warn: 'pas encore tranché', bad: 'sous le seuil', muted: 'aucune dépense' }

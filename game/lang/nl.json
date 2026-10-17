@@ -637,7 +637,7 @@
     },
     "paywall": {
       "gate_text": "Je hand sluit zich om de stalen hendel van de sluis. Het metaal is koud. Erachter de regen, en de rest van je nacht.\n\nDe sluis gaat nog niet open.",
-      "cta": "Door de sluis — € 12",
+      "cta": "Door de sluis — € 9",
       "sub_cta": "Ontgrendel het vervolg van {{quest_title}}",
       "pitch": {
         "eyebrow": "Wat er voor jou op het spel staat",

@@ -684,7 +684,7 @@
     },
     "paywall": {
       "gate_text": "La tua mano si chiude sulla maniglia d'acciaio della paratia. Il metallo è freddo. Dietro, la pioggia e il resto della tua notte.\n\nLa paratia non si apre ancora.",
-      "cta": "Varcare la paratia — 12 €",
+      "cta": "Varcare la paratia — 9 €",
       "sub_cta": "Sblocca il seguito di {{quest_title}}",
       "pitch": {
         "eyebrow": "Quello che è in gioco per te",

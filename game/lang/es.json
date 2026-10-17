@@ -677,7 +677,7 @@
     },
     "paywall": {
       "gate_text": "Tu mano se cierra sobre el asa de acero de la esclusa. El metal está frío. Detrás, la lluvia y el resto de tu noche.\n\nLa esclusa todavía no se abre.",
-      "cta": "Cruzar la esclusa — 12 €",
+      "cta": "Cruzar la esclusa — 9 €",
       "sub_cta": "Desbloquea la continuación de {{quest_title}}",
       "pitch": {
         "eyebrow": "Lo que está en juego para ti",

@@ -629,7 +629,7 @@
     },
     "paywall": {
       "gate_text": "Your hand closes on the steel handle of the airlock. The metal is cold. Behind it, the rain, and the rest of your night.\n\nThe airlock does not open yet.",
-      "cta": "Through the airlock — €12",
+      "cta": "Through the airlock — €9",
       "sub_cta": "Unlock the rest of {{quest_title}}",
       "pitch": {
         "eyebrow": "What is at stake for you",

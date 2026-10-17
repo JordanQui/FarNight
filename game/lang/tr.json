@@ -639,7 +639,7 @@
     },
     "paywall": {
       "gate_text": "Elin hava kilidinin çelik kolunu kavrar. Metal soğuk. Arkasında yağmur ve gecenin geri kalanı.\n\nHava kilidi henüz açılmıyor.",
-      "cta": "Hava kilidinden geç — 12 €",
+      "cta": "Hava kilidinden geç — 9 €",
       "sub_cta": "{{quest_title}} devamının kilidini aç",
       "pitch": {
         "eyebrow": "Senin için ne söz konusu",
