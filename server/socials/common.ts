@@ -85,7 +85,9 @@ function reason(body: unknown, fallback: string) {
   const b = body as Record<string, any> | null
   const msg = b?.error?.message ?? b?.error_description ?? b?.detail ?? b?.errors?.[0]?.message
     ?? b?.title ?? b?.message ?? (typeof b?.error === 'string' ? b.error : null)
-  return String(msg ?? fallback).slice(0, 400)
+  // Meta range l'explication lisible à part : « Permissions error » seul ne dit pas quoi faire.
+  const hint = b?.error?.error_user_msg ? ` — ${b.error.error_user_msg}` : ''
+  return (String(msg ?? fallback) + hint).slice(0, 400)
 }
 
 type Init = Omit<RequestInit, 'body'> & {

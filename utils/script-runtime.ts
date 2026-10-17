@@ -845,7 +845,7 @@ ${s.sealed_object
   : ''}
 OBJETS MANIPULABLES
 ${s.interactables.instruction}${s.interactables.spare_card ? `\n${this.script.defaults.spare_card.instruction}` : ''}${s.interactables.card_half ? `\n${s.key_item.completes_half ? this.script.defaults.card_half.instruction_second : this.script.defaults.card_half.instruction}` : ''}
-Un objet à prendre est PETIT : il tient dans la main et se glisse dans une poche — jamais une enseigne, un meuble, une machine, un écran ni rien de ce qui compose le lieu. Son verbe s'écrit exactement ainsi : ${this.takeVerbs}.
+Tout ce que le joueur peut emporter d'ici — chaque objet à prendre, l'objet scellé, la relique — est PETIT : il tient dans la main et se glisse dans une poche — jamais une enseigne, un meuble, une machine, un écran ni rien de ce qui compose le lieu. Le verbe d'un objet à prendre s'écrit exactement ainsi : ${this.takeVerbs}.
 
 ${this.script.defaults.item_icons.instruction}
 

@@ -25,17 +25,17 @@ const SCOPES = ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'
 type Page = { id: string; name: string; access_token: string; instagram_business_account?: { id: string; username?: string } }
 
 const env = () => process.env.META_SOCIAL_TOKEN?.trim() || process.env.META_ADS_TOKEN?.trim()
-function userToken() {
+export function userToken() {
   const t = env()
   if (!t) throw bad('Meta : META_ADS_TOKEN manquant au .env')
   return t
 }
 
-const get = <T>(path: string, token: string, query: Record<string, unknown> = {}) =>
+export const get = <T>(path: string, token: string, query: Record<string, unknown> = {}) =>
   http<T>('Meta', path.startsWith('https://') ? path : `${GRAPH}/${path}`, { headers: { Authorization: `Bearer ${token}` }, query })
 
 /** Graph prend ses paramètres en formulaire ; les listes s'y écrivent en JSON. */
-function post<T>(path: string, token: string, params: Record<string, unknown>) {
+export function post<T>(path: string, token: string, params: Record<string, unknown>) {
   const form: Record<string, string> = {}
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') form[k] = typeof v === 'object' ? JSON.stringify(v) : String(v)
@@ -45,7 +45,7 @@ function post<T>(path: string, token: string, params: Record<string, unknown>) {
   })
 }
 
-async function findPage(): Promise<Page> {
+export async function findPage(): Promise<Page> {
   const { data } = await get<{ data: Page[] }>('me/accounts', userToken(), {
     fields: 'id,name,access_token,instagram_business_account{id,username}',
   })
@@ -115,9 +115,9 @@ async function tokenChecks(): Promise<Check[]> {
 }
 
 const SETUP_STEPS = [
-  'Sur business.facebook.com, Paramètres → Utilisateurs système → « monitor » : lui attribuer la page Facebook et le compte Instagram de FarNight, avec le droit de publier.',
+  'Sur business.facebook.com, Paramètres → Utilisateurs système → « monitor » : lui attribuer la page Facebook et le compte Instagram de FarNight, avec le droit de publier et de faire des pubs, et le compte publicitaire avec le droit de gérer les campagnes.',
   'Dans l’app farnight_app, ajouter les produits « Facebook Login for Business » et « Instagram » (API avec connexion Facebook).',
-  `Régénérer son jeton sans expiration en gardant ads_read et en ajoutant ${SCOPES.join(', ')}, business_management.`,
+  `Régénérer son jeton sans expiration en gardant ads_read et en ajoutant ${SCOPES.join(', ')}, business_management, et ads_management pour promouvoir les posts.`,
   'Le remettre au .env dans META_ADS_TOKEN : un seul jeton pour le moniteur et les réseaux (META_PAGE_ID=… s’il y a plusieurs pages).',
   'Le compte Instagram doit être professionnel et relié à la page.',
 ]
@@ -125,7 +125,7 @@ const setup = () => ({ env: ['META_ADS_TOKEN', 'META_PAGE_ID (facultatif)'], ste
 
 /* Instagram */
 
-async function igAccount() {
+export async function igAccount() {
   const page = await findPage()
   const ig = page.instagram_business_account
   if (!ig) throw createError({ statusCode: 502, statusMessage: `Meta : aucun compte Instagram relié à la page ${page.name}` })

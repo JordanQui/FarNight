@@ -217,6 +217,93 @@ function undo() {
 
 const recent = computed(() => (board.value?.journal ?? []).filter(e => e.network === tab.value).slice(0, 6))
 
+/* Les posts du compte et leurs pubs Meta (server/socials/ads.ts), dans les onglets Instagram et Facebook */
+
+const metaNet = computed(() => tab.value === 'instagram' || tab.value === 'facebook' ? tab.value : null)
+const fetchAds = (network: 'instagram' | 'facebook') => $fetch('/api/admin/socials/ads', { query: { network } })
+type AdsBoard = Awaited<ReturnType<typeof fetchAds>>
+type AdPost = AdsBoard['posts'][number]
+type Promo = AdPost['ads'][number]
+const adsBoard = ref<AdsBoard | null>(null)
+const adsLoading = ref(false)
+const adsError = ref('')
+async function loadAds() {
+  const n = metaNet.value
+  if (!n || !net.value?.connected) return
+  adsLoading.value = true
+  adsError.value = ''
+  try {
+    const r = await fetchAds(n)
+    if (metaNet.value === n) adsBoard.value = r
+  } catch (e) {
+    adsError.value = reason(e)
+  } finally {
+    adsLoading.value = false
+  }
+}
+const AD_STATUS: Record<string, string> = {
+  ACTIVE: 'active', PAUSED: 'en pause', CAMPAIGN_PAUSED: 'en pause', ADSET_PAUSED: 'en pause', IN_PROCESS: 'en examen', PENDING_REVIEW: 'en examen',
+  PREAPPROVED: 'pré-approuvée', DISAPPROVED: 'refusée', WITH_ISSUES: 'à revoir', PENDING_BILLING_INFO: 'paiement à régler', ARCHIVED: 'archivée', ENDED: 'finie',
+}
+/** Les pubs d'aucun post listé viennent en dernière ligne, sans post (id vide) ni « Promouvoir ». */
+const adRows = computed(() => {
+  const b = adsBoard.value
+  if (!b?.others.length) return b?.posts ?? []
+  return [...b.posts, { id: '', at: '', excerpt: '', thumb: undefined, url: undefined, eligible: null, ads: b.others }]
+})
+const money = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: adsBoard.value?.currency ?? 'EUR' }).format(v)
+
+const promoting = ref<string | null>(null)
+const promo = reactive({ budget: 10, days: 3, audience: '', countries: 'FR', ageMin: 18, ageMax: 65, placements: 'instagram', link: '' })
+/** L'audience enregistrée choisie ; aucune = « Sur mesure », avec les pays et l'âge du formulaire. */
+const audience = computed(() => adsBoard.value?.audiences.find(a => a.id === promo.audience) ?? null)
+const promoBusy = ref(false)
+const promoError = ref('')
+watch(metaNet, () => {
+  adsBoard.value = null
+  promoting.value = null
+  loadAds()
+})
+function openPromo(p: AdPost) {
+  promoting.value = p.id
+  promoError.value = ''
+  promo.placements = metaNet.value ?? 'instagram'
+  promo.link = `https://farnight.online/?c=${adsBoard.value?.nextTag ?? 'e1'}`
+  promo.audience ||= adsBoard.value?.audiences[0]?.id ?? ''
+}
+async function createPromo(p: AdPost) {
+  const network = metaNet.value
+  if (!network || !confirm(`Créer une pub de ${money(promo.budget)} sur ${promo.days} jour(s), en pause ? Rien n’est dépensé avant « Lancer ».`)) return
+  promoBusy.value = true
+  promoError.value = ''
+  try {
+    await $fetch('/api/admin/socials/ads', {
+      method: 'POST',
+      body: { action: 'promote', network, post: p.id, excerpt: p.excerpt, ...promo, countries: promo.countries.split(/[\s,;]+/).filter(Boolean) },
+    })
+    promoting.value = null
+    await loadAds()
+  } catch (e) {
+    promoError.value = reason(e)
+  } finally {
+    promoBusy.value = false
+  }
+}
+const switching = ref('')
+async function switchCampaign(a: Promo, status: 'ACTIVE' | 'PAUSED') {
+  if (status === 'ACTIVE' && !confirm(`Lancer la pub${a.tag ? ` ${a.tag}` : ''} ? Meta dépensera jusqu’à ${a.budget == null ? 'son budget' : `${money(a.budget)}${a.daily ? ' par jour' : ''}`}.`)) return
+  switching.value = a.campaign
+  adsError.value = ''
+  try {
+    await $fetch('/api/admin/socials/ads', { method: 'POST', body: { action: 'status', campaign: a.campaign, status } })
+    await loadAds()
+  } catch (e) {
+    adsError.value = reason(e)
+  } finally {
+    switching.value = ''
+  }
+}
+
 /* Brancher un compte */
 
 const pasted = ref('')
@@ -313,6 +400,7 @@ onMounted(() => {
     router.replace({ query: { tab: tab.value } })
   }
   if (tab.value === 'info') runScan()
+  loadAds()
 })
 </script>
 
@@ -482,6 +570,102 @@ onMounted(() => {
               <a v-if="e.url" :href="e.url" target="_blank" rel="noopener" class="link"> voir</a>
             </li>
           </ul>
+
+          <template v-if="metaNet && net.connected">
+            <h2 class="sub">
+              Posts du compte
+              <button type="button" class="link small" :disabled="adsLoading" @click="loadAds">{{ adsLoading ? 'lecture…' : 'relire' }}</button>
+            </h2>
+            <p v-if="adsError" class="bad small">{{ adsError }}</p>
+            <p v-if="adsBoard?.blocked" class="warn small">On voit les pubs, on n’en crée pas et on ne les met pas en pause. {{ adsBoard.blocked }}</p>
+            <p v-if="adsBoard && !adsBoard.posts.length" class="muted small">Aucun post.</p>
+            <ul v-if="adsBoard" class="posts">
+              <li v-for="p in adRows" :key="p.id">
+                <img v-if="p.thumb" :src="p.thumb" alt="" loading="lazy">
+                <span v-else class="thumb-x">—</span>
+                <div class="post-body">
+                  <p v-if="p.id">
+                    <span class="t">{{ when(p.at) }}</span> {{ p.excerpt || 'sans texte' }}
+                    <a v-if="p.url" :href="p.url" target="_blank" rel="noopener" class="link">voir</a>
+                  </p>
+                  <p v-else class="muted small">Pubs d’aucun post de la liste : un post plus ancien, ou une pub montée avec son propre post invisible.</p>
+                  <p v-for="a in p.ads" :key="a.id" class="ad">
+                    <span class="tag" :class="a.running ? 'good' : a.status === 'DISAPPROVED' || a.status === 'WITH_ISSUES' ? 'bad' : 'muted'">{{ AD_STATUS[a.status] ?? a.status }}</span>
+                    <span v-if="!p.id">{{ a.title }}</span>
+                    <code>{{ a.tag ? `?c=${a.tag}` : 'sans étiquette' }}</code>
+                    <span>{{ money(a.spend) }}{{ a.budget == null ? '' : ` / ${money(a.budget)}${a.daily ? ' par jour' : ''}` }} · {{ a.clicks }} clic(s)</span>
+                    <span v-if="!a.toSite" class="bad small">pas de lien vers le site</span>
+                    <button v-if="a.running" type="button" class="btn" :disabled="!adsBoard.writable || !!switching" @click="switchCampaign(a, 'PAUSED')">
+                      {{ switching === a.campaign ? '…' : 'Pause' }}
+                    </button>
+                    <button v-else-if="a.status !== 'ENDED' && a.status !== 'ARCHIVED'" type="button" class="btn" :disabled="!adsBoard.writable || !!switching" @click="switchCampaign(a, 'ACTIVE')">
+                      {{ switching === a.campaign ? '…' : 'Lancer' }}
+                    </button>
+                  </p>
+                  <template v-if="!p.id" />
+                  <template v-else-if="promoting !== p.id">
+                    <button type="button" class="btn" :disabled="!adsBoard.writable || p.eligible === false" @click="openPromo(p)">Promouvoir</button>
+                    <span v-if="p.eligible === false" class="muted small"> Meta ne le juge pas promouvable.</span>
+                  </template>
+                  <form v-else class="promo" @submit.prevent="createPromo(p)">
+                    <label class="field">
+                      <span class="k">Budget total<em>{{ adsBoard.currency }}</em></span>
+                      <input v-model.number="promo.budget" type="number" min="1" max="500" step="0.5" required>
+                    </label>
+                    <label class="field">
+                      <span class="k">Durée<em>jours</em></span>
+                      <input v-model.number="promo.days" type="number" min="1" max="30" step="1" required>
+                    </label>
+                    <label class="field wide">
+                      <span class="k">Audience</span>
+                      <select v-model="promo.audience">
+                        <option v-for="a in adsBoard.audiences" :key="a.id" :value="a.id">{{ a.name }}</option>
+                        <option value="">Sur mesure : pays et âge</option>
+                      </select>
+                    </label>
+                    <p v-if="audience" class="small wide">
+                      {{ audience.places.join(', ') || 'partout' }} · {{ audience.age }} · {{ audience.genders }}<template v-if="audience.interests.length">
+                        · {{ audience.interests.length }} intérêt(s) : <span class="muted">{{ audience.interests.join(', ') }}</span></template>
+                      <span v-if="audience.advantage" class="muted"> · Advantage+ : Meta peut élargir au-delà.</span>
+                    </p>
+                    <label v-else class="field">
+                      <span class="k">Pays<em>codes, séparés par des virgules</em></span>
+                      <input v-model="promo.countries" type="text" required>
+                    </label>
+                    <label class="field">
+                      <span class="k">Emplacements</span>
+                      <select v-model="promo.placements">
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="both">Les deux</option>
+                      </select>
+                    </label>
+                    <template v-if="!audience">
+                      <label class="field">
+                        <span class="k">Âge min.</span>
+                        <input v-model.number="promo.ageMin" type="number" min="18" max="65" step="1" required>
+                      </label>
+                      <label class="field">
+                        <span class="k">Âge max.</span>
+                        <input v-model.number="promo.ageMax" type="number" min="18" max="65" step="1" required>
+                      </label>
+                    </template>
+                    <label class="field wide">
+                      <span class="k">Lien</span>
+                      <input v-model="promo.link" type="text" required>
+                    </label>
+                    <p class="muted small wide">Le <code>?c=</code> de la fin est l’étiquette de la pub : le moniteur compte grâce à lui les ventes qu’elle amène. On peut l’enlever et garder farnight.online tout court ; la pub sera alors « sans étiquette ».</p>
+                    <p class="muted small wide">Objectif : clics vers le site. Créée en pause, rien n’est dépensé avant « Lancer ».</p>
+                    <p v-if="promoError" class="bad small wide">{{ promoError }}</p>
+                    <span class="wide assist">
+                      <button type="submit" class="btn" :disabled="promoBusy">{{ promoBusy ? 'Création…' : 'Créer en pause' }}</button>
+                      <button type="button" class="btn" :disabled="promoBusy" @click="promoting = null">Annuler</button>
+                    </span>
+                  </form>
+                </div>
+              </li>
+            </ul>
+          </template>
         </aside>
       </section>
 
@@ -554,6 +738,9 @@ onMounted(() => {
 
 <style scoped>
 .socials {
+  --neon-300: 196 160 255;
+  --neon-400: 168 110 255;
+  --neon-500: 140 70 255;
   --up: #3ddc84;
   --down: #ff5c5c;
   --warn: #ffb547;
@@ -618,7 +805,7 @@ onMounted(() => {
 .k { font-size: 9px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; }
 .k em { font-style: normal; letter-spacing: 0.06em; text-transform: none; }
 .k em.bad { color: var(--down); }
-input[type='text'], input[type='url'], textarea, select {
+input[type='text'], input[type='url'], input[type='number'], textarea, select {
   width: 100%;
   background: rgb(var(--ink-800) / 0.5);
   border: 0;
@@ -682,6 +869,13 @@ code.env { margin-right: 10px; }
 .wire { display: grid; gap: 6px; }
 .wire > li { border-top: 1px solid var(--line); padding-top: 6px; line-height: 1.5; }
 .wire > li > * { margin-right: 6px; }
+.posts { display: grid; gap: 8px; }
+.posts > li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.posts img, .posts .thumb-x { width: 56px; height: 56px; object-fit: cover; background: #000; display: grid; place-items: center; }
+.post-body { display: grid; gap: 6px; justify-items: start; line-height: 1.5; min-width: 0; }
+.post-body .ad { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.promo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; width: 100%; border: 1px solid var(--line); padding: 10px; }
+.promo .wide { grid-column: 1 / -1; }
 .tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 0 5px; }
 .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 

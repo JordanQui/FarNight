@@ -225,7 +225,7 @@ const tiles = computed<Tile[]>(() => [
   {
     code: 'PUB', label: 'Dépense pub Meta', value: ads.value?.spend ?? null, unit: '€', decimals: 2, bad: true, alert: false,
     spark: ads.value?.buckets.map(b => b.spend), sparkAt: adsAt.value,
-    note: !meta.value ? undefined : ads.value ? `boosts Instagram, depuis ${metaAt(ads.value.from)}` : 'jeton Meta absent',
+    note: !meta.value ? undefined : ads.value ? `boosts Instagram et Facebook, depuis ${metaAt(ads.value.from)}` : 'jeton Meta absent',
   },
   { code: 'IMP', label: 'Impressions pub', value: ads.value?.impressions ?? null, spark: ads.value?.buckets.map(b => b.impressions), sparkAt: adsAt.value },
   { code: 'CVT', label: 'Personnes touchées', value: ads.value?.reach ?? null, note: !ads.value ? undefined : ads.value.reachSinceReset ? `nouvelles depuis ${hhmm(opening.value)}` : `depuis minuit le ${metaAt(ads.value.from.slice(0, 10))}` },
@@ -481,7 +481,7 @@ const outbound = computed(() => {
           </p>
           <p class="muted small">
             Rouge quand, au seuil, voir aussi peu de ventes arriverait moins d’une fois sur 20. Une pub s’étiquette par son lien, <code>farnight.online/?c=e2</code> ;
-            « sans étiquette » réunit les liens sans <code>?c=</code> (les boosts du 14/10) et tout ce qui vient d’ailleurs.
+            « sans étiquette » réunit les liens sans <code>?c=</code> (les boosts du 14/10), les boosts sans lien vers le site et tout ce qui vient d’ailleurs.
           </p>
         </template>
       </section>
@@ -631,9 +631,11 @@ const outbound = computed(() => {
             <thead><tr><th>Campagne</th><th class="num">Budget</th><th class="num">Dépensé</th><th class="num">Depuis l’ouverture</th></tr></thead>
             <tr v-for="c in ads.campaigns" :key="c.id">
               <td>
+                <span v-if="c.from" class="tag">{{ c.from }}</span>
                 {{ c.title }}
                 <span class="t">{{ dayMonth(Date.parse(c.start)) }} {{ hhmm(Date.parse(c.start)) }}{{ c.stop ? ` → ${dayMonth(Date.parse(c.stop))}` : '' }}</span>
                 <span v-if="c.status !== 'ACTIVE'" class="tag muted">{{ CAMPAIGN_STATUS[c.status] ?? c.status }}</span>
+                <span v-if="!c.toSite" class="tag bad">pas de lien vers le site</span>
               </td>
               <td class="num">{{ c.budget == null ? '' : `${money(c.budget * 100, ads.account.currency)}${c.daily ? ' / jour' : ''}` }}</td>
               <td class="num">{{ money(c.lifetime * 100, ads.account.currency) }}</td>

@@ -20,10 +20,13 @@ const GRAPH = 'https://graph.facebook.com/v26.0'
 const HOUR = 'hourly_stats_aggregated_by_advertiser_time_zone'
 /** La couverture relevée à la remise à zéro ; `monitor:since` est celle de since.ts. */
 const REACH_KEY = 'monitor:meta-reach'
+/** Sans filtre, Meta tait les campagnes et les pubs archivées, même celles qui ont dépensé depuis l'ouverture. */
+const STATUSES = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES']
+const AD_STATUSES = [...STATUSES, 'CAMPAIGN_PAUSED', 'ADSET_PAUSED']
 
 type Page<T> = { data: T[]; paging?: { next?: string } }
 type Action = { action_type: string; value: string }
-type Account = { id: string; name: string; currency: string; timezone_name: string }
+type Account = { id: string; name: string; currency: string; timezone_name: string; business?: { id: string } }
 type Hourly = {
   campaign_id: string; date_start: string; [HOUR]: string
   spend: string; impressions: string; inline_link_clicks?: string; actions?: Action[]
@@ -44,6 +47,8 @@ function tag(c: Campaign) {
     return null
   }
 }
+/** Un boost lancé depuis la Page Facebook part par défaut vers Messenger : aucun de ses liens ne mène au site. */
+const toSite = (c: Campaign) => !!c.ads?.data.some(a => a.creative?.call_to_action?.value?.link?.includes('farnight.online'))
 /** Les clics suivis du chargement de la page : ce que Meta appelle landing_page_view. */
 const visits = (r: Hourly) => num(r.actions?.find(a => a.action_type === 'landing_page_view')?.value)
 
@@ -76,7 +81,9 @@ export default defineEventHandler(async (event) => {
     return rows
   }
 
-  const [account] = (await get<Account>('me/adaccounts', { fields: 'name,currency,timezone_name' })).data
+  // Le compte du portfolio FarNight : le jeton voit aussi l'ancien compte personnel « Jo Olivier Qrt » (choix du 16/10).
+  const accounts = (await get<Account>('me/adaccounts', { fields: 'name,currency,timezone_name,business' })).data
+  const account = accounts.find(a => a.business) ?? accounts[0]
   if (!account) throw createError({ statusCode: 502, statusMessage: 'Meta : aucun compte publicitaire pour ce jeton' })
 
   // « 2026-10-14 18 » : le jour et l'heure à l'heure du compte, comparables en texte.
@@ -93,7 +100,8 @@ export default defineEventHandler(async (event) => {
     get<{ reach: string }>(`${account.id}/insights`, { time_range: range, fields: 'reach' }).then(p => p.data),
     all<Campaign>(`${account.id}/campaigns`, {
       limit: 100,
-      fields: 'name,effective_status,start_time,stop_time,lifetime_budget,daily_budget,insights.date_preset(maximum){spend},ads.limit(5){creative{call_to_action}}',
+      filtering: JSON.stringify([{ field: 'effective_status', operator: 'IN', value: STATUSES }]),
+      fields: `name,effective_status,start_time,stop_time,lifetime_budget,daily_budget,insights.date_preset(maximum){spend},ads.limit(5).effective_status(${JSON.stringify(AD_STATUSES)}){creative{call_to_action}}`,
     }),
   ])
 
@@ -144,7 +152,10 @@ export default defineEventHandler(async (event) => {
     campaigns: campaigns
       .map(c => ({
         id: c.id,
-        title: c.name.replace(/^Instagram post:\s*/, '').split('\n')[0],
+        title: c.name.replace(/^(Instagram post|Publication)\s*:\s*«?\s*/, '').split('\n')[0].replace(/\s*»$/, ''),
+        /** Meta nomme le boost d'après l'endroit où il est lancé : l'appli Instagram ou la Page Facebook. */
+        from: /^Publication\s*:/.test(c.name) ? 'Facebook' : /^Instagram post:/.test(c.name) ? 'Instagram' : null,
+        toSite: toSite(c),
         tag: tag(c),
         start: c.start_time,
         stop: c.stop_time ?? null,
