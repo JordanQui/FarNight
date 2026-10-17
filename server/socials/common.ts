@@ -56,6 +56,8 @@ export type Entry = {
   url?: string
   state: 'done' | 'pending' | 'failed'
   detail?: string
+  /** Post refusé dont le brouillon est gardé (keepDraft) : la page peut le relancer. */
+  retry?: boolean
 }
 
 export type Setup = { env: string[]; steps: string[]; redirect?: string; oauth: boolean }
@@ -269,7 +271,9 @@ export const journal = async () => (await storage().getItem<Entry[]>(JOURNAL_KEY
 
 export async function record(e: Omit<Entry, 'id' | 'at'>) {
   const entry: Entry = { id: randomUUID(), at: new Date().toISOString(), ...e }
-  await storage().setItem(JOURNAL_KEY, [entry, ...(await journal())].slice(0, JOURNAL_MAX))
+  const list = [entry, ...(await journal())]
+  await storage().setItem(JOURNAL_KEY, list.slice(0, JOURNAL_MAX))
+  for (const old of list.slice(JOURNAL_MAX)) if (old.retry) await dropDraft(old.id)
   return entry
 }
 
@@ -279,6 +283,22 @@ export async function amend(patches: Map<string, Partial<Entry>>) {
   const list = await journal()
   await storage().setItem(JOURNAL_KEY, list.map(e => patches.has(e.id) ? { ...e, ...patches.get(e.id) } : e))
 }
+
+/* Brouillons des posts refusés : texte, options et médias, pour les relancer tels quels */
+
+type Kept = Omit<Draft, 'media'> & { media: (Omit<Media, 'data'> & { data?: string })[] }
+const draftKey = (id: string) => `socials:draft:${id}`
+
+export const keepDraft = (id: string, d: Draft) => storage().setItem(draftKey(id), {
+  ...d, media: d.media.map(m => ({ ...m, data: m.data?.toString('base64') })),
+} satisfies Kept)
+
+export async function loadDraft(id: string): Promise<Draft | null> {
+  const k = await storage().getItem<Kept>(draftKey(id))
+  return k && { ...k, media: k.media.map(m => ({ ...m, data: m.data ? Buffer.from(m.data, 'base64') : undefined })) }
+}
+
+export const dropDraft = (id: string) => storage().removeItem(draftKey(id))
 
 export const failure = (e: unknown) => {
   const err = e as { statusMessage?: string; message?: string }

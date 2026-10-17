@@ -71,7 +71,7 @@ const price = computed(() => money(paywallPrice.amount))
 
 <template>
   <div class="pitch">
-    <!-- Deux lignes en entrée, une nuit en sortie : les deux moitiés glissent l'une vers l'autre -->
+    <!-- Vous ne confiez rien, la machine parle de vous : les deux moitiés glissent l'une vers l'autre -->
     <section data-scrub class="relative overflow-x-clip pt-28 pb-20 sm:pt-40 sm:pb-28">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <p data-reveal class="eyebrow text-neon-400">{{ t('home.formula') }}</p>
@@ -163,7 +163,7 @@ const price = computed(() => money(paywallPrice.amount))
       </div>
     </section>
 
-    <!-- Personne ne peut vous voler la nuit -->
+    <!-- Écris, lis, joue : la première ligne du manifeste, puis les quatre arguments -->
     <section data-scrub class="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24 sm:pt-40 sm:pb-32">
       <h2 class="why-title font-display uppercase leading-[0.98] text-[clamp(2.2rem,7vw,5.5rem)]">
         <span class="block text-ink-50">{{ t('home.why_title_1') }}</span>

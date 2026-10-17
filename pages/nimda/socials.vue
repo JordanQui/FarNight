@@ -132,6 +132,23 @@ async function publish() {
   } finally {
     sending.value = false
     refresh()
+    if (n.id === 'x') loadCredits()
+  }
+}
+
+/** Un post refusé repart tel que le serveur l'a gardé (retry.post.ts) : sa ligne rouge passe au vert. */
+async function retry(e: Entry) {
+  if (sending.value || !confirm(`Relancer sur ${label(e.network)} : « ${e.excerpt} » ?`)) return
+  sending.value = true
+  outcome.value = null
+  try {
+    outcome.value = { entry: await $fetch<Entry>('/api/admin/socials/retry', { method: 'POST', body: { id: e.id } }) }
+  } catch (err) {
+    outcome.value = { error: reason(err) }
+  } finally {
+    sending.value = false
+    refresh()
+    if (e.network === 'x') loadCredits()
   }
 }
 
@@ -139,8 +156,10 @@ async function publish() {
 
 const developing = ref(false)
 const developError = ref('')
-/** Le brouillon d'avant le dernier développement, pour « Annuler ». */
-const before = ref<{ text: string; title: string } | null>(null)
+/** Le texte d'avant chaque passage de l'IA (développer, corriger), pour « Annuler ». */
+const undos = ref<{ text: string; title: string }[]>([])
+/** La consigne de « Corriger », offert une fois le texte développé ; vide = relecture. */
+const fixNote = ref('')
 watch([tab, fmt], () => { developError.value = '' })
 
 const once = (el: HTMLElement, name: string, ms: number) => new Promise<void>((ok, ko) => {
@@ -183,7 +202,7 @@ async function still(p: Pick): Promise<string | null> {
   }
 }
 
-async function develop() {
+async function develop(fix?: string) {
   const n = net.value
   const f = fmt.value
   if (!n || !f?.text || !text.value.trim()) return
@@ -197,11 +216,12 @@ async function develop() {
     const images = (await Promise.all(sent.value.files.filter(p => p.kind).slice(0, 4).map(still))).filter(Boolean)
     const r = await $fetch<{ text: string; title: string | null }>('/api/admin/socials/develop', {
       method: 'POST',
-      body: { network: n.id, format: f.id, text: text.value, title: f.title ? title.value : '', media, images },
+      body: { network: n.id, format: f.id, text: text.value, title: f.title ? title.value : '', media, images, fix },
     })
-    before.value = { text: text.value, title: title.value }
+    undos.value.push({ text: text.value, title: title.value })
     text.value = r.text
     if (r.title) title.value = r.title
+    if (fix !== undefined) fixNote.value = ''
   } catch (e) {
     developError.value = reason(e)
   } finally {
@@ -209,10 +229,10 @@ async function develop() {
   }
 }
 function undo() {
-  if (!before.value) return
-  text.value = before.value.text
-  title.value = before.value.title
-  before.value = null
+  const last = undos.value.pop()
+  if (!last) return
+  text.value = last.text
+  title.value = last.title
 }
 
 const recent = computed(() => (board.value?.journal ?? []).filter(e => e.network === tab.value).slice(0, 6))
@@ -251,11 +271,12 @@ const adRows = computed(() => {
   if (!b?.others.length) return b?.posts ?? []
   return [...b.posts, { id: '', at: '', excerpt: '', thumb: undefined, url: undefined, eligible: null, ads: b.others }]
 })
-const money = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: adsBoard.value?.currency ?? 'EUR' }).format(v)
+const money = (v: number, currency = adsBoard.value?.currency ?? wallet.value?.currency ?? 'EUR') => new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(v)
 
 const promoting = ref<string | null>(null)
-const promo = reactive({ budget: 10, days: 3, audience: '', countries: 'FR', ageMin: 18, ageMax: 65, placements: 'instagram', link: '' })
-/** L'audience enregistrée choisie ; aucune = « Sur mesure », avec les pays et l'âge du formulaire. */
+type Interest = { id: string; name: string }
+const promo = reactive({ budget: 10, days: 3, audience: '', placements: 'instagram', link: '' })
+/** L'audience enregistrée ou le groupe de cibles choisi pour la pub. */
 const audience = computed(() => adsBoard.value?.audiences.find(a => a.id === promo.audience) ?? null)
 const promoBusy = ref(false)
 const promoError = ref('')
@@ -279,7 +300,7 @@ async function createPromo(p: AdPost) {
   try {
     await $fetch('/api/admin/socials/ads', {
       method: 'POST',
-      body: { action: 'promote', network, post: p.id, excerpt: p.excerpt, ...promo, countries: promo.countries.split(/[\s,;]+/).filter(Boolean) },
+      body: { action: 'promote', network, post: p.id, excerpt: p.excerpt, ...promo },
     })
     promoting.value = null
     await loadAds()
@@ -296,9 +317,253 @@ async function switchCampaign(a: Promo, status: 'ACTIVE' | 'PAUSED') {
   adsError.value = ''
   try {
     await $fetch('/api/admin/socials/ads', { method: 'POST', body: { action: 'status', campaign: a.campaign, status } })
-    await loadAds()
+    await Promise.all([loadAds(), loadWallet()])
   } catch (e) {
     adsError.value = reason(e)
+  } finally {
+    switching.value = ''
+  }
+}
+
+/* Les groupes de cibles : rangés sur le poste, Meta ne laisse pas l'API créer d'audience enregistrée ; communs à Instagram et Facebook */
+
+type Place = AdsBoard['audiences'][number]['aim']['places'][number]
+const blankGroup = () => ({
+  id: '', name: '', places: [{ type: 'country', key: 'FR', name: 'France', country: 'FR' }] as Place[], excluded: [] as Place[],
+  ageMin: 18, ageMax: 65, genders: '', interests: [] as Interest[],
+})
+/** Le groupe en cours : vide = nouveau, sinon celui que « modifier » a repris. */
+const group = reactive(blankGroup())
+/** Le ciblage du groupe tel que le serveur le lit. */
+const aim = () => ({
+  places: group.places,
+  excluded: group.excluded,
+  ageMin: group.ageMin,
+  ageMax: group.ageMax,
+  genders: group.genders ? [Number(group.genders)] : [],
+  interests: group.interests,
+})
+function editGroup(a?: AdsBoard['audiences'][number]) {
+  Object.assign(group, blankGroup(), a && {
+    id: a.id,
+    name: a.name,
+    places: a.aim.places.map(p => ({ ...p })),
+    excluded: a.aim.excluded.map(p => ({ ...p })),
+    ageMin: a.aim.ageMin,
+    ageMax: a.aim.ageMax,
+    genders: a.aim.genders.length === 1 ? String(a.aim.genders[0]) : '',
+    interests: [...a.aim.interests],
+  })
+  interestHits.value = []
+  placeHits.value = []
+  targetNote.value = null
+}
+const interestQuery = ref('')
+const interestHits = ref<(Interest & { size: number | null; path: string })[]>([])
+const targetBusy = ref('')
+const targetNote = ref<{ text: string; bad?: boolean } | null>(null)
+const people = (n: number | null) => n == null ? '?' : new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(n)
+async function target(what: string, run: () => Promise<void>) {
+  targetBusy.value = what
+  targetNote.value = null
+  try {
+    await run()
+  } catch (e) {
+    targetNote.value = { text: reason(e), bad: true }
+  } finally {
+    targetBusy.value = ''
+  }
+}
+const findInterests = () => interestQuery.value.trim().length >= 2 && target('search', async () => {
+  interestHits.value = await $fetch('/api/admin/socials/interests', { query: { q: interestQuery.value.trim() } })
+  if (!interestHits.value.length) targetNote.value = { text: 'Aucun intérêt pour ce mot chez Meta.' }
+})
+function addInterest(i: Interest) {
+  if (!group.interests.some(x => x.id === i.id)) group.interests.push({ id: i.id, name: i.name })
+}
+const estimateReach = () => target('estimate', async () => {
+  const r = await $fetch<{ min: number | null; max: number | null }>('/api/admin/socials/ads', { method: 'POST', body: { action: 'estimate', ...aim() } })
+  targetNote.value = r.max === 0
+    ? { text: '0 personne : Meta refuse ce mélange sans le dire. Deux lieux visés qui se recouvrent (un point dans une ville visée), ou une cible trop étroite.', bad: true }
+    : { text: `Environ ${people(r.min)} à ${people(r.max)} personnes par mois.` }
+})
+
+/** Les types de lieux de Meta, dans les mots de la page. */
+const KIND: Record<string, string> = {
+  country: 'pays', country_group: 'zone', region: 'région', large_geo_area: 'grande zone', medium_geo_area: 'département', city: 'ville',
+  subcity: 'commune', neighborhood: 'quartier', zip: 'code postal', geo_market: 'marché', electoral_district: 'circonscription', pin: 'point',
+}
+const placeQuery = ref('')
+const placeHits = ref<Place[]>([])
+const findPlaces = (pin = false) => placeQuery.value.trim().length >= 2 && target(pin ? 'pin' : 'place', async () => {
+  placeHits.value = await $fetch('/api/admin/socials/places', { query: { q: placeQuery.value.trim(), pin: pin ? 1 : undefined } })
+  if (!placeHits.value.length) targetNote.value = { text: pin ? 'Aucune adresse trouvée.' : 'Aucun lieu pour ce mot chez Meta.' }
+})
+const same = (a: Place, b: Place) => a.type === b.type && a.key === b.key
+/** Meta compte 0 personne quand deux lieux visés se recouvrent : un pays et l'une de ses villes, une région et l'une de ses villes. */
+const inside = (p: Place, q: Place) => (q.type === 'country' && q.key === p.country) || (q.type === 'region' && q.key === p.region)
+function addPlace(p: Place, out = false) {
+  const list = out ? group.excluded : group.places
+  if (list.some(x => same(x, p))) return
+  const clash = out ? null : group.places.find(q => inside(p, q) || inside(q, p))
+  if (clash) {
+    targetNote.value = { text: `« ${p.name} » et « ${clash.name} » se recouvrent : Meta compterait 0 personne. Retirer l’un des deux, ou exclure « ${p.name} » de « ${clash.name} ».`, bad: true }
+    return
+  }
+  list.push({ ...p })
+  targetNote.value = null
+}
+const saveGroup = () => group.name.trim() && target('save', async () => {
+  const g = await $fetch<AdsBoard['audiences'][number]>('/api/admin/socials/ads', {
+    method: 'POST',
+    body: { action: 'group', id: group.id || undefined, name: group.name.trim(), ...aim() },
+  })
+  const b = adsBoard.value
+  if (b) b.audiences = [...b.audiences.filter(a => !(a.local && (a.name === g.name || a.id === g.id))), g]
+  promo.audience = g.id
+  group.id = g.id
+  targetNote.value = { text: `Groupe « ${g.name} » enregistré : il est dans le menu Audience de « Promouvoir ».` }
+})
+function dropGroup(id: string) {
+  if (!confirm('Supprimer ce groupe ? Les pubs déjà créées gardent leur ciblage.')) return
+  target('drop', async () => {
+    await $fetch('/api/admin/socials/ads', { method: 'POST', body: { action: 'ungroup', id } })
+    const b = adsBoard.value
+    if (b) b.audiences = b.audiences.filter(a => a.id !== id)
+    if (promo.audience === id) promo.audience = b?.audiences[0]?.id ?? ''
+    if (group.id === id) editGroup()
+  })
+}
+
+/* La caisse du compte pub (server/socials/ads.ts, wallet) : Meta n'a pas d'API pour payer, le plafond est la seule commande */
+
+const fetchWallet = () => $fetch('/api/admin/socials/wallet')
+const wallet = ref<Awaited<ReturnType<typeof fetchWallet>> | null>(null)
+const walletError = ref('')
+async function loadWallet() {
+  try {
+    wallet.value = await fetchWallet()
+    walletError.value = ''
+  } catch (e) {
+    walletError.value = reason(e)
+  }
+}
+const capInput = ref('')
+const capBusy = ref(false)
+async function saveCap(amount: number | null) {
+  if (amount !== null && !(amount >= 1)) return
+  const ask = amount === null
+    ? 'Retirer le plafond ? La carte paiera tout ce que les pubs en marche dépensent.'
+    : `Fixer le plafond du compte à ${money(amount)} ? Meta coupe toutes les pubs quand il est atteint. 10 changements par jour au plus.`
+  if (!confirm(ask)) return
+  capBusy.value = true
+  walletError.value = ''
+  try {
+    await $fetch('/api/admin/socials/ads', { method: 'POST', body: { action: 'cap', amount } })
+    capInput.value = ''
+    await loadWallet()
+  } catch (e) {
+    walletError.value = reason(e)
+  } finally {
+    capBusy.value = false
+  }
+}
+
+/* Les crédits API X (server/socials/x.ts, xCredits) : payés à l'appel, rechargés dans la console de X */
+
+const fetchCredits = () => $fetch('/api/admin/socials/credits')
+const credits = ref<Awaited<ReturnType<typeof fetchCredits>> | null>(null)
+const creditsError = ref('')
+async function loadCredits() {
+  try {
+    credits.value = await fetchCredits()
+    creditsError.value = ''
+  } catch (e) {
+    creditsError.value = reason(e)
+  }
+}
+watch(tab, (t) => {
+  if (t === 'x') Promise.all([loadCredits(), loadXAds()])
+})
+
+/* Les promotions X des posts (server/socials/x-ads.ts) : l'Ads API, à part de la publication ; Promouvoir, Pause et Lancer partagent l'état de Meta */
+
+const fetchXAds = () => $fetch('/api/admin/socials/x-ads')
+type XAds = Awaited<ReturnType<typeof fetchXAds>>
+type XPost = Extract<XAds, { configured: true }>['posts'][number]
+type XPlace = { key: string; name: string; type: string; country?: string }
+const xAds = ref<XAds | null>(null)
+const xReady = computed(() => xAds.value?.configured ? xAds.value : null)
+const xAdsLoading = ref(false)
+const xAdsError = ref('')
+async function loadXAds() {
+  xAdsLoading.value = true
+  xAdsError.value = ''
+  try {
+    xAds.value = await fetchXAds()
+  } catch (e) {
+    xAdsError.value = reason(e)
+  } finally {
+    xAdsLoading.value = false
+  }
+}
+/** Comme chez Meta, les promotions d'aucun post listé viennent en dernière ligne, sans post (id vide). */
+const xRows = computed((): XPost[] => {
+  const b = xReady.value
+  if (!b?.others.length) return b?.posts ?? []
+  return [...b.posts, { id: '', at: '', excerpt: '', thumb: undefined, url: '', link: null, tag: null, eligible: false, ads: b.others }]
+})
+const ageLabel = (a: string) => a.replace(/^AGE_OVER_(\d+)$/, '$1 ans et plus').replace(/^AGE_(\d+)_TO_(\d+)$/, '$1–$2 ans')
+const xPromo = reactive({ budget: 10, days: 3, places: [] as XPlace[], age: '', gender: '' })
+const xPlaceQuery = ref('')
+const xPlaceHits = ref<XPlace[]>([])
+const xPlaceNote = ref('')
+const xSearching = ref(false)
+async function findXPlaces() {
+  const q = xPlaceQuery.value.trim()
+  if (q.length < 2) return
+  xSearching.value = true
+  xPlaceNote.value = ''
+  try {
+    xPlaceHits.value = await $fetch('/api/admin/socials/places', { query: { q, x: 1 } })
+    if (!xPlaceHits.value.length) xPlaceNote.value = 'Aucun lieu pour ce mot chez X.'
+  } catch (e) {
+    xPlaceNote.value = reason(e)
+  } finally {
+    xSearching.value = false
+  }
+}
+function openXPromo(p: XPost) {
+  promoting.value = p.id
+  promoError.value = ''
+}
+async function createXPromo(p: XPost) {
+  const currency = xReady.value?.currency
+  if (!confirm(`Créer une promotion X de ${money(xPromo.budget, currency)} sur ${xPromo.days} jour(s), en pause ? Rien n’est dépensé avant « Lancer ».`)) return
+  promoBusy.value = true
+  promoError.value = ''
+  try {
+    await $fetch('/api/admin/socials/x-ads', {
+      method: 'POST',
+      body: { action: 'promote', post: p.id, excerpt: p.excerpt, budget: xPromo.budget, days: xPromo.days, places: xPromo.places.map(x => x.key), age: xPromo.age, gender: xPromo.gender },
+    })
+    promoting.value = null
+    await loadXAds()
+  } catch (e) {
+    promoError.value = reason(e)
+  } finally {
+    promoBusy.value = false
+  }
+}
+async function switchXCampaign(a: XPost['ads'][number], status: 'ACTIVE' | 'PAUSED') {
+  if (status === 'ACTIVE' && !confirm(`Lancer la promotion X ? X dépensera jusqu’à ${a.budget == null ? 'son budget' : `${money(a.budget, xReady.value?.currency)}${a.daily ? ' par jour' : ''}`}.`)) return
+  switching.value = a.campaign
+  xAdsError.value = ''
+  try {
+    await $fetch('/api/admin/socials/x-ads', { method: 'POST', body: { action: 'status', campaign: a.campaign, status } })
+    await loadXAds()
+  } catch (e) {
+    xAdsError.value = reason(e)
   } finally {
     switching.value = ''
   }
@@ -401,6 +666,8 @@ onMounted(() => {
   }
   if (tab.value === 'info') runScan()
   loadAds()
+  loadWallet()
+  if (tab.value === 'x') Promise.all([loadCredits(), loadXAds()])
 })
 </script>
 
@@ -430,6 +697,57 @@ onMounted(() => {
     </header>
 
     <main class="wrap">
+      <!-- La caisse du compte pub, au-dessus de tous les onglets -->
+      <section v-if="wallet || walletError" class="till panel">
+        <h2 v-if="wallet">
+          Caisse pub · {{ wallet.name }}
+          <span>{{ wallet.funding ?? (wallet.prepaid ? 'prépayé' : 'aucun moyen de paiement') }}</span>
+        </h2>
+        <dl v-if="wallet" class="figures">
+          <div><dt>Dépensé</dt><dd>{{ money(wallet.spent, wallet.currency) }}</dd></div>
+          <div v-if="!wallet.prepaid"><dt>À prélever</dt><dd>{{ money(wallet.due, wallet.currency) }}</dd></div>
+          <div><dt>Plafond</dt><dd :class="{ warn: wallet.cap == null }">{{ wallet.cap == null ? 'aucun' : money(wallet.cap, wallet.currency) }}</dd></div>
+          <div v-if="wallet.left != null"><dt>Reste</dt><dd :class="wallet.left < wallet.engaged ? 'warn' : 'good'">{{ money(wallet.left, wallet.currency) }}</dd></div>
+          <div>
+            <dt>Engagé<em>{{ wallet.running }} pub(s) en marche</em></dt>
+            <dd>{{ money(wallet.engaged, wallet.currency) }}<small v-if="wallet.perDay"> + {{ money(wallet.perDay, wallet.currency) }} par jour</small></dd>
+          </div>
+        </dl>
+        <form v-if="wallet" class="assist" @submit.prevent="saveCap(Number(capInput.replace(',', '.').replace(/[\s€]/g, '')))">
+          <input v-model="capInput" type="text" inputmode="decimal" class="fix" placeholder="nouveau plafond, en euros" aria-label="Nouveau plafond du compte" :disabled="capBusy">
+          <button type="submit" class="btn" :disabled="capBusy || !capInput.trim()">{{ capBusy ? '…' : 'Fixer le plafond' }}</button>
+          <button v-if="wallet.cap != null" type="button" class="btn" :disabled="capBusy" @click="saveCap(null)">Retirer le plafond</button>
+          <a :href="wallet.billing" target="_blank" rel="noopener" class="link small">Payer, changer de carte chez Meta →</a>
+        </form>
+        <p v-if="wallet?.cap == null" class="warn small">Sans plafond, la carte paie tout ce que les pubs en marche dépensent.</p>
+        <p v-else-if="wallet.left != null && wallet.left < wallet.engaged" class="warn small">Les pubs en marche peuvent dépenser plus que le reste : Meta les coupera toutes au plafond.</p>
+        <p v-for="o in wallet?.others ?? []" :key="o.id" class="muted small">
+          {{ o.name }} ({{ o.prepaid ? 'prépayé' : 'carte' }}, lecture seule) :
+          {{ o.left != null ? `${money(o.left, o.currency)} avant le plafond` : 'sans plafond' }} · {{ money(o.spent, o.currency) }} dépensés ·
+          <a :href="o.billing" target="_blank" rel="noopener" class="link">ajouter des fonds →</a>
+        </p>
+        <p v-if="walletError" class="bad small">{{ walletError }}</p>
+      </section>
+
+      <!-- Les crédits API X, sur son onglet : sans solde, X refuse tout post -->
+      <section v-if="tab === 'x'" class="till panel">
+        <h2>Crédits API X <span>payés à l’appel, l’écriture s’arrête à zéro</span></h2>
+        <dl v-if="credits" class="figures">
+          <div><dt>Solde</dt><dd :class="credits.total > 0 ? 'good' : 'warn'">{{ money(credits.total, 'USD') }}</dd></div>
+          <div><dt>Acheté</dt><dd>{{ money(credits.prepaid, 'USD') }}</dd></div>
+          <div>
+            <dt>Offert<em v-if="credits.expires">jusqu’au {{ new Date(credits.expires).toLocaleDateString('fr-FR') }}</em></dt>
+            <dd>{{ money(credits.free, 'USD') }}</dd>
+          </div>
+        </dl>
+        <p class="assist">
+          <button type="button" class="btn" @click="loadCredits">Relire le solde</button>
+          <a href="https://console.x.com" target="_blank" rel="noopener" class="link small">Acheter des crédits, régler la recharge auto chez X →</a>
+        </p>
+        <p v-if="credits && credits.total <= 0" class="warn small">Une carte enregistrée ne suffit pas : il faut acheter des crédits ou activer la recharge auto.</p>
+        <p v-if="creditsError" class="bad small">{{ creditsError }}</p>
+      </section>
+
       <!-- Un réseau : le brouillon à gauche, le branchement et les derniers envois à droite -->
       <section v-if="net && fmt" class="cols">
         <div class="panel">
@@ -459,10 +777,14 @@ onMounted(() => {
               <textarea v-model="text" rows="8" :disabled="developing" />
             </label>
             <div class="assist">
-              <button type="button" class="btn" :disabled="developing || !text.trim()" @click="develop">
+              <button type="button" class="btn" :disabled="developing || !text.trim()" @click="develop()">
                 {{ developing ? 'L’IA écrit…' : 'Développer' }}
               </button>
-              <button v-if="before && !developing" type="button" class="btn" @click="undo">Annuler</button>
+              <button v-if="undos.length && !developing" type="button" class="btn" @click="undo">Annuler</button>
+              <template v-if="undos.length">
+                <input v-model="fixNote" type="text" class="fix" placeholder="Ce qu’il faut corriger (vide : relecture)" :disabled="developing" @keydown.enter.prevent="!developing && text.trim() && develop(fixNote)">
+                <button type="button" class="btn" :disabled="developing || !text.trim()" @click="develop(fixNote)">Corriger</button>
+              </template>
               <span v-if="developError" class="bad small">{{ developError }}</span>
               <span v-else-if="!text.trim()" class="muted small">Quelques mots suffisent : l’IA les développe pour {{ net.label }} · {{ fmt.label }}{{ picks.length && fmt.media ? ', en voyant les images' : '' }}.</span>
             </div>
@@ -564,7 +886,8 @@ onMounted(() => {
           <ul v-else class="wire">
             <li v-for="e in recent" :key="e.id">
               <span class="t">{{ when(e.at) }}</span>
-              <span class="tag" :class="e.state === 'done' ? 'good' : e.state === 'pending' ? 'warn' : 'bad'">{{ formatLabel(e.network, e.format) }}</span>
+              <button v-if="e.state === 'failed' && e.retry" type="button" class="tag bad again" title="Relancer ce post" :disabled="sending" @click="retry(e)">{{ formatLabel(e.network, e.format) }} ↻</button>
+              <span v-else class="tag" :class="e.state === 'done' ? 'good' : e.state === 'pending' ? 'warn' : 'bad'">{{ formatLabel(e.network, e.format) }}</span>
               <span>{{ e.excerpt }}</span>
               <span v-if="e.detail" class="muted small"> — {{ e.detail }}</span>
               <a v-if="e.url" :href="e.url" target="_blank" rel="noopener" class="link"> voir</a>
@@ -572,6 +895,105 @@ onMounted(() => {
           </ul>
 
           <template v-if="metaNet && net.connected">
+            <h2 class="sub">
+              Groupes de cibles
+              <span>communs à Instagram et Facebook</span>
+            </h2>
+            <p v-if="adsBoard && !adsBoard.audiences.length" class="muted small">Aucun groupe encore : composer le premier ci-dessous.</p>
+            <ul v-if="adsBoard?.audiences.length" class="targets">
+              <li v-for="a in adsBoard.audiences" :key="a.id" :class="{ on: group.id === a.id }">
+                <span class="tag" :class="a.local ? 'good' : 'muted'">{{ a.local ? 'groupe' : 'Meta' }}</span>
+                <span>{{ a.name }}</span>
+                <span class="small">
+                  {{ a.places.join(', ') || 'partout' }}<template v-if="a.excluded.length"> sauf {{ a.excluded.join(', ') }}</template> · {{ a.age }} · {{ a.genders }}<template v-if="a.interests.length">
+                    · <span class="muted">{{ a.interests.join(', ') }}</span></template><span v-if="a.advantage" class="muted"> · Advantage+</span>
+                </span>
+                <template v-if="a.local">
+                  <button type="button" class="link small" :disabled="!!targetBusy" @click="editGroup(a)">modifier</button>
+                  <button type="button" class="link small" :disabled="!!targetBusy" @click="dropGroup(a.id)">supprimer</button>
+                </template>
+                <button v-else type="button" class="link small" :disabled="!!targetBusy" @click="editGroup({ ...a, id: '', name: '' })">partir de celle-ci</button>
+              </li>
+            </ul>
+            <form class="promo" @submit.prevent="saveGroup">
+              <p class="wide small">
+                {{ group.id ? 'Modification du groupe' : 'Nouveau groupe' }}
+                <button v-if="group.id" type="button" class="link" :disabled="!!targetBusy" @click="editGroup()"> · en composer un autre</button>
+              </p>
+              <label class="field wide">
+                <span class="k">Nom</span>
+                <input v-model="group.name" type="text" maxlength="60" required>
+              </label>
+              <div class="field wide">
+                <span class="k">Lieux<em>Meta touche ceux qui y vivent ou y sont passés récemment, il ne fait plus la différence</em></span>
+                <ul v-if="group.places.length || group.excluded.length" class="geo">
+                  <li v-for="(p, n) in [...group.places, ...group.excluded]" :key="(n < group.places.length ? '+' : '-') + p.type + p.key">
+                    <span class="tag" :class="n < group.places.length ? 'good' : 'bad'">{{ n < group.places.length ? '' : 'sauf · ' }}{{ KIND[p.type] ?? p.type }}</span>
+                    <span>{{ p.name }}</span>
+                    <label v-if="p.type === 'city' || p.type === 'pin'" class="radius">
+                      +<input
+                        v-model.number="p.radius" type="number" :min="p.type === 'pin' ? 1 : 17" max="80" step="1" :required="p.type === 'pin'"
+                        :placeholder="p.type === 'city' ? 'ville seule' : ''" :aria-label="`Rayon autour de ${p.name}, en kilomètres`"
+                      >km
+                    </label>
+                    <button type="button" class="link small" @click="n < group.places.length ? group.places.splice(n, 1) : group.excluded.splice(n - group.places.length, 1)">retirer</button>
+                  </li>
+                </ul>
+                <p v-if="!group.places.length" class="warn small">Aucun lieu visé : en chercher un.</p>
+                <span class="assist">
+                  <input v-model="placeQuery" type="text" class="fix" aria-label="Chercher un lieu chez Meta, ou une adresse" @keydown.enter.prevent="findPlaces()">
+                  <button type="button" class="btn" :disabled="!!targetBusy || placeQuery.trim().length < 2" @click="findPlaces()">{{ targetBusy === 'place' ? '…' : 'Chercher un lieu' }}</button>
+                  <button type="button" class="btn" :disabled="!!targetBusy || placeQuery.trim().length < 2" @click="findPlaces(true)">{{ targetBusy === 'pin' ? '…' : 'Poser un point' }}</button>
+                </span>
+                <ul v-if="placeHits.length" class="hits">
+                  <li v-for="h in placeHits" :key="h.type + h.key">
+                    <span class="tag muted">{{ KIND[h.type] ?? h.type }}</span> {{ h.name }} <span class="muted small">{{ h.detail }}</span>
+                    <button type="button" class="link small" :disabled="group.places.some(x => same(x, h))" @click="addPlace(h)"> viser</button>
+                    <button type="button" class="link small" :disabled="group.excluded.some(x => same(x, h))" @click="addPlace(h, true)"> exclure</button>
+                  </li>
+                </ul>
+                <p class="muted small">« Chercher un lieu » : pays, zones (Europe…), régions, départements, villes, quartiers, codes postaux, chez Meta. « Poser un point » : une adresse (OpenStreetMap), puis 1 à 80 km autour. Une ville se vise seule ou avec 17 à 80 km autour. Exclure retire un morceau d’un lieu visé : Paris de la France, un quartier d’une ville.</p>
+              </div>
+              <label class="field">
+                <span class="k">Âge min.</span>
+                <input v-model.number="group.ageMin" type="number" min="18" max="65" step="1" required>
+              </label>
+              <label class="field">
+                <span class="k">Âge max.</span>
+                <input v-model.number="group.ageMax" type="number" min="18" max="65" step="1" required>
+              </label>
+              <label class="field">
+                <span class="k">Sexe</span>
+                <select v-model="group.genders">
+                  <option value="">Tous</option>
+                  <option value="2">Femmes</option>
+                  <option value="1">Hommes</option>
+                </select>
+              </label>
+              <div class="field wide">
+                <span class="k">Intérêts<em>{{ group.interests.length ? `${group.interests.length}, l’un ou l’autre` : 'aucun : tout le monde' }}</em></span>
+                <span v-if="group.interests.length" class="chips">
+                  <button v-for="(i, n) in group.interests" :key="i.id" type="button" class="chip on" @click="group.interests.splice(n, 1)">{{ i.name }} ×</button>
+                </span>
+                <span class="assist">
+                  <input v-model="interestQuery" type="text" class="fix" aria-label="Chercher un intérêt chez Meta" @keydown.enter.prevent="findInterests">
+                  <button type="button" class="btn" :disabled="!!targetBusy || interestQuery.trim().length < 2" @click="findInterests">{{ targetBusy === 'search' ? '…' : 'Chercher' }}</button>
+                </span>
+                <ul v-if="interestHits.length" class="hits">
+                  <li v-for="h in interestHits" :key="h.id">
+                    <button type="button" class="link" :disabled="group.interests.some(x => x.id === h.id)" @click="addInterest(h)">+ {{ h.name }}</button>
+                    <span class="muted small"> {{ people(h.size) }}{{ h.path ? ` · ${h.path}` : '' }}</span>
+                  </li>
+                </ul>
+              </div>
+              <span class="wide assist">
+                <button type="button" class="btn" :disabled="!!targetBusy || !group.places.length" @click="estimateReach">{{ targetBusy === 'estimate' ? '…' : 'Estimer' }}</button>
+                <button type="submit" class="btn" :disabled="!!targetBusy || !group.name.trim() || !group.places.length">{{ targetBusy === 'save' ? '…' : group.id ? 'Enregistrer les changements' : 'Enregistrer le groupe' }}</button>
+              </span>
+              <p v-if="targetNote" :class="['small', 'wide', targetNote.bad ? 'bad' : 'good']">{{ targetNote.text }}</p>
+              <p class="muted small wide">Rangé sur le poste (l’API de Meta ne crée pas d’audience enregistrée), puis choisi dans « Promouvoir ». Un nom déjà pris remplace l’ancien groupe ; une modification vaut pour les pubs à venir, celles déjà créées gardent leur ciblage. Partir d’une audience Meta en reprend lieux, âge, sexe et intérêts, sans Advantage+ : le groupe s’en tient à ses limites.</p>
+            </form>
+
             <h2 class="sub">
               Posts du compte
               <button type="button" class="link small" :disabled="adsLoading" @click="loadAds">{{ adsLoading ? 'lecture…' : 'relire' }}</button>
@@ -617,21 +1039,17 @@ onMounted(() => {
                       <input v-model.number="promo.days" type="number" min="1" max="30" step="1" required>
                     </label>
                     <label class="field wide">
-                      <span class="k">Audience</span>
-                      <select v-model="promo.audience">
-                        <option v-for="a in adsBoard.audiences" :key="a.id" :value="a.id">{{ a.name }}</option>
-                        <option value="">Sur mesure : pays et âge</option>
+                      <span class="k">Audience<em>les groupes de cibles, plus haut</em></span>
+                      <select v-model="promo.audience" required>
+                        <option v-for="a in adsBoard.audiences" :key="a.id" :value="a.id">{{ a.name }}{{ a.local ? ' · groupe' : '' }}</option>
                       </select>
                     </label>
                     <p v-if="audience" class="small wide">
-                      {{ audience.places.join(', ') || 'partout' }} · {{ audience.age }} · {{ audience.genders }}<template v-if="audience.interests.length">
+                      {{ audience.places.join(', ') || 'partout' }}<template v-if="audience.excluded.length"> sauf {{ audience.excluded.join(', ') }}</template> · {{ audience.age }} · {{ audience.genders }}<template v-if="audience.interests.length">
                         · {{ audience.interests.length }} intérêt(s) : <span class="muted">{{ audience.interests.join(', ') }}</span></template>
                       <span v-if="audience.advantage" class="muted"> · Advantage+ : Meta peut élargir au-delà.</span>
                     </p>
-                    <label v-else class="field">
-                      <span class="k">Pays<em>codes, séparés par des virgules</em></span>
-                      <input v-model="promo.countries" type="text" required>
-                    </label>
+                    <p v-else class="warn small wide">Aucune audience : composer d’abord un groupe dans « Groupes de cibles », plus haut.</p>
                     <label class="field">
                       <span class="k">Emplacements</span>
                       <select v-model="promo.placements">
@@ -640,16 +1058,6 @@ onMounted(() => {
                         <option value="both">Les deux</option>
                       </select>
                     </label>
-                    <template v-if="!audience">
-                      <label class="field">
-                        <span class="k">Âge min.</span>
-                        <input v-model.number="promo.ageMin" type="number" min="18" max="65" step="1" required>
-                      </label>
-                      <label class="field">
-                        <span class="k">Âge max.</span>
-                        <input v-model.number="promo.ageMax" type="number" min="18" max="65" step="1" required>
-                      </label>
-                    </template>
                     <label class="field wide">
                       <span class="k">Lien</span>
                       <input v-model="promo.link" type="text" required>
@@ -658,13 +1066,124 @@ onMounted(() => {
                     <p class="muted small wide">Objectif : clics vers le site. Créée en pause, rien n’est dépensé avant « Lancer ».</p>
                     <p v-if="promoError" class="bad small wide">{{ promoError }}</p>
                     <span class="wide assist">
-                      <button type="submit" class="btn" :disabled="promoBusy">{{ promoBusy ? 'Création…' : 'Créer en pause' }}</button>
+                      <button type="submit" class="btn" :disabled="promoBusy || !audience">{{ promoBusy ? 'Création…' : 'Créer en pause' }}</button>
                       <button type="button" class="btn" :disabled="promoBusy" @click="promoting = null">Annuler</button>
                     </span>
                   </form>
                 </div>
               </li>
             </ul>
+          </template>
+
+          <template v-if="tab === 'x'">
+            <h2 class="sub">
+              Promotions X
+              <button type="button" class="link small" :disabled="xAdsLoading" @click="loadXAds">{{ xAdsLoading ? 'lecture…' : 'relire' }}</button>
+            </h2>
+            <p v-if="xAdsError" class="bad small">{{ xAdsError }}</p>
+            <template v-if="xAds && !xAds.configured">
+              <ol class="steps">
+                <li>Demander l’accès à l’Ads API pour l’app, niveau « Standard Access » : <a href="https://docs.x.com/x-ads-api/getting-started/step-by-step-guide" target="_blank" rel="noopener" class="link">formulaire « Ads API Access » →</a></li>
+                <li>Ouvrir le compte pub sur <a href="https://ads.x.com" target="_blank" rel="noopener" class="link">ads.x.com</a> avec le compte X du jeu, et y enregistrer une carte.</li>
+                <li>Une fois l’accès accordé : dans console.x.com, l’app, générer l’Access Token et son Secret (ceux d’avant l’accord n’ouvrent pas l’Ads API).</li>
+                <li>Les mettre au .env, puis relancer nuxt dev.</li>
+              </ol>
+              <p class="small">Manquent au .env : <code v-for="e in xAds.missing" :key="e" class="env">{{ e }}</code></p>
+            </template>
+            <template v-else-if="xReady">
+              <p class="small">
+                Compte pub {{ xReady.account }} · {{ xReady.card?.name ?? 'aucune carte' }} ·
+                7 derniers jours : {{ xReady.spent == null ? '?' : money(xReady.spent, xReady.currency) }} ·
+                {{ xReady.running }} en marche, {{ money(xReady.engaged, xReady.currency) }} engagés<template v-if="xReady.perDay"> + {{ money(xReady.perDay, xReady.currency) }} par jour</template> ·
+                <a href="https://ads.x.com" target="_blank" rel="noopener" class="link">carte et factures chez X →</a>
+              </p>
+              <p v-if="!xReady.card?.able" class="warn small">Pas de carte en état de payer{{ xReady.card?.reasons.length ? ` (${xReady.card.reasons.join(', ')})` : '' }} : X refusera la promotion. L’enregistrer sur ads.x.com.</p>
+              <p v-if="!xReady.posts.length" class="muted small">Aucun post.</p>
+              <ul class="posts">
+                <li v-for="p in xRows" :key="p.id">
+                  <img v-if="p.thumb" :src="p.thumb" alt="" loading="lazy">
+                  <span v-else class="thumb-x">—</span>
+                  <div class="post-body">
+                    <p v-if="p.id">
+                      <span class="t">{{ when(p.at) }}</span> {{ p.excerpt || 'sans texte' }}
+                      <a :href="p.url" target="_blank" rel="noopener" class="link">voir</a>
+                    </p>
+                    <p v-else class="muted small">Promotions d’un post plus ancien que la liste.</p>
+                    <p v-for="a in p.ads" :key="a.id" class="ad">
+                      <span class="tag" :class="a.running ? 'good' : a.status === 'DISAPPROVED' ? 'bad' : 'muted'">{{ AD_STATUS[a.status] ?? a.status }}</span>
+                      <span v-if="!p.id">{{ a.title }}</span>
+                      <code>{{ a.tag ? `?c=${a.tag}` : 'sans étiquette' }}</code>
+                      <span>
+                        {{ a.spend == null ? '?' : money(a.spend, xReady.currency) }} et {{ a.clicks ?? '?' }} clic(s) en 7 jours{{ a.budget == null ? '' : ` · budget ${money(a.budget, xReady.currency)}${a.daily ? ' par jour' : ''}` }}
+                      </span>
+                      <button v-if="a.running" type="button" class="btn" :disabled="!!switching" @click="switchXCampaign(a, 'PAUSED')">
+                        {{ switching === a.campaign ? '…' : 'Pause' }}
+                      </button>
+                      <button v-else-if="a.status !== 'ENDED'" type="button" class="btn" :disabled="!!switching" @click="switchXCampaign(a, 'ACTIVE')">
+                        {{ switching === a.campaign ? '…' : 'Lancer' }}
+                      </button>
+                    </p>
+                    <template v-if="!p.id" />
+                    <template v-else-if="promoting !== p.id">
+                      <button type="button" class="btn" :disabled="!p.eligible" @click="openXPromo(p)">Promouvoir</button>
+                      <span v-if="!p.eligible" class="muted small"> Pas de lien dans ce post : l’objectif clics vers le site en veut un.</span>
+                    </template>
+                    <form v-else class="promo" @submit.prevent="createXPromo(p)">
+                      <label class="field">
+                        <span class="k">Budget total<em>{{ xReady.currency }}</em></span>
+                        <input v-model.number="xPromo.budget" type="number" min="1" max="500" step="0.5" required>
+                      </label>
+                      <label class="field">
+                        <span class="k">Durée<em>jours</em></span>
+                        <input v-model.number="xPromo.days" type="number" min="1" max="30" step="1" required>
+                      </label>
+                      <div class="field wide">
+                        <span class="k">Lieux<em>{{ xPromo.places.length ? `${xPromo.places.length}, l’un ou l’autre` : 'au moins un' }}</em></span>
+                        <ul v-if="xPromo.places.length" class="geo">
+                          <li v-for="(l, n) in xPromo.places" :key="l.key">
+                            <span class="tag good">{{ l.type.toLowerCase() }}</span>
+                            <span>{{ l.name }}</span>
+                            <button type="button" class="link small" @click="xPromo.places.splice(n, 1)">retirer</button>
+                          </li>
+                        </ul>
+                        <span class="assist">
+                          <input v-model="xPlaceQuery" type="text" class="fix" aria-label="Chercher un lieu chez X" @keydown.enter.prevent="findXPlaces">
+                          <button type="button" class="btn" :disabled="xSearching || xPlaceQuery.trim().length < 2" @click="findXPlaces">{{ xSearching ? '…' : 'Chercher un lieu' }}</button>
+                        </span>
+                        <ul v-if="xPlaceHits.length" class="hits">
+                          <li v-for="h in xPlaceHits" :key="h.key">
+                            <span class="tag muted">{{ h.type.toLowerCase() }}</span> {{ h.name }}
+                            <button type="button" class="link small" :disabled="xPromo.places.some(x => x.key === h.key)" @click="xPromo.places.push({ ...h })"> viser</button>
+                          </li>
+                        </ul>
+                        <p v-if="xPlaceNote" class="muted small">{{ xPlaceNote }}</p>
+                      </div>
+                      <label class="field">
+                        <span class="k">Âge<em>une seule tranche chez X</em></span>
+                        <select v-model="xPromo.age">
+                          <option value="">Tous</option>
+                          <option v-for="a in xReady.ages" :key="a" :value="a">{{ ageLabel(a) }}</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        <span class="k">Sexe</span>
+                        <select v-model="xPromo.gender">
+                          <option value="">Tous</option>
+                          <option value="2">Femmes</option>
+                          <option value="1">Hommes</option>
+                        </select>
+                      </label>
+                      <p class="muted small wide">Objectif : clics vers le lien du post, payés au clic. Le post est promu tel quel : son <code>?c=</code> n’existe que s’il a été publié avec. Créée en pause, rien n’est dépensé avant « Lancer ».</p>
+                      <p v-if="promoError" class="bad small wide">{{ promoError }}</p>
+                      <span class="wide assist">
+                        <button type="submit" class="btn" :disabled="promoBusy || !xPromo.places.length">{{ promoBusy ? 'Création…' : 'Créer en pause' }}</button>
+                        <button type="button" class="btn" :disabled="promoBusy" @click="promoting = null">Annuler</button>
+                      </span>
+                    </form>
+                  </div>
+                </li>
+              </ul>
+            </template>
           </template>
         </aside>
       </section>
@@ -839,6 +1358,7 @@ select option { background: #0a0d12; }
 .check input { accent-color: rgb(var(--neon-400)); }
 
 .assist { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: -4px; }
+.assist input.fix { flex: 1 1 18ch; width: auto; padding: 4px 8px; }
 .problems { color: var(--warn); font-size: 12px; display: grid; gap: 2px; }
 .publish {
   font-family: Futura, 'Avenir Next', 'Century Gothic', 'Trebuchet MS', system-ui, sans-serif;
@@ -876,7 +1396,23 @@ code.env { margin-right: 10px; }
 .post-body .ad { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .promo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; width: 100%; border: 1px solid var(--line); padding: 10px; }
 .promo .wide { grid-column: 1 / -1; }
+.hits { display: grid; gap: 2px; max-height: 220px; overflow-y: auto; }
+.targets { display: grid; gap: 6px; margin-bottom: 10px; }
+.targets li { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; padding: 6px 8px; border: 1px solid var(--line); }
+.targets li.on { border-color: rgb(var(--neon-400)); }
+.geo { display: grid; gap: 4px; }
+.geo li { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
+.radius { display: inline-flex; gap: 4px; align-items: center; font-size: 11px; color: var(--muted); }
+.radius input { width: 9ch; padding: 2px 6px; }
+.till { margin-bottom: 20px; }
+.figures { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.figures dt { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+.figures dt em { font-style: normal; text-transform: none; letter-spacing: 0.04em; margin-left: 6px; }
+.figures dd { font-size: 18px; font-variant-numeric: tabular-nums; }
+.figures dd small { font-size: 11px; color: var(--muted); }
 .tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 0 5px; }
+.tag.again { cursor: pointer; }
+.tag.again:hover:not(:disabled) { box-shadow: 0 0 0 1px currentColor; }
 .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 .info { display: grid; gap: 20px; }

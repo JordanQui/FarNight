@@ -9,10 +9,11 @@ import { developPrompt } from '../../../socials/develop'
  * voit jusqu'à quatre images du brouillon, réduites par la page en JPEG
  * (une vidéo par sa première image). Le modèle est celui de l'atelier
  * Instagram, IG_TEXT_MODEL. Rien n'est enregistré : la page remplace le champ
- * et garde l'ancien texte pour « Annuler ».
+ * et garde l'ancien texte pour « Annuler ». Avec `fix`, c'est « Corriger » :
+ * le texte est déjà un post, `fix` la consigne (vide = relecture).
  */
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ network?: string; format?: string; text?: string; title?: string; media?: unknown[]; images?: unknown[] }>(event)
+  const body = await readBody<{ network?: string; format?: string; text?: string; title?: string; media?: unknown[]; images?: unknown[]; fix?: unknown }>(event)
   const n = network(body?.network)
   const format = n.formats.find(f => f.id === body?.format)
   if (!format?.text) throw bad(`${n.label} : ce format n’a pas de texte à développer`)
@@ -21,9 +22,10 @@ export default defineEventHandler(async (event) => {
   const title = String(body?.title ?? '').trim()
   const media = (body?.media ?? []).filter((m): m is string => m === 'image' || m === 'video')
   const images = (body?.images ?? []).filter((i): i is string => typeof i === 'string' && i.length < 3_000_000).slice(0, 4)
+  const fix = typeof body?.fix === 'string' ? body.fix.trim() : undefined
 
   const content: Anthropic.ContentBlockParam[] = images.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }))
-  content.push({ type: 'text', text: developPrompt({ networkId: n.id, network: n.label, format, text, title, media, images: images.length }) })
+  content.push({ type: 'text', text: developPrompt({ networkId: n.id, network: n.label, format, text, title, media, images: images.length, fix }) })
 
   const claude = new Anthropic({ apiKey: requireSecret(useRuntimeConfig().anthropicApiKey, 'ANTHROPIC_API_KEY') })
   let reply: { text?: string; title?: string }

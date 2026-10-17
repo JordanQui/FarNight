@@ -129,7 +129,7 @@ const route = (path: string) => trafic.value?.api.find(r => r.path === path)
 const outboundCount = (host: string, test: (status: number) => boolean) =>
   (trafic.value?.outbound ?? []).filter(r => r.host === host && test(r.status)).reduce((s, r) => s + r.count, 0)
 const buckets = computed(() => trafic.value?.buckets ?? [])
-const bucketLabel = (at: string) => trafic.value?.granularity === '1h' ? `${hhmm(Date.parse(at))}` : dayMonth(Date.parse(at))
+const bucketLabel = (at: string) => trafic.value?.granularity?.endsWith('d') ? dayMonth(Date.parse(at)) : `${dayMonth(Date.parse(at))} ${hhmm(Date.parse(at))}`
 
 /** Les pubs. Meta compte à l'heure du compte : « 2026-10-14 18 » devient « 14/10 18h ». */
 const ads = computed(() => meta.value?.configured ? meta.value : null)
@@ -212,9 +212,9 @@ const tiles = computed<Tile[]>(() => [
       ? `estimé, solde saisi le ${dayMonth(Date.parse(credit.value.at))} à ${hhmm(Date.parse(credit.value.at))}`
       : 'solde à saisir dans le panneau OpenAI',
   },
-  { code: 'VIS', label: 'Visiteurs uniques', value: trafic.value?.visitors ?? null, spark: buckets.value.map(b => b.visitors), note: 'Web Analytics' },
+  { code: 'VIS', label: 'Visiteurs uniques', value: trafic.value?.visitors ?? null, spark: buckets.value.map(b => b.visitors), note: 'sans robots, une IP par visiteur' },
   { code: 'PGV', label: 'Pages vues', value: trafic.value?.views ?? null, spark: buckets.value.map(b => b.views) },
-  { code: 'REQ', label: 'Requêtes serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.ok + b.refused + b.failed, 0) : null, spark: buckets.value.map(b => b.ok + b.refused + b.failed), note: 'robots compris' },
+  { code: 'REQ', label: 'Requêtes serveur', value: trafic.value ? buckets.value.reduce((s, b) => s + b.ok + b.refused + b.failed, 0) : null, spark: buckets.value.map(b => b.ok + b.refused + b.failed), note: 'sans robots' },
   { code: 'AUB', label: 'Scènes auberge', value: journal.value?.scenes.auberge ?? null, note: 'gratuites, lues au journal' },
   {
     code: 'PAY', label: 'Scènes après paywall', value: journal.value?.scenes.paid ?? null,
@@ -458,7 +458,7 @@ const outbound = computed(() => {
             <span v-if="t.unit" class="tile-unit">{{ t.unit }}</span>
           </p>
           <p class="tile-label">{{ t.label }}</p>
-          <div v-if="t.spark?.length" class="spark">
+          <div v-if="t.spark?.length" class="spark" :style="{ '--n': t.spark.length }">
             <span
               v-for="(v, i) in t.spark" :key="i" class="spark-bar"
               :style="{ height: `${(v / sparkMax(t.spark)) * 100}%` }"
@@ -860,8 +860,9 @@ const outbound = computed(() => {
 .tile-unit { grid-area: 1 / 2; font-size: 12px; color: var(--muted); }
 .tile-label { font-size: 9px; color: rgb(var(--ink-200)); letter-spacing: 0.14em; }
 .tile-note { font-size: 10px; color: var(--muted); }
-.spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; border-bottom: 1px solid var(--line); }
-.spark-bar { flex: 1; min-width: 2px; background: rgb(var(--neon-500) / 0.7); border-radius: 2px 2px 0 0; }
+/* L'écart fond avec le nombre de barres : sur plusieurs jours d'heures, elles tiennent quand même dans la tuile. */
+.spark { display: flex; align-items: flex-end; gap: min(2px, calc(30% / var(--n))); height: 26px; border-bottom: 1px solid var(--line); }
+.spark-bar { flex: 1 1 0; min-width: 0; background: rgb(var(--neon-500) / 0.7); border-radius: 2px 2px 0 0; }
 
 .err { color: var(--down); font-size: 12px; }
 

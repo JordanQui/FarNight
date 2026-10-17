@@ -192,249 +192,347 @@ function acceptAndEnroll() {
   startFresh()
   gameStore.setScreen('admission')
 }
+
+/**
+ * Les boutons d'entrée du bas de page font le même geste que celui du haut :
+ * reprendre la nuit si le dossier est connu, sinon l'avertissement.
+ */
+function enter() {
+  if (knownDossier.value) goOut()
+  else openDisclaimer()
+}
+const ctaLabel = computed(() => knownDossier.value ? t('login.dossier_cta') : t('login.enroll_cta'))
+const ctaNote = computed(() => knownDossier.value ? null : t('login.enroll_note', { steps: ADMISSION_STEPS }))
+
+/**
+ * LE DÉFILEMENT, sous le premier écran.
+ *
+ * Le premier écran ne bouge pas : seul `LoginPitch` s'en sert. Chaque
+ * `[data-scrub]` reçoit `--p`, sa progression de 0 à 1 dans l'écran — de son
+ * entrée par le bas à sa sortie par le haut (0,5 = centré), ou, pour `pin`
+ * (section plus haute que l'écran dont le contenu reste collé), de son arrivée
+ * en haut à sa fin. Chaque `[data-reveal]` reçoit `is-in` la première fois
+ * qu'il paraît.
+ *
+ * Si le système demande moins d'animation, `is-motion` n'est jamais posée :
+ * tout est visible d'emblée et rien ne suit la molette.
+ */
+const root = ref<HTMLElement | null>(null)
+const motion = ref(false)
+let frame = 0
+let observer: IntersectionObserver | null = null
+
+function progressOf(el: HTMLElement, vh: number): number {
+  const r = el.getBoundingClientRect()
+  const p = el.dataset.scrub === 'pin' ? -r.top / Math.max(1, r.height - vh)
+    : (vh - r.top) / (vh + r.height)
+  return Math.min(1, Math.max(0, p))
+}
+
+function paint() {
+  frame = 0
+  if (!motion.value) return
+  const vh = window.innerHeight
+  root.value?.querySelectorAll<HTMLElement>('[data-scrub]').forEach((el) => {
+    el.style.setProperty('--p', progressOf(el, vh).toFixed(4))
+  })
+}
+
+function onScroll() {
+  if (!frame) frame = requestAnimationFrame(paint)
+}
+
+/** La flèche du premier écran : on descend jusqu'à son pied, là où commence la présentation. */
+function toNext(e: MouseEvent) {
+  const hero = (e.currentTarget as HTMLElement).closest('section')
+  const top = hero ? hero.offsetTop + hero.offsetHeight : window.innerHeight
+  window.scrollTo({ top, behavior: motion.value ? 'smooth' : 'auto' })
+}
+
+onMounted(() => {
+  motion.value = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue
+      entry.target.classList.add('is-in')
+      observer?.unobserve(entry.target)
+    }
+  }, { rootMargin: '0px 0px -10% 0px' })
+  root.value?.querySelectorAll('[data-reveal]').forEach(el => observer?.observe(el))
+  window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('resize', onScroll, { passive: true })
+  paint()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('resize', onScroll)
+  if (frame) cancelAnimationFrame(frame)
+  observer?.disconnect()
+})
+
+/**
+ * L'écran suivant (formulaire, scène) tient dans la hauteur de la fenêtre : il
+ * ne doit pas hériter du défilement de l'accueil. Après le fondu de sortie,
+ * avant l'entrée du suivant.
+ */
+onUnmounted(() => window.scrollTo(0, 0))
 </script>
 
 <template>
-  <div class="relative min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center px-6 text-center">
-    <!-- Lueur de la ville, sous l'horizon -->
-    <div
-      class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
-      style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
-    />
-
-    <!--
-      Skyline à gradins, silhouette plate sur deux plans, tubes néon
-      sur les façades. C'est le décor polygonal de Flashback, pas un dégradé.
-    -->
-    <div class="absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
-      <HomeSkyline />
-    </div>
-
-    <!-- Pluie -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <span
-        v-for="(drop, i) in raindrops"
-        :key="i"
-        class="rain-drop animate-rain-fall"
-        :style="{
-          left: `${drop.left}%`,
-          height: `${drop.height}px`,
-          animationDelay: `${drop.delay}s`,
-          animationDuration: `${drop.duration}s`,
-          opacity: drop.opacity,
-        }"
-      />
-    </div>
-
-    <!-- Voile : le texte doit rester lisible par-dessus les tours -->
-    <div
-      class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(58% 54% at 50% 45%, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, transparent 80%)"
-    />
-
-    <!-- Contenu -->
-    <div class="relative z-10 flex flex-col items-center gap-8 max-w-md w-full">
-      <!-- Ziggourat néon : gradins symétriques, la signature Deco -->
-      <svg viewBox="0 0 52 22" class="w-14 h-6 fill-neon-500 animate-neon-buzz" aria-hidden="true"
-           style="filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.85))">
-        <rect x="0" y="16" width="4" height="6" />
-        <rect x="6" y="12" width="4" height="10" />
-        <rect x="12" y="8" width="4" height="14" />
-        <rect x="18" y="4" width="4" height="18" />
-        <rect x="24" y="0" width="4" height="22" />
-        <rect x="30" y="4" width="4" height="18" />
-        <rect x="36" y="8" width="4" height="14" />
-        <rect x="42" y="12" width="4" height="10" />
-        <rect x="48" y="16" width="4" height="6" />
-      </svg>
-
-      <div class="w-full space-y-5">
-        <p class="text-steel-400 text-[10px] uppercase tracking-[0.45em] font-display">
-          {{ t('login.eyebrow') }}
-        </p>
-
-        <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.95] tracking-[0.05em] text-[2.1rem] sm:text-[2.9rem]">
-          {{ t('login.title_line1') }}<br>{{ t('login.title_line2') }}
-        </h1>
-
-        <div class="neon-rule w-40 mx-auto" />
-      </div>
-
-      <!--
-        L'accroche tient en une phrase et pose les deux promesses du jeu : le
-        monde est bâti sur ce joueur-là, et ce qu'il y dénoue lui revient. La
-        coupure tombe avant « vers » : ce que c'est d'un côté, où ça mène de
-        l'autre.
-      -->
-      <p class="text-ink-200/75 text-sm leading-relaxed max-w-xs">
-        {{ t('login.tagline_line1') }}<br>
-        {{ t('login.tagline_line2') }}
-      </p>
-
-      <!--
-        Le dossier est déjà au bureau. Personne ne remplit deux fois le même
-        formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
-        scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
-        Le formulaire reste accessible dessous, pour qui veut repartir sous une
-        autre identité.
-      -->
-      <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
-        <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-          <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
-          <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
-          <template v-else>{{ t('login.dossier_known') }}</template>
-        </p>
-        <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
-        <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
-          {{ resumeScene.title }}
-          <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
-        </p>
-        <button
-          class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
-                 hover:text-ink-200 transition-colors pt-1"
-          @click="openDisclaimer"
-        >
-          {{ t('login.dossier_new') }}
-        </button>
-      </div>
-
-      <!--
-        L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
-        que le monde utilisera de lui, et la commission lui répond avant la
-        première scène.
-      -->
-      <div v-else class="w-full space-y-4 flex flex-col items-center">
-        <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
-          {{ t('login.enroll_cta') }}
-        </GlowButton>
-        <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
-          {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
-        </p>
-      </div>
-
-      <!--
-        LA LANGUE, sur le tout premier écran.
-        Elle ne peut pas attendre le formulaire : quelqu'un qui ne lit pas le
-        français doit pouvoir sortir du français avant d'avoir à remplir quoi
-        que ce soit. Le menu affiche le nom de la langue DANS cette langue —
-        « Deutsch », « Русский » — parce que c'est le seul libellé qu'un
-        visiteur reconnaîtra à coup sûr, quelle que soit la langue affichée.
-        Le choix part dans le cookie, et le formulaire s'ouvrira dessus.
-      -->
-      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-1">
-        <label class="flex items-center gap-2">
-          <span class="sr-only">{{ t('lang.label') }}</span>
-          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
-               stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <circle cx="10" cy="10" r="8" />
-            <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
-          </svg>
-          <select
-            class="lang-select"
-            :value="lang"
-            @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
-          >
-            <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
-          </select>
-        </label>
-
-        <!-- Partager l'adresse : le domaine sert de libellé, il se lit dans toutes les langues -->
-        <button class="share-link group flex items-center gap-2" @click="shareSite">
-          <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500 group-hover:text-neon-400 transition-colors"
-               fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
-            <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
-          </svg>
-          {{ host }}
-        </button>
-
-        <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
-        <a
-          href="https://instagram.com/farnight_game"
-          target="_blank"
-          rel="noopener"
-          aria-label="Instagram"
-          class="p-1 text-steel-500 hover:text-neon-400 transition-colors"
-        >
-          <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-            <rect x="2.5" y="2.5" width="15" height="15" rx="4.5" />
-            <circle cx="10" cy="10" r="3.6" />
-            <circle cx="14.6" cy="5.4" r="0.7" fill="currentColor" stroke="none" />
-          </svg>
-        </a>
-      </div>
-
-      <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
-      <NuxtLink
-        to="/mentions-legales"
-        class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/70 hover:text-steel-400 transition-colors"
-      >
-        © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
-      </NuxtLink>
-    </div>
-
-    <!-- Balayage cathodique, tout au-dessus -->
-    <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
-
-    <!--
-      Avertissement données. Plus haut que l'écran d'un téléphone : plafonné à
-      la hauteur VISIBLE (dvh, encoches déduites), le titre en tête, les boutons
-      au pied, et seuls les quatre points défilent, dans le cadre.
-    -->
-    <Transition name="modal">
+  <div ref="root" class="home relative overflow-x-clip" :class="{ 'is-motion': motion }">
+    <section class="relative min-h-[100dvh] overflow-hidden flex flex-col items-center justify-center px-6 py-16 text-center">
+      <!-- Lueur de la ville, sous l'horizon -->
       <div
-        v-if="showDisclaimer"
-        class="disclaimer-frame fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6"
-        @click.self="showDisclaimer = false"
-      >
-        <div class="absolute inset-0 bg-ink-900/92" />
+        class="absolute inset-x-0 bottom-0 h-[55vh] pointer-events-none"
+        style="background: radial-gradient(90% 100% at 50% 100%, rgb(var(--neon-500) / 0.22) 0%, rgb(var(--neon-500) / 0.06) 38%, transparent 70%)"
+      />
 
-        <div class="disclaimer-card relative z-10 w-full max-w-sm flex flex-col bg-ink-900 border border-neon-600/50"
-             style="box-shadow: 0 0 0 1px rgb(var(--neon-500) / 0.12), 0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgb(var(--neon-500) / 0.12)">
-          <span class="absolute inset-[5px] border border-neon-500/15 pointer-events-none" />
+      <!--
+        Skyline à gradins, silhouette plate sur deux plans, tubes néon
+        sur les façades. C'est le décor polygonal de Flashback, pas un dégradé.
+      -->
+      <div class="absolute inset-x-0 bottom-0 pointer-events-none opacity-90">
+        <HomeSkyline />
+      </div>
 
-          <div class="shrink-0 space-y-3 text-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
-            <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
-              {{ t('login.disclaimer_eyebrow') }}
-            </p>
-            <h2 class="font-display uppercase text-ink-100 text-lg tracking-[0.08em]">
-              {{ t('login.disclaimer_title') }}
-            </h2>
-            <div class="neon-rule w-24 mx-auto" />
-          </div>
+      <!-- Pluie -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <span
+          v-for="(drop, i) in raindrops"
+          :key="i"
+          class="rain-drop animate-rain-fall"
+          :style="{
+            left: `${drop.left}%`,
+            height: `${drop.height}px`,
+            animationDelay: `${drop.delay}s`,
+            animationDuration: `${drop.duration}s`,
+            opacity: drop.opacity,
+          }"
+        />
+      </div>
 
-          <div class="relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7">
-            <ul class="space-y-5 text-left">
-              <li
-                v-for="(point, i) in disclaimerPoints"
-                :key="i"
-                class="flex items-start gap-3.5"
-              >
-                <!-- Chevron angulaire, pas un losange de grimoire -->
-                <svg viewBox="0 0 8 10" class="w-2 h-2.5 mt-1 shrink-0 fill-neon-500" aria-hidden="true">
-                  <path d="M0 0 L5 5 L0 10 L3 10 L8 5 L3 0 Z" />
-                </svg>
-                <span class="text-ink-200/80 text-[13px] leading-relaxed">{{ point }}</span>
-              </li>
-            </ul>
-            <!-- Le texte continue : un fondu au pied le dit. -->
-            <div class="sticky bottom-0 h-6 sm:h-7 bg-gradient-to-t from-ink-900 to-transparent pointer-events-none" />
-          </div>
+      <!-- Voile : le texte doit rester lisible par-dessus les tours -->
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(58% 54% at 50% 45%, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, transparent 80%)"
+      />
 
-          <div class="shrink-0 h-px mx-5 sm:mx-7 bg-neon-600/30" />
+      <!-- Contenu -->
+      <div class="relative z-10 flex flex-col items-center gap-8 max-w-md w-full">
+        <!-- Ziggourat néon : gradins symétriques, la signature Deco -->
+        <svg viewBox="0 0 52 22" class="w-14 h-6 fill-neon-500 animate-neon-buzz" aria-hidden="true"
+             style="filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.85))">
+          <rect x="0" y="16" width="4" height="6" />
+          <rect x="6" y="12" width="4" height="10" />
+          <rect x="12" y="8" width="4" height="14" />
+          <rect x="18" y="4" width="4" height="18" />
+          <rect x="24" y="0" width="4" height="22" />
+          <rect x="30" y="4" width="4" height="18" />
+          <rect x="36" y="8" width="4" height="14" />
+          <rect x="42" y="12" width="4" height="10" />
+          <rect x="48" y="16" width="4" height="6" />
+        </svg>
 
-          <div class="shrink-0 space-y-4 flex flex-col items-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
-            <GlowButton class="w-full" @click="acceptAndEnroll">{{ t('common.continue') }}</GlowButton>
-            <button
-              class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400 hover:text-ink-200 transition-colors"
-              @click="showDisclaimer = false"
+        <div class="w-full space-y-5">
+          <p class="text-steel-400 text-[10px] uppercase tracking-[0.45em] font-display">
+            {{ t('login.eyebrow') }}
+          </p>
+
+          <h1 class="neon-text animate-neon-buzz font-display uppercase leading-[0.95] tracking-[0.05em] text-[2.1rem] sm:text-[2.9rem]">
+            {{ t('login.title_line1') }}<br>{{ t('login.title_line2') }}
+          </h1>
+
+          <div class="neon-rule w-40 mx-auto" />
+        </div>
+
+        <!--
+          L'accroche tient en une phrase et pose les deux promesses du jeu : le
+          monde est bâti sur ce joueur-là, et ce qu'il y dénoue lui revient. La
+          coupure tombe avant « vers » : ce que c'est d'un côté, où ça mène de
+          l'autre.
+        -->
+        <p class="text-ink-200/75 text-sm leading-relaxed max-w-xs">
+          {{ t('login.tagline_line1') }}<br>
+          {{ t('login.tagline_line2') }}
+        </p>
+
+        <!--
+          Le dossier est déjà au bureau. Personne ne remplit deux fois le même
+          formulaire : un seul geste, « Sortir de chez vous », qui ramène à la
+          scène où l'on en était — ou à l'auberge s'il n'y a rien à reprendre.
+          Le formulaire reste accessible dessous, pour qui veut repartir sous une
+          autre identité.
+        -->
+        <div v-if="knownDossier" class="w-full space-y-4 flex flex-col items-center">
+          <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
+            <template v-if="resumeScene && rememberedFirstName">{{ t('login.resume_named', { name: rememberedFirstName }) }}</template>
+            <template v-else-if="resumeScene">{{ t('login.resume_anon') }}</template>
+            <template v-else>{{ t('login.dossier_known') }}</template>
+          </p>
+          <GlowButton class="w-full" @click="goOut">{{ t('login.dossier_cta') }}</GlowButton>
+          <p v-if="resumeScene" class="text-ink-200/70 text-[11px] leading-relaxed">
+            {{ resumeScene.title }}
+            <span v-if="resumeScene.act" class="text-steel-400"> — {{ resumeScene.act }}</span>
+          </p>
+          <button
+            class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400
+                   hover:text-ink-200 transition-colors pt-1"
+            @click="openDisclaimer"
+          >
+            {{ t('login.dossier_new') }}
+          </button>
+        </div>
+
+        <!--
+          L'entrée dans le jeu. Plus aucun compte tiers : le joueur DÉCLARE ce
+          que le monde utilisera de lui, et la commission lui répond avant la
+          première scène.
+        -->
+        <div v-else class="w-full space-y-4 flex flex-col items-center">
+          <GlowButton class="w-full leading-relaxed" @click="openDisclaimer">
+            {{ t('login.enroll_cta') }}
+          </GlowButton>
+          <p class="text-steel-400 text-[10px] uppercase tracking-[0.2em] font-display">
+            {{ t('login.enroll_note', { steps: ADMISSION_STEPS }) }}
+          </p>
+        </div>
+
+        <!--
+          LA LANGUE, sur le tout premier écran.
+          Elle ne peut pas attendre le formulaire : quelqu'un qui ne lit pas le
+          français doit pouvoir sortir du français avant d'avoir à remplir quoi
+          que ce soit. Le menu affiche le nom de la langue DANS cette langue —
+          « Deutsch », « Русский » — parce que c'est le seul libellé qu'un
+          visiteur reconnaîtra à coup sûr, quelle que soit la langue affichée.
+          Le choix part dans le cookie, et le formulaire s'ouvrira dessus.
+        -->
+        <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 pt-1">
+          <label class="flex items-center gap-2">
+            <span class="sr-only">{{ t('lang.label') }}</span>
+            <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500" fill="none"
+                 stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <circle cx="10" cy="10" r="8" />
+              <path d="M2 10h16M10 2c2.5 2.6 2.5 12.8 0 16M10 2C7.5 4.6 7.5 14.8 10 18" />
+            </svg>
+            <select
+              class="lang-select"
+              :value="lang"
+              @change="setLang(($event.target as HTMLSelectElement).value as LangCode)"
             >
-              {{ t('common.cancel') }}
-            </button>
+              <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.endonym }}</option>
+            </select>
+          </label>
+
+          <!-- Partager l'adresse : le domaine sert de libellé, il se lit dans toutes les langues -->
+          <button class="share-link group flex items-center gap-2" @click="shareSite">
+            <svg viewBox="0 0 20 20" class="w-3.5 h-3.5 shrink-0 text-steel-500 group-hover:text-neon-400 transition-colors"
+                 fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <path v-if="copied" d="M4.5 10.5l3.5 3.5 7.5-8" />
+              <path v-else d="M10 2.5v10M6.5 6 10 2.5 13.5 6M7 8.5H4.5v9h11v-9H13" />
+            </svg>
+            {{ host }}
+          </button>
+
+          <!-- Le compte Instagram du jeu, sans le suivi du QR code d'où vient le lien -->
+          <a
+            href="https://instagram.com/farnight_game"
+            target="_blank"
+            rel="noopener"
+            aria-label="Instagram"
+            class="p-1 text-steel-500 hover:text-neon-400 transition-colors"
+          >
+            <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="15" height="15" rx="4.5" />
+              <circle cx="10" cy="10" r="3.6" />
+              <circle cx="14.6" cy="5.4" r="0.7" fill="currentColor" stroke="none" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Licence et mentions légales : dans la colonne, rien ne peut les recouvrir -->
+        <NuxtLink
+          to="/mentions-legales"
+          class="font-display text-[9px] uppercase tracking-[0.2em] text-steel-500/70 hover:text-steel-400 transition-colors"
+        >
+          © 2026 · CC BY-NC-ND 4.0 · {{ t('legal.link') }}
+        </NuxtLink>
+      </div>
+
+      <!-- Il y a une suite : une flèche qui descend, et qui y mène d'un clic -->
+      <button class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 p-3 text-neon-400"
+              tabindex="-1" aria-hidden="true" @click="toNext">
+        <svg viewBox="0 0 24 14" class="scroll-cue-chevron w-7 h-4" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="square">
+          <path d="M2 2l10 10L22 2" />
+        </svg>
+      </button>
+
+      <!-- Balayage cathodique, tout au-dessus -->
+      <div class="crt-scanlines absolute inset-0 z-20 pointer-events-none opacity-45" />
+
+      <!--
+        Avertissement données. Plus haut que l'écran d'un téléphone : plafonné à
+        la hauteur VISIBLE (dvh, encoches déduites), le titre en tête, les boutons
+        au pied, et seuls les quatre points défilent, dans le cadre.
+      -->
+      <Transition name="modal">
+        <div
+          v-if="showDisclaimer"
+          class="disclaimer-frame fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6"
+          @click.self="showDisclaimer = false"
+        >
+          <div class="absolute inset-0 bg-ink-900/92" />
+
+          <div class="disclaimer-card relative z-10 w-full max-w-sm flex flex-col bg-ink-900 border border-neon-600/50"
+               style="box-shadow: 0 0 0 1px rgb(var(--neon-500) / 0.12), 0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgb(var(--neon-500) / 0.12)">
+            <span class="absolute inset-[5px] border border-neon-500/15 pointer-events-none" />
+
+            <div class="shrink-0 space-y-3 text-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
+              <p class="text-neon-400/80 text-[10px] uppercase tracking-[0.35em] font-display">
+                {{ t('login.disclaimer_eyebrow') }}
+              </p>
+              <h2 class="font-display uppercase text-ink-100 text-lg tracking-[0.08em]">
+                {{ t('login.disclaimer_title') }}
+              </h2>
+              <div class="neon-rule w-24 mx-auto" />
+            </div>
+
+            <div class="relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7">
+              <ul class="space-y-5 text-left">
+                <li
+                  v-for="(point, i) in disclaimerPoints"
+                  :key="i"
+                  class="flex items-start gap-3.5"
+                >
+                  <!-- Chevron angulaire, pas un losange de grimoire -->
+                  <svg viewBox="0 0 8 10" class="w-2 h-2.5 mt-1 shrink-0 fill-neon-500" aria-hidden="true">
+                    <path d="M0 0 L5 5 L0 10 L3 10 L8 5 L3 0 Z" />
+                  </svg>
+                  <span class="text-ink-200/80 text-[13px] leading-relaxed">{{ point }}</span>
+                </li>
+              </ul>
+              <!-- Le texte continue : un fondu au pied le dit. -->
+              <div class="sticky bottom-0 h-6 sm:h-7 bg-gradient-to-t from-ink-900 to-transparent pointer-events-none" />
+            </div>
+
+            <div class="shrink-0 h-px mx-5 sm:mx-7 bg-neon-600/30" />
+
+            <div class="shrink-0 space-y-4 flex flex-col items-center px-5 pt-5 pb-5 sm:px-7 sm:pt-7 sm:pb-7">
+              <GlowButton class="w-full" @click="acceptAndEnroll">{{ t('common.continue') }}</GlowButton>
+              <button
+                class="font-display text-[10px] uppercase tracking-[0.28em] text-steel-400 hover:text-ink-200 transition-colors"
+                @click="showDisclaimer = false"
+              >
+                {{ t('common.cancel') }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </section>
+
+    <LoginPitch :cta-label="ctaLabel" :cta-note="ctaNote" @enter="enter" />
   </div>
 </template>
 
@@ -499,6 +597,42 @@ function acceptAndEnroll() {
   color: rgb(var(--ink-100));
 }
 
+.scroll-cue-chevron {
+  filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.8));
+  animation: cue 1.8s ease-in-out infinite;
+}
+@keyframes cue {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-chevron { animation: none; }
+}
+
 .modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+</style>
+
+<!--
+  Les apparitions de `LoginPitch`, d'où l'absence de `scoped`. Bornées à
+  `.home.is-motion` : sans JavaScript ou avec moins d'animation demandée, rien
+  n'est jamais caché.
+-->
+<style>
+.home.is-motion [data-reveal] {
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    clip-path 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--d, 0) * 110ms);
+}
+.home.is-motion [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.home.is-motion [data-reveal='wipe']:not(.is-in) {
+  transform: none;
+  clip-path: inset(0 100% 0 0);
+}
+.home.is-motion [data-reveal='wipe'].is-in { clip-path: inset(0 0 0 0); }
 </style>

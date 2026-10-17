@@ -16,7 +16,6 @@ export const BRIEF = `CE QU'IL FAUT SAVOIR DU JEU
 - Sa formule, en français : « jeu de rôle textuel à intrication dynamique générative », les trois mots dans cet ordre. C'est l'innovation à mettre en avant : la ville, ses habitants et la quête de la nuit sont calculés depuis le dossier d'admission du joueur (son nom, sa date de naissance, et s'il le veut son heure et sa ville de naissance) ; chaque lieu est écrit et illustré à son arrivée, rien n'est dessiné à l'avance.
 - Le dossier se remplit en une minute ; on peut aussi jouer avec un avatar. Quinze langues.
 - La première scène est gratuite. À la fin, un PDF de la nuit est offert : un document à lire et relire.
-- L'accroche du site : « Personne ne peut vous voler votre nuit ».
 - Ce qu'on voit : tours à gradins, néon rose magenta, pluie, ombres noires qui avalent tout, silhouettes de film noir. Décris ce qu'on voit ; n'écris jamais « Art Déco ».
 - En fond, sans jamais le citer : le sommeil comme dernier temps qu'on ne peut pas vous prendre, les vitrines allumées pour personne, les écrans qui ne s'éteignent pas, l'insomnie.
 - Le site : https://farnight.online
@@ -74,6 +73,8 @@ export function developPrompt(p: {
   media: string[]
   /** Combien d'images sont jointes au message. */
   images: number
+  /** « Corriger » : le texte est un post déjà développé, et ceci la consigne (vide = relecture). */
+  fix?: string
 }) {
   const key = `${p.networkId}.${p.format.id}`
   const wantTitle = !!p.format.title && !p.title
@@ -83,17 +84,25 @@ export function developPrompt(p: {
     ? `Médias du post : ${[images && `${images} image${images > 1 ? 's' : ''}`, videos && `${videos} vidéo${videos > 1 ? 's' : ''}`].filter(Boolean).join(', ')}.${p.images ? ' Les visuels sont joints à ce message, une vidéo par sa première image : écris d’après ce qu’on y voit.' : ''}`
     : 'Le post n’a pas de média.'
 
+  const task = p.fix === undefined
+    ? `LE BROUILLON DE L'AUTEUR, entre les balises : c'est à la fois la matière et la consigne. Garde ses idées, ses mots forts et son intention, et développe-le en post fini. S'il donne une consigne (ton, angle, longueur, langue), suis-la.
+<brouillon>
+${p.text}
+</brouillon>
+
+Écris dans la langue du brouillon, sauf s'il en demande une autre.`
+    : `LE POST, déjà écrit, entre les balises. ${p.fix ? `Corrige-le selon cette consigne de l'auteur : ${p.fix}` : 'Relis-le : corrige l’orthographe, la grammaire, et ce qui enfreint les règles ou la limite.'}
+Ne change rien d'autre : garde ses phrases, sa langue et sa longueur${p.fix ? ', sauf si la consigne le demande' : ''}.
+<post>
+${p.text}
+</post>`
+
   return `${BRIEF}
 
 LE POST : ${p.network}, format « ${p.format.label} ».
 ${media}
 ${GUIDES[key] ?? `${p.format.text?.label ?? 'Texte'} pour ${p.network}.`}${limit(p.networkId, p.format)}${wantTitle ? `\n${TITLES[p.networkId] ?? 'Titre court.'} ${p.format.title!.max} signes au plus.` : ''}${p.title ? `\nTitre déjà choisi : ${p.title}` : ''}
 
-LE BROUILLON DE L'AUTEUR, entre les balises : c'est à la fois la matière et la consigne. Garde ses idées, ses mots forts et son intention, et développe-le en post fini. S'il donne une consigne (ton, angle, longueur, langue), suis-la.
-<brouillon>
-${p.text}
-</brouillon>
-
-Écris dans la langue du brouillon, sauf s'il en demande une autre.
+${task}
 Réponds uniquement en JSON : {"text": "…"${wantTitle ? ', "title": "…"' : ''}}`
 }

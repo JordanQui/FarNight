@@ -4,11 +4,12 @@
  * par ligne) et les fichiers sous `files`, dans l'ordre voulu.
  *
  * Le format du réseau (server/socials) dit ce qui est permis ; on le vérifie
- * ici avant tout envoi. Chaque essai, réussi ou non, va au journal.
+ * ici avant tout envoi. Chaque essai, réussi ou non, va au journal ; un refus
+ * garde son brouillon pour retry.post.ts.
  */
 import type { Kind, Media } from '../../../socials/common'
 import { network } from '../../../socials'
-import { bad, failure, record } from '../../../socials/common'
+import { bad, failure, keepDraft, record } from '../../../socials/common'
 
 const VIDEO_EXT = /\.(mp4|mov|m4v|webm)$/i
 const TYPES: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' }
@@ -73,11 +74,13 @@ export default defineEventHandler(async (event) => {
   if (format.title && title.length > format.title.max) throw bad(`${label} : titre de ${title.length} signes pour ${format.title.max} au plus`)
 
   const excerpt = (title || text || media.map(m => m.name).join(', ')).replace(/\s+/g, ' ').slice(0, 90)
+  const draft = { format: format.id, text, title, media, options }
   try {
-    const result = await n.publish({ format: format.id, text, title, media, options })
+    const result = await n.publish(draft)
     return await record({ network: n.id, format: format.id, excerpt, ...result })
   } catch (e) {
-    await record({ network: n.id, format: format.id, excerpt, ref: '', state: 'failed', detail: failure(e) })
+    const entry = await record({ network: n.id, format: format.id, excerpt, ref: '', state: 'failed', detail: failure(e), retry: true })
+    await keepDraft(entry.id, draft)
     throw e
   }
 })

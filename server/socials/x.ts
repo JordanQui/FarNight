@@ -51,6 +51,14 @@ const auth = oauth({
 /** Le moniteur lit les posts avec le même jeton, renouvelé au besoin. */
 export const xToken = auth.token
 
+/** Le solde du compte développeur, en dollars : l'API se paie à l'appel et l'écriture s'arrête à zéro. */
+export async function xCredits() {
+  const { data } = await http<{ data: { total_balance: number; prepaid_balance: number; free_balance: number; free_grants: { amount: number; expires_at?: string }[] } }>('X', `${API}/usage/credits`, {
+    headers: { Authorization: `Bearer ${await auth.token()}` },
+  })
+  return { total: data.total_balance, prepaid: data.prepaid_balance, free: data.free_balance, expires: data.free_grants[0]?.expires_at ?? null }
+}
+
 type Processing = { state: 'pending' | 'in_progress' | 'succeeded' | 'failed'; check_after_secs?: number; error?: { message?: string } }
 
 async function upload(m: Media) {

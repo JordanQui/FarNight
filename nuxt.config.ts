@@ -106,6 +106,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
+  // « localhost » n'écoute que sur ::1 sous macOS ; X ne revient que sur
+  // 127.0.0.1 (server/socials/x.ts). Le navigateur retombe sur l'IPv4 pour localhost.
+  devServer: { host: '127.0.0.1' },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
