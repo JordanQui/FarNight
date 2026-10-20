@@ -325,7 +325,7 @@ export class SceneRuntime {
 
   /**
    * L'objet-clé est-il une carte d'accès ? Tout lieu qui fait avancer en donne
-   * une — en A2S1, la carte cassée — sauf les valeurs : fréquence, code, séquence.
+   * une — en A1S1, la carte cassée — sauf les valeurs : fréquence, code, séquence.
    */
   private get keyItemIsCard(): boolean {
     const puzzle = this.scene.key_item?.puzzle
@@ -1404,7 +1404,7 @@ ${lines}`)
    * en 502 au lancement. Le même geste le reconstruit.
    */
   ensurePuzzleObjects(generated: GeneratedScene, lastTry = false): void {
-    // La fréquence (a1s2) est revenue à sa forme du 2026-10-03 : elle ne
+    // La fréquence (a2s2) est revenue à sa forme du 2026-10-03 : elle ne
     // demande plus deux objets. Seul le code garde cette exigence.
     const needed = this.scene.key_item.puzzle === 'code' ? 2 : 1
 

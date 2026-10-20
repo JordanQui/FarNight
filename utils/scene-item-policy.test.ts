@@ -2,9 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { keyItemIsFirstHalf, sceneKeyInventoryKind, finalSequenceNeedsExchange, keyItemNameInClear } from './scene-item-policy.ts'
 
-test('la carte cassée d’A2S1 entre en poche comme la moitié qu’A2S2 attend', () => {
+test('la carte cassée d’A1S1 entre en poche comme la moitié qu’A1S2 attend', () => {
   assert.equal(sceneKeyInventoryKind('a2s1'), 'key')
-  assert.equal(keyItemIsFirstHalf('a2s1'), true)
+  assert.equal(keyItemIsFirstHalf('a1s1'), true)
+  assert.equal(keyItemIsFirstHalf('a2s1'), false)
   assert.equal(keyItemIsFirstHalf('a3s1'), false)
 })
 
@@ -12,7 +13,7 @@ test('A3S1 redevient une carte pour atteindre le dernier lieu', () => {
   assert.equal(sceneKeyInventoryKind('a3s1'), 'key')
 })
 
-test('A2S2 conserve sa carte gagnée sur le lecteur', () => {
+test('A2S2 remet sa fréquence comme une clé', () => {
   assert.equal(sceneKeyInventoryKind('a2s2'), 'key')
 })
 

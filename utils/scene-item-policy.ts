@@ -1,14 +1,14 @@
-/** Toute scène remet une carte ou une valeur ; A2S1, la carte cassée contre l’offrande. */
+/** Toute scène remet une carte ou une valeur ; A1S1, la carte cassée que son détenteur cède. */
 export function sceneKeyInventoryKind(_sceneId: string): 'key' | 'trade' {
   return 'key'
 }
 
 /**
- * L’objet-clé d’A2S1 est la première moitié de la carte d’A2S2 : il entre en
+ * L’objet-clé d’A1S1 est la première moitié de la carte d’A1S2 : il entre en
  * poche sous l’id que la seconde cherche.
  */
 export function keyItemIsFirstHalf(sceneId: string): boolean {
-  return sceneId === 'a2s1'
+  return sceneId === 'a1s1'
 }
 
 /**
