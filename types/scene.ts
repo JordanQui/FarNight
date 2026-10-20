@@ -189,7 +189,12 @@ export interface PuzzleClue {
  * sur place est ce qui la rend gratuite.
  */
 export type ScenePuzzle = { clues: PuzzleClue[] } & (
-  | { kind: 'frequency'; solution: number; min: number; max: number }
+  /**
+   * `parts` : les deux fréquences dont `solution` est la somme — la première
+   * se lit dans le lieu, la seconde, `npc_id` la dit. Absent d'une scène tirée
+   * avant la fréquence en deux temps : l'indice du lieu donne alors tout.
+   */
+  | { kind: 'frequency'; solution: number; min: number; max: number; parts?: [number, number]; npc_id?: string }
   | { kind: 'code'; solution: string }
   /** `steps` dans l'ordre d'affichage ; `solution` : leurs indices dans le bon ordre. */
   | { kind: 'sequence'; steps: string[]; solution: number[] }
@@ -609,6 +614,12 @@ export interface TurnContext {
    * pourrait pas demander au personnage de nommer ce qu'il montre.
    */
   reveal_label?: string
+  /**
+   * Le personnage qui connaît la seconde fréquence, tant que le cadran n'est
+   * pas réglé. Le nombre ne monte pas : c'est le client qui l'écrit à la suite
+   * de sa réplique, le modèle ne fait que l'amener.
+   */
+  frequency_npc_id?: string
 }
 
 /** 'exit_nudge' : le joueur parle de sortir mais le paywall n'est pas atteint. */

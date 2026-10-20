@@ -52,7 +52,15 @@ export function useNarrative() {
       // écrits par le modèle, le serveur ne les connaît pas, et c'est pourtant
       // lui qui doit redire ce nom au personnage qui va le montrer.
       reveal_label: revealLabel(),
+      frequency_npc_id: frequencyNpc(),
     }
+  }
+
+  /** Celui qui sait ce qu'il faut ajouter à la fréquence du lieu, tant qu'elle compte. */
+  function frequencyNpc(): string | undefined {
+    const puzzle = playerStore.scene?.puzzle
+    if (puzzle?.kind !== 'frequency' || !puzzle.parts || gameStore.hasKeyItem) return undefined
+    return puzzle.npc_id
   }
 
   /** Le libellé de l'élément caché qu'un échange de cette scène découvrirait. */
@@ -475,8 +483,18 @@ export function useNarrative() {
     }
 
     gameStore.recordModelTurn()
-    const text = await streamTurn(input, npc, mode)
+    let text = await streamTurn(input, npc, mode)
     if (!text) return
+
+    // LA SECONDE FRÉQUENCE est écrite par le jeu, jamais par le modèle : un
+    // nombre qu'il inventerait rendrait le cadran insoluble. Elle suit la
+    // réplique de celui qui la connaît, à chaque fois qu'on lui parle.
+    const puzzle = playerStore.scene?.puzzle
+    if (npc && puzzle?.kind === 'frequency' && puzzle.parts && npc.id === frequencyNpc()) {
+      const line = `\n\n${t('puzzle.freq_part_npc', { value: puzzle.parts[1] })}`
+      gameStore.updateLastNarrativeEntry(line)
+      text += line
+    }
 
     gameStore.incrementTurn(input, text, npc?.id)
     applyEffects(after)

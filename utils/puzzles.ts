@@ -15,7 +15,8 @@ import { isTakeable } from '~/utils/interactables'
  * cachée ou délivrée ne différaient que par le mot. Chacune a désormais sa
  * propre épreuve, et elle se résout SUR L'APPAREIL :
  *
- * - `frequency` : un cadran à régler, la valeur est écrite dans le lieu ;
+ * - `frequency` : un cadran à régler, sur la somme d'une valeur écrite dans le
+ *   lieu et d'une autre qu'un personnage connaît ;
  * - `code` : quatre chiffres, écrits dans le lieu ;
  * - `sequence` : les gestes du dénouement, leur ordre écrit dans le lieu ;
  * - `lock` : le lecteur ne prend que la carte du lieu que l'indice nomme ;
@@ -112,6 +113,8 @@ export interface PuzzleSource {
   decor?: DecorElement[]
   interactables?: Interactable[]
   key_item?: { name?: string; steps?: string[] } | null
+  /** Ceux qui peuvent dire la seconde fréquence. */
+  npcs?: Array<{ id: string }>
 }
 
 /**
@@ -142,13 +145,27 @@ export function drawPuzzle(
     // premier objet regardé pose le lieu, le second livre la valeur entière.
     // Le cadran reste verrouillé derrière la lecture à la loupe de l'objet-clé.
     if (!surfaces.length) return null
-    const solution = 20 + Math.floor(rand() * 80)
+    // EN DEUX TEMPS (demandé par le user) : le lieu affiche une première
+    // fréquence suivie d'un « + » effacé, un des personnages connaît ce qu'il
+    // faut y ajouter. Rien ne dit « additionne » : le signe et sa phrase le
+    // laissent supposer. Sans personnage, le lieu redonne la valeur entière.
+    const speakers = (scene.npcs ?? []).filter(n => n.id)
+    if (!speakers.length) {
+      const solution = 20 + Math.floor(rand() * 80)
+      return { kind, solution, min: 10, max: 99, clues: spread([t('freq_value', { value: solution })], surfaces, rand) }
+    }
+    // Deux nombres à deux chiffres, dont la somme tient encore sur le cadran.
+    const first = 10 + Math.floor(rand() * 50)
+    const second = 10 + Math.floor(rand() * (99 - first - 10 + 1))
+    const npc = speakers[Math.floor(rand() * speakers.length)]!
     return {
       kind,
-      solution,
+      solution: first + second,
       min: 10,
       max: 99,
-      clues: spread([t('freq_value', { value: solution })], surfaces, rand),
+      parts: [first, second],
+      npc_id: npc.id,
+      clues: spread([t('freq_part_place', { value: first })], surfaces, rand),
     }
   }
 
@@ -231,7 +248,9 @@ export function drawPuzzle(
 export function answerClue(puzzle: ScenePuzzle, lang: LangCode = DEFAULT_LANG): string {
   const t = (key: string, vars?: Record<string, string | number>) => translate(lang, `puzzle.${key}`, vars)
   switch (puzzle.kind) {
-    case 'frequency': return t('freq_value', { value: puzzle.solution })
+    case 'frequency': return puzzle.parts
+      ? t('freq_part_place', { value: puzzle.parts[0] })
+      : t('freq_value', { value: puzzle.solution })
     case 'code': return t('code_value', { code: puzzle.solution })
     case 'sequence': return t('seq_order', { steps: puzzle.solution.map(i => puzzle.steps[i]).join(' → ') })
     case 'lock': return t('lock_clue', { place: puzzle.place })

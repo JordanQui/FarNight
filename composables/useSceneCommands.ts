@@ -165,7 +165,8 @@ export function useSceneCommands() {
         if (item.acquisition === 'found' && p) {
           steps.push([has, 'Regarder deux choses du lieu : la seconde donne l\'indice.'])
           steps.push([has, `Énigme (${p.kind}) : ${
-            p.kind === 'frequency' ? `régler sur ${p.solution} (${p.min}–${p.max})`
+            p.kind === 'frequency' ? `régler sur ${p.solution} (${p.min}–${p.max})${
+              p.parts ? ` = ${p.parts[0]} lu dans le lieu + ${p.parts[1]} dit par ${npc(p.npc_id)}` : ''}`
             : p.kind === 'code' ? `taper ${p.solution}`
             : p.kind === 'sequence' ? p.solution.map(i => p.steps[i]).join(' → ')
             : p.kind === 'lock' ? `présenter ${label(p.card_id)} (prise à ${p.place})`
