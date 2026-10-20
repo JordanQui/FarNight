@@ -239,7 +239,13 @@ export interface ScriptDefaults {
   /** Jamais d'agressivité envers le joueur, toujours une issue : injecté dans chaque prompt système. */
   player_care: { note?: string; instruction: string }
   /** Ce que les personnages ont le droit de dire d'une énigme, par nature. */
-  puzzles: { note?: string; turn_rules: Record<import('~/types/scene').PuzzleKind, string>; scene_rule: string }
+  puzzles: {
+    note?: string
+    turn_rules: Record<import('~/types/scene').PuzzleKind, string>
+    scene_rule: string
+    /** Ajoutée aux répliques de celui qui connaît la seconde fréquence. */
+    frequency_npc_rule?: string
+  }
   /** Ce que le récit vise à restaurer, sous la quête apparente. */
   deep_theme: { note?: string; instruction: string }
   /**

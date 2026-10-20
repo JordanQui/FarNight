@@ -2118,6 +2118,7 @@ ${lines}`)
       decor: scene.decor,
       interactables: iconed,
       key_item: generated.key_item,
+      npcs,
     }, { lang: this.lang, carried, journal })
     // L'ÉNIGME DE FIN D'ACTE NE DOIT PAS TOMBER EN SILENCE. Sans elle, la scène
     // retombe sur la lecture à la loupe et le joueur ne voit jamais le panneau :
@@ -2404,9 +2405,12 @@ ${lines}`)
       steer_rule: interpolate(t.steer_rule ?? '', { quest_objective: ctx.quest.objective }),
       // Ce que ce personnage-là sait du dehors, et lui seul. Un PNJ sans
       // morceau assigné n'en invente pas un : la règle disparaît de son prompt.
-      beyond_rule: npc?.beyond
-        ? interpolate(t.beyond_rule ?? '', { npc_beyond: npc.beyond })
-        : '',
+      // Celui qui connaît la seconde fréquence l'amène ici : toutes les
+      // répliques de personnage portent `beyond_rule`, la consigne y voyage.
+      beyond_rule: [
+        npc?.beyond ? interpolate(t.beyond_rule ?? '', { npc_beyond: npc.beyond }) : '',
+        npc && npc.id === ctx.frequency_npc_id ? this.script.defaults.puzzles.frequency_npc_rule ?? '' : '',
+      ].filter(Boolean).join('\n'),
       // Ce que ce personnage-là veut de ce que le joueur porte. Il se tait dès
       // que l'objet a changé de main : `offered_item` est alors consommé et
       // `wants` ne pointe plus sur rien que le joueur ait encore.
