@@ -37,11 +37,13 @@ const RANGE_DEG = 22
  * geste naturel est de relever le bord opposé pour le faire descendre dans le
  * texte, et presque tout le débattement sert à ça.
  *
- * ALLONGÉ, c'est la même hauteur, relevée de `POSTURE_LIFT_PX`.
+ * ALLONGÉ, l'appareil est TENU DEBOUT, écran face à soi, et l'oeil se range
+ * AU MILIEU : le poignet peut aller dans les deux sens, incliné vers le bas
+ * l'oeil descend, redressé au-delà il remonte.
  */
 const POSTURE_NEUTRAL_Y: Record<string, number> = {
   assis: 0.15,
-  allonge: 0.15,
+  allonge: 0.5,
 }
 
 /**
@@ -54,21 +56,17 @@ const POSTURE_TOP_Y: Record<string, number> = {
 }
 
 /**
- * Relèvement de l'oeil, en pixels, par posture.
+ * Relèvement de l'oeil, en pixels, par posture. En pixels et non en fraction
+ * d'écran, pour être le même sur tout appareil ; il s'applique après la butée.
  *
- * ALLONGÉ SE VISE EXACTEMENT COMME ASSIS — même origine, même amplitude, mêmes
- * gains — et l'oeil y est simplement 444 px plus haut (réglé par le user le
- * 2026-10-14). Les modèles propres à l'allongé (repos à 180°, puis tenu debout
- * à 90°) donnaient un geste différent d'assis, et c'est cette différence qui
- * gênait.
- *
- * En pixels et non en fraction d'écran, pour être le même sur tout appareil.
- * Le relèvement s'applique APRÈS la butée, à la position d'assis telle quelle :
- * l'appareil à plat, l'oeil est au-dessus de l'écran.
+ * ALLONGÉ N'EN A PLUS : le viser comme assis, relevé de 444 px, laissait
+ * l'appareil tenu debout loin de toute visée — à 90° du repos à plat, l'oeil
+ * était en butée et ne bougeait plus. L'allongé a désormais sa propre origine
+ * (`REST_BETA_DEG`) et sa propre hauteur de repos (`POSTURE_NEUTRAL_Y`).
  */
 const POSTURE_LIFT_PX: Record<string, number> = {
   assis: 0,
-  allonge: 444,
+  allonge: 0,
 }
 
 /**
@@ -79,15 +77,17 @@ const POSTURE_LIFT_PX: Record<string, number> = {
  * donnaient pas la même visée, et le joueur n'avait aucun moyen de savoir
  * laquelle il venait d'obtenir.
  *
- * Le repos est le téléphone POSÉ À PLAT, écran vers le ciel : 0°, dans les
- * deux postures — allongé ne diffère que par `POSTURE_LIFT_PX`.
+ * ASSIS, le repos est le téléphone POSÉ À PLAT, écran vers le ciel : 0°.
+ * ALLONGÉ, c'est le téléphone TENU DEBOUT, droit face à soi : 90°. Le geste
+ * reste celui d'assis — faire basculer le haut de l'appareil vers soi fait
+ * descendre l'oeil —, simplement pris à partir de la verticale.
  *
  * Le sens de l'inclinaison, lui, est porté par le vecteur vertical, qui n'a pas
  * besoin qu'on lui dise de quel côté on est — voir `upVector`.
  */
 const REST_BETA_DEG: Record<string, number> = {
   assis: 0,
-  allonge: 0,
+  allonge: 90,
 }
 
 /**

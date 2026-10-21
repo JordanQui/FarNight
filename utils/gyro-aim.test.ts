@@ -17,3 +17,11 @@ test('le passage de 179° à -179° ne fait pas sauter le viseur', () => {
   const aim = aimFrom(upVector(-179, 0), 90, 15.4, 0.5, 0.75, rest)
   assert.ok(aim.y > 0.5 && aim.y < 0.6)
 })
+test('allongé : debout au centre, le haut basculé vers soi fait descendre', () => {
+  const aim = (beta: number) => aimFrom(upVector(beta, 0), 90, 22, 0.5)
+  assert.deepEqual(aim(90), { x: 0.5, y: 0.5 })
+  assert.ok(aim(105).y > 0.5)
+  assert.ok(aim(75).y < 0.5)
+  // Même pente que la posture assise : 22° couvrent la moitié de l'écran.
+  assert.ok(Math.abs(aim(112).y - 1) < 1e-9)
+})
