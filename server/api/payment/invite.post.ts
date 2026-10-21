@@ -2,6 +2,7 @@ import { ScriptRuntime } from '~/utils/script-runtime'
 import { grantAccess, assertNotLocked } from '~/server/utils/session-quota'
 import { requireSecret } from '~/server/utils/runtime-secrets'
 import { inviteCode, inviteMatches } from '~/server/utils/invite-code'
+import { notifyPhone } from '~/server/utils/notify'
 
 /**
  * Passe le paywall avec un code d'invitation au lieu d'un paiement.
@@ -29,6 +30,13 @@ export default defineEventHandler(async (event) => {
 
   const runtime = await ScriptRuntime.load()
   const pass = grantAccess(event, `invite:${inviteCode(email, secret)}`, runtime.script.limits.paid.window_days)
+
+  await notifyPhone({
+    title: 'Nuit offerte',
+    message: `${email} — accès ouvert par code VIP`,
+    tags: ['star'],
+    priority: 4,
+  })
 
   return { success: true, expiresAt: pass.expires_at }
 })

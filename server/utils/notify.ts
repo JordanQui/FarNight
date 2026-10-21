@@ -1,6 +1,6 @@
 /**
  * Une notification sur le téléphone, par ntfy (https://ntfy.sh) : paywall
- * ouvert, paiement accepté, carte refusée.
+ * ouvert, paiement accepté, carte refusée, code VIP utilisé.
  *
  * Le sujet `NTFY_TOPIC` ne vit que dans les variables de Vercel : il tient
  * lieu de mot de passe (qui le connaît lit les notifications), et son absence
