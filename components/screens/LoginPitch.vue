@@ -71,7 +71,7 @@ const price = computed(() => money(paywallPrice.amount))
 
 <template>
   <div class="pitch">
-    <!-- Vous ne confiez rien, la machine parle de vous : les deux moitiés glissent l'une vers l'autre -->
+    <!-- A text based adventure, basée sur votre identité symbolique : les deux moitiés glissent l'une vers l'autre -->
     <section data-scrub class="relative overflow-x-clip pt-28 pb-20 sm:pt-40 sm:pb-28">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <p data-reveal class="eyebrow text-neon-400">{{ t('home.formula') }}</p>
