@@ -1,4 +1,4 @@
-import { vercelJson } from '~/server/utils/vercel-cli'
+import { type MetricQuery, metrics } from '~/server/utils/vercel-api'
 
 /**
  * La prod depuis le point de départ de la page (`?since=`, ISO), lue dans les
@@ -15,7 +15,6 @@ import { vercelJson } from '~/server/utils/vercel-cli'
  */
 
 type Row = Record<string, string | number | null>
-type Result = { query: { granularity: Record<string, number> }; summary: Row[]; data: Row[] }
 
 /** La valeur d'une ligne : la seule colonne que Vercel nomme d'après la métrique. */
 const value = (row?: Row) => Number(Object.entries(row ?? {}).find(([k]) => k.startsWith('vercel_'))?.[1] ?? 0)
@@ -27,31 +26,30 @@ const value = (row?: Row) => Number(Object.entries(row ?? {}).find(([k]) => k.st
  * leur réseau. Le 17/10 à 17 h, 18 balises de page vue sur 21 venaient de Meta.
  */
 const MACHINES = ['Facebook, Inc.', 'Amazon.com, Inc.', 'Google LLC', 'Microsoft Corporation', 'Hetzner Online GmbH', 'OVH SAS', 'DigitalOcean, LLC', 'HostRoyale Technologies Pvt Ltd', 'Tencent Building, Kejizhongyi Avenue']
-const HUMANS = ['-f', 'NOT botVerified:pass', '-f', `NOT asnName:(${MACHINES.map(n => `"${n}"`).join(' OR ')})`]
+const HUMANS = ['NOT botVerified:pass', `NOT asnName:(${MACHINES.map(n => `"${n}"`).join(' OR ')})`]
 /** La balise du script, une par page vue ; un robot déclaré reçoit 202 et n'est pas compté. */
-const PAGE_VIEW = ['-f', 'requestPath:*/view', '-f', 'httpStatus:200']
-const FUNCTIONS = ['-f', 'pathType:(func OR streaming_func)']
+const PAGE_VIEW = ['requestPath:*/view', 'httpStatus:200']
+const FUNCTIONS = ['pathType:(func OR streaming_func)']
 
 export default defineEventHandler(async (event) => {
   const since = new Date(String(getQuery(event).since))
   if (Number.isNaN(since.getTime())) throw createError({ statusCode: 400, statusMessage: 'since manquant ou illisible' })
   const granularity = '5m'
-  const metric = (id: string, ...args: string[]) =>
-    vercelJson<Result>(['metrics', id, '--since', since.toISOString(), '--prod', '--json', ...args])
+  const metric = (q: MetricQuery) => metrics(since, q)
 
   const errors: Record<string, string> = {}
   const soft = <T>(name: string, p: Promise<T>) => p.catch((e: Error) => { errors[name] = e.message; return null })
 
   const [visitors, views, countries, referrers, paths, statuses, outbound, openaiMs] = await Promise.all([
     // Une IP par visiteur : l'identifiant de Web Analytics n'existe que dans ses métriques.
-    soft('visiteurs', metric('vercel.request.count', ...PAGE_VIEW, ...HUMANS, '-a', 'unique/clientIp', '-g', granularity)),
-    soft('pages vues', metric('vercel.request.count', ...PAGE_VIEW, ...HUMANS, '-g', granularity)),
-    soft('pays', metric('vercel.analytics.page_view.count', '-a', 'unique/visitorId', '--group-by', 'country', '-l', '8')),
-    soft('provenance', metric('vercel.analytics.page_view.count', '--group-by', 'referrerHostname', '-l', '8')),
-    soft('routes', metric('vercel.request.count', ...FUNCTIONS, ...HUMANS, '--group-by', 'requestPath', '--group-by', 'httpStatus', '-l', '60')),
-    soft('statuts', metric('vercel.request.count', ...FUNCTIONS, ...HUMANS, '--group-by', 'httpStatus', '-g', granularity)),
-    soft('appels sortants', metric('vercel.external_api_request.count', '--group-by', 'requestHostname', '--group-by', 'httpStatus', '-l', '30')),
-    soft('durées OpenAI', metric('vercel.external_api_request.request_duration_ms', '-f', 'requestHostname:api.openai.com', '--group-by', 'requestPath')),
+    soft('visiteurs', metric({ metric: 'vercel.request.count', filters: [...PAGE_VIEW, ...HUMANS], aggregation: 'unique/clientIp', granularity })),
+    soft('pages vues', metric({ metric: 'vercel.request.count', filters: [...PAGE_VIEW, ...HUMANS], granularity })),
+    soft('pays', metric({ metric: 'vercel.analytics.page_view.count', aggregation: 'unique/visitorId', groupBy: ['country'], limit: 8 })),
+    soft('provenance', metric({ metric: 'vercel.analytics.page_view.count', groupBy: ['referrerHostname'], limit: 8 })),
+    soft('routes', metric({ metric: 'vercel.request.count', filters: [...FUNCTIONS, ...HUMANS], groupBy: ['requestPath', 'httpStatus'], limit: 60 })),
+    soft('statuts', metric({ metric: 'vercel.request.count', filters: [...FUNCTIONS, ...HUMANS], groupBy: ['httpStatus'], granularity })),
+    soft('appels sortants', metric({ metric: 'vercel.external_api_request.count', groupBy: ['requestHostname', 'httpStatus'], limit: 30 })),
+    soft('durées OpenAI', metric({ metric: 'vercel.external_api_request.request_duration_ms', filters: ['requestHostname:api.openai.com'], groupBy: ['requestPath'] })),
   ])
 
   const buckets = new Map<string, { at: string; visitors: number; views: number; ok: number; refused: number; failed: number }>()

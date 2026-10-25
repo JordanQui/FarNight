@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { vercelJson, vercelProject } from '~/server/utils/vercel-cli'
+import { isLocal } from '~/utils/app-env'
+import { alerts as listAlerts, api, deployments, envs, project as vercelProject, usage as billing } from '~/server/utils/vercel-api'
 
 /**
  * La prod en ce moment : ce qui tourne, depuis quand, si ça répond, ce que
@@ -14,16 +15,6 @@ import { vercelJson, vercelProject } from '~/server/utils/vercel-cli'
  */
 
 type Production = { id: string; url: string; createdAt: number; readyState: string; meta?: Record<string, string> }
-type Deployment = {
-  url: string; state: string; target: string | null; createdAt: number; buildingAt?: number; ready?: number
-  creator?: { username?: string }; meta?: Record<string, string>
-}
-type Usage = {
-  period: { from: string; to: string }
-  costUnit: string
-  creditBalance?: { allocated: number; used: number; remaining: number }
-  services: { name: string; quantity: number; unit: string; cost: number; category: string }[]
-}
 
 const laDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Los_Angeles' })
 
@@ -48,16 +39,17 @@ export default defineEventHandler(async (event) => {
   const errors: Record<string, string> = {}
   const soft = <T>(name: string, p: Promise<T>) => p.catch((e: Error) => { errors[name] = e.message; return null })
 
-  const { projectId, orgId } = await vercelProject()
-  const api = <T>(path: string) => vercelJson<T>(['api', `${path}?teamId=${orgId}`, '--raw'])
+  const { projectId } = await vercelProject().catch((e: Error) => {
+    throw createError({ statusCode: 500, statusMessage: e.message })
+  })
 
   const [project, domains, list, env, alerts, usage, ...status] = await Promise.all([
     soft('projet', api<{ name: string; framework?: string; nodeVersion?: string; serverlessFunctionRegion?: string; targets?: { production?: Production } }>(`/v9/projects/${projectId}`)),
     soft('domaines', api<{ domains: { name: string; verified: boolean; redirect: string | null }[] }>(`/v9/projects/${projectId}/domains`)),
-    soft('déploiements', vercelJson<{ contextName: string; deployments: Deployment[] }>(['ls', '--json', '--limit', '12'])),
-    soft('variables', vercelJson<{ envs: { key: string; target?: string[]; type: string; updatedAt: number }[] }>(['env', 'ls', '--json'])),
-    soft('alertes', vercelJson<{ groups: Record<string, unknown>[] }>(['alerts', '--json'])),
-    soft('facture', vercelJson<Usage>(['usage', '--json', '--from', laDay(since), '--to', laDay(new Date())])),
+    soft('déploiements', deployments(12)),
+    soft('variables', envs()),
+    soft('alertes', listAlerts()),
+    soft('facture', billing(laDay(since), laDay(new Date()))),
     soft('statut Vercel', statusPage('Vercel', 'https://www.vercel-status.com')),
     soft('statut OpenAI', statusPage('OpenAI', 'https://status.openai.com')),
   ])
@@ -69,7 +61,8 @@ export default defineEventHandler(async (event) => {
 
   const [ping, ahead] = await Promise.all([
     host ? soft('site', probe(`https://${host}/`)) : null,
-    sha ? soft('git', git('rev-list', '--count', `${sha}..HEAD`)) : null,
+    // Le dépôt local n'existe qu'en local.
+    sha && isLocal() ? soft('git', git('rev-list', '--count', `${sha}..HEAD`)) : null,
   ])
 
   return {

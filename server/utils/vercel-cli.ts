@@ -8,8 +8,8 @@ import { promisify } from 'node:util'
  *
  * Elle est déjà connectée et sait ce que l'API REST publique ne donne pas :
  * journaux historiques, métriques, facturation. Aucun jeton à recopier dans le
- * .env. Rien de tout ça n'existe en prod : /api/admin n'y répond pas
- * (server/middleware/admin-guard.ts), et la CLI n'y est pas installée.
+ * .env. Elle n'existe pas en prod : là, server/utils/vercel-api.ts appelle
+ * les mêmes routes avec un jeton.
  *
  * Le projet et l'équipe sont ceux de .vercel/project.json, posés par `vercel link`.
  */

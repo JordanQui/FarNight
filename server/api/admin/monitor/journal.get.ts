@@ -1,4 +1,4 @@
-import { VercelTimeout, vercelCli } from '~/server/utils/vercel-cli'
+import { requestLogs } from '~/server/utils/vercel-api'
 
 /**
  * Les erreurs de la prod depuis le point de départ de la page (`?since=`, ISO),
@@ -21,22 +21,16 @@ const LIMIT = 40
 const SCENE_LIMIT = 1000
 const TIMEOUT_MS = 45_000
 
-type Line = {
-  id: string; timestamp: number; level: string; message: string
-  requestMethod: string; requestPath: string; responseStatusCode: number
-  logs?: { level: string; message: string }[]
-}
-
-/** Les requêtes trouvées, ou null quand la CLI n'a rien rendu à temps. */
-async function read(args: string[]) {
+/** Les requêtes trouvées, ou null quand rien n'est venu à temps. */
+async function read(opts: { since: Date; limit: number; level?: string; search?: string }) {
   try {
-    const out = await vercelCli(['logs', '--json', '--environment', 'production', ...args], TIMEOUT_MS)
-    return out.split('\n').filter(l => l.startsWith('{')).map(l => JSON.parse(l) as Line)
+    return await requestLogs({ ...opts, timeoutMs: TIMEOUT_MS })
   } catch (e) {
-    if (e instanceof VercelTimeout) return null
     throw createError({ statusCode: 502, statusMessage: (e as Error).message })
   }
 }
+
+type Line = NonNullable<Awaited<ReturnType<typeof read>>>[number]
 
 /** La scène d'une requête, d'après le préfixe `[scene/<id>]` de ses lignes. */
 const sceneOf = (l: Line) => [l.message, ...(l.logs ?? []).map(x => x.message)]
@@ -48,8 +42,8 @@ export default defineEventHandler(async (event) => {
   if (Number.isNaN(since.getTime())) throw createError({ statusCode: 400, statusMessage: 'since manquant ou illisible' })
   const from = since.toISOString()
   const [lines, served] = await Promise.all([
-    read(['--level', 'error', '--since', from, '--limit', String(LIMIT)]),
-    read(['--query', '/api/scene/text', '--since', from, '--limit', String(SCENE_LIMIT)]),
+    read({ level: 'error', since, limit: LIMIT }),
+    read({ search: '/api/scene/text', since, limit: SCENE_LIMIT }),
   ])
   const scenes = (served ?? []).filter(l => l.requestPath === '/api/scene/text').map(sceneOf).filter(Boolean)
 
