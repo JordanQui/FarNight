@@ -15,6 +15,13 @@
 // Voir middleware/admin.ts : en production, derrière le mot de passe (utils/admin-access.ts).
 definePageMeta({ middleware: 'admin' })
 
+// Pas de zoom sur cette page, lue au téléphone. iOS ignore user-scalable=no
+// pour le pincement : touch-action (.bourse) et gesturestart le bloquent.
+useHead({ meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' }] })
+const noPinch = (e: Event) => e.preventDefault()
+onMounted(() => document.addEventListener('gesturestart', noPinch))
+onBeforeUnmount(() => document.removeEventListener('gesturestart', noPinch))
+
 const SINCE = '2026-10-15T11:48:00+02:00'
 const REFRESH_S = 120
 
@@ -474,7 +481,7 @@ const outbound = computed(() => {
         <h2>Viabilité <span>par pub · marge {{ money(MARGIN_EUR * 100) }} par vente · ventes nécessaires = dépense ÷ marge</span></h2>
         <p v-if="!studies" class="muted">lecture des pubs et de Stripe…</p>
         <template v-else>
-          <table class="tbl">
+          <div class="scroll"><table class="tbl">
             <thead><tr><th>Pub</th><th class="num">Dépense</th><th class="num">Clics</th><th class="num">Paywalls</th><th class="num">Ventes</th><th class="num">Nécessaires</th><th>Verdict</th></tr></thead>
             <tr v-for="s in studies" :key="s.tag ?? ''">
               <td><code v-if="s.tag">?c={{ s.tag }}</code><span v-else class="muted">sans étiquette</span></td>
@@ -487,7 +494,7 @@ const outbound = computed(() => {
                 <span class="pill" />{{ VERDICT[s.verdict] }}{{ s.verdict === 'bad' ? ` — ${Math.round(s.chance * 100)} % de chances au seuil` : '' }}
               </td>
             </tr>
-          </table>
+          </table></div>
           <p class="muted small">
             Toutes pubs confondues : {{ int(ads?.visits ?? 0) }} pages chargées derrière les clics Meta{{ tt ? `, ${int(tt.clicks)} clics TikTok` : '' }} → {{ int(route('/api/scene/text')?.total ?? 0) }} scènes écrites
             → {{ int(studies.reduce((n, s) => n + s.paywalls, 0)) }} paywalls → {{ int(studies.reduce((n, s) => n + s.sales, 0)) }} ventes. Seules les deux dernières étapes se lisent par pub.
@@ -532,14 +539,14 @@ const outbound = computed(() => {
           <p v-if="!stripe" class="muted">lecture de Stripe…</p>
           <template v-else>
             <p v-if="!stripe.recent.length" class="muted">Aucun paywall ouvert depuis l’ouverture.</p>
-            <table v-else class="tbl">
+            <div v-else class="scroll"><table class="tbl">
               <tr v-for="p in stripe.recent" :key="p.id">
                 <td class="t">{{ clock(p.created * 1000) }}</td>
                 <td class="num">{{ money(p.amount, p.currency) }}</td>
                 <td :class="p.status === 'succeeded' ? 'good' : 'muted'">{{ STRIPE_STATUS[p.status] ?? p.status }}</td>
                 <td class="bad">{{ p.error ?? '' }}</td>
               </tr>
-            </table>
+            </table></div>
             <p v-if="stripe.charges.failed" class="bad small">{{ stripe.charges.failed }} carte(s) refusée(s){{ stripe.refusals[0] ? ` — ${stripe.refusals[0].reason}` : '' }}</p>
             <p class="muted small">Les paywalls ouverts depuis ce poste comptent aussi : la clé Stripe du .env local est la clé live.</p>
             <NuxtLink to="/nimda/monitorpaiement" class="link">Le détail des requêtes Stripe →</NuxtLink>
@@ -552,7 +559,7 @@ const outbound = computed(() => {
         <h2>Cotes détaillées <span>routes du jeu depuis l’ouverture</span></h2>
         <p v-if="!trafic" class="muted">lecture des métriques…</p>
         <p v-else-if="!trafic.api.length" class="muted">Aucun appel depuis l’ouverture.</p>
-        <table v-else class="tbl">
+        <div v-else class="scroll"><table class="tbl">
           <thead><tr><th>Route</th><th class="num">Appels</th><th class="num">4xx</th><th class="num">5xx</th></tr></thead>
           <tr v-for="r in trafic.api" :key="r.path">
             <td><code>{{ r.path }}</code> <span class="muted">{{ ROUTES[r.path] ?? '' }}</span></td>
@@ -560,7 +567,7 @@ const outbound = computed(() => {
             <td class="num">{{ r.refused ? int(r.refused) : '' }}</td>
             <td class="num" :class="r.failed ? 'bad' : ''">{{ r.failed ? int(r.failed) : '' }}</td>
           </tr>
-        </table>
+        </table></div>
         <p class="muted small">/api/scene/text répond en flux : son 200 part avant la scène. Ses échecs se lisent dans les dépêches, pas dans la colonne 5xx.</p>
       </section>
 
@@ -571,13 +578,13 @@ const outbound = computed(() => {
           <p v-if="!trafic" class="muted">lecture des métriques…</p>
           <template v-else>
             <p v-if="!outbound.length" class="muted">Aucun appel sortant depuis l’ouverture.</p>
-            <table v-else class="tbl">
+            <div v-else class="scroll"><table class="tbl">
               <tr v-for="h in outbound" :key="h.host">
                 <td><code>{{ h.host }}</code></td>
                 <td class="num">{{ int(h.ok) }} ok</td>
                 <td class="bad">{{ h.failures.map(f => `${int(f.count)} × ${f.status}`).join(' · ') }}</td>
               </tr>
-            </table>
+            </table></div>
             <p v-for="d in trafic.openaiMs ?? []" :key="d.path" class="muted small">
               <code>{{ d.path }}</code> répond en {{ (d.avg / 1000).toFixed(1) }} s en moyenne
             </p>
@@ -614,15 +621,15 @@ const outbound = computed(() => {
               Dépenses facturées en dollars, converties à {{ openai.credit.usdToEur.toFixed(4) }} € le dollar.
               Aucune API ne donne ce solde, il se recale à chaque saisie.
             </p>
-            <table class="tbl">
+            <div class="scroll"><table class="tbl">
               <tr v-for="i in openai.items" :key="i.name"><td>{{ i.name }}</td><td class="num">{{ usd(i.usd) }}</td></tr>
-            </table>
-            <table class="tbl">
+            </table></div>
+            <div class="scroll"><table class="tbl">
               <thead><tr><th>Modèle</th><th class="num">Requêtes</th><th class="num">Entrée</th><th class="num">Sortie</th></tr></thead>
               <tr v-for="m in openai.models" :key="m.model">
                 <td>{{ m.model }}</td><td class="num">{{ int(m.requests) }}</td><td class="num">{{ int(m.input) }}</td><td class="num">{{ int(m.output) }}</td>
               </tr>
-            </table>
+            </table></div>
             <p v-for="m in openai.images" :key="m.model" class="muted small">Images {{ m.model }} : {{ int(m.images) }}</p>
             <p class="muted small">OpenAI met ces chiffres à jour avec quelques heures de retard.</p>
           </template>
@@ -640,7 +647,7 @@ const outbound = computed(() => {
         </p>
         <template v-else>
           <p v-if="!ads.campaigns.length" class="muted">Aucune campagne en cours.</p>
-          <table v-else class="tbl">
+          <div v-else class="scroll"><table class="tbl">
             <thead><tr><th>Campagne</th><th class="num">Budget</th><th class="num">Dépensé</th><th class="num">Depuis l’ouverture</th></tr></thead>
             <tr v-for="c in ads.campaigns" :key="c.id">
               <td>
@@ -654,7 +661,7 @@ const outbound = computed(() => {
               <td class="num">{{ money(c.lifetime * 100, ads.account.currency) }}</td>
               <td class="num">{{ money(c.spend * 100, ads.account.currency) }}</td>
             </tr>
-          </table>
+          </table></div>
           <p v-if="budgetLeft(ads.campaigns)" class="muted small">
             Les campagnes en cours peuvent encore dépenser {{ money(budgetLeft(ads.campaigns) * 100, ads.account.currency) }}, dans la limite des fonds prépayés.
             Ces fonds ne se lisent pas avec <code>ads_read</code> : Instagram → Paiements publicitaires.
@@ -691,7 +698,7 @@ const outbound = computed(() => {
         </div>
         <template v-else>
           <p v-if="!tt.campaigns.length" class="muted">Aucune campagne en cours.</p>
-          <table v-else class="tbl">
+          <div v-else class="scroll"><table class="tbl">
             <thead><tr><th>Campagne</th><th class="num">Budget</th><th class="num">Dépensé</th><th class="num">Depuis l’ouverture</th></tr></thead>
             <tr v-for="c in tt.campaigns" :key="c.id">
               <td>
@@ -703,7 +710,7 @@ const outbound = computed(() => {
               <td class="num">{{ money(c.lifetime * 100, tt.account.currency) }}</td>
               <td class="num">{{ money(c.spend * 100, tt.account.currency) }}</td>
             </tr>
-          </table>
+          </table></div>
           <p v-if="budgetLeft(tt.campaigns)" class="muted small">
             Les campagnes en cours peuvent encore dépenser {{ money(budgetLeft(tt.campaigns) * 100, tt.account.currency) }}, dans la limite du solde du compte.
           </p>
@@ -736,13 +743,13 @@ const outbound = computed(() => {
           </div>
           <div>
             <p class="k">Derniers déploiements</p>
-            <table class="tbl">
+            <div class="scroll"><table class="tbl">
               <tr v-for="d in (etat.deployments ?? []).slice(0, 6)" :key="d.url">
                 <td :class="d.state === 'READY' ? (d.live ? 'good' : 'muted') : 'bad'">{{ d.live ? 'EN LIGNE' : d.state }}</td>
                 <td>{{ d.message ?? d.url }}</td>
                 <td class="t">{{ dayMonth(d.createdAt) }} {{ hhmm(d.createdAt) }}</td>
               </tr>
-            </table>
+            </table></div>
             <p class="k">Variables de prod</p>
             <p v-for="e in etat.env ?? []" :key="e.key" class="small" :class="e.stale ? 'bad' : 'muted'">
               <code>{{ e.key }}</code>{{ e.stale ? ' — changée après le déploiement en ligne : redéployer' : '' }}
@@ -750,9 +757,9 @@ const outbound = computed(() => {
           </div>
           <div v-if="etat.usage">
             <p class="k">Vercel, du {{ new Date(etat.usage.from).toLocaleDateString('fr-FR') }} au {{ new Date(etat.usage.to).toLocaleDateString('fr-FR') }}</p>
-            <table class="tbl">
+            <div class="scroll"><table class="tbl">
               <tr v-for="s in etat.usage.services" :key="s.name"><td>{{ s.name }}</td><td class="num">{{ usd(s.cost) }}</td></tr>
-            </table>
+            </table></div>
             <a v-if="etat.dashboard" :href="etat.dashboard" target="_blank" rel="noopener" class="link">Ouvrir le projet sur Vercel →</a>
           </div>
         </div>
@@ -793,6 +800,7 @@ const outbound = computed(() => {
   background: #05070a;
   color: rgb(var(--ink-100));
   font-size: 13px;
+  touch-action: pan-x pan-y;
 }
 
 /* La séance */
@@ -846,7 +854,8 @@ const outbound = computed(() => {
 .warn { color: var(--warn); }
 .pill { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; margin-right: 8px; }
 
-.wrap { padding: 20px 24px 40px; display: grid; gap: 20px; }
+/* minmax(0, 1fr) : sans lui, la colonne prend la largeur du plus large tableau et la page déborde. */
+.wrap { padding: 20px 24px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; overflow-wrap: break-word; }
 
 /* Le tableau des cotes */
 .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
@@ -868,7 +877,7 @@ const outbound = computed(() => {
 
 /* Panneaux */
 .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 20px; }
-.panel { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; min-width: 0; }
 .panel h2 { font-size: 11px; color: rgb(var(--ink-100)); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 .panel h2 span { font-size: 9px; color: var(--muted); letter-spacing: 0.14em; }
 .small { font-size: 11px; }
@@ -876,12 +885,15 @@ code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9);
 .link { color: rgb(var(--neon-300)); font-size: 12px; }
 .link:hover { text-decoration: underline; text-underline-offset: 4px; }
 
+/* Un tableau trop large défile dans son panneau, pas la page. */
+.scroll { overflow-x: auto; }
 .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .tbl th { text-align: left; font-weight: normal; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 4px 8px 6px 0; }
 .tbl td { border-top: 1px solid var(--line); padding: 5px 8px 5px 0; vertical-align: top; }
 .tbl .num { text-align: right; white-space: nowrap; }
 .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
+.wire, .trail { grid-template-columns: minmax(0, 1fr); }
 .wire { display: grid; gap: 6px; }
 .wire > li { border-top: 1px solid var(--line); padding-top: 6px; }
 .wire summary { cursor: pointer; line-height: 1.5; }
@@ -891,6 +903,7 @@ code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9);
 .trail b { font-weight: normal; text-transform: uppercase; font-size: 9px; color: var(--muted); margin-right: 6px; }
 
 .infra { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
+.infra > * { min-width: 0; }
 .infra .k { font-size: 9px; color: var(--muted); margin-top: 8px; }
 .infra .k:first-child { margin-top: 0; }
 
@@ -918,7 +931,9 @@ code { font-family: 'Courier New', monospace; color: rgb(var(--neon-300) / 0.9);
   .clock { justify-self: center; }
   .meta { justify-self: stretch; text-align: left; }
   .btn { justify-self: start; }
-  .wrap { padding: 16px; }
+  /* En bas, la place du bouton « Remise à zéro », fixe. */
+  .wrap { padding: 16px 16px 64px; }
+  .panel { padding: 12px; }
   .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tile-value .led-ghost, .tile-value .led-on { font-size: 24px; }
 }

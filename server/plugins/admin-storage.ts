@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+import fsLiteDriver from 'unstorage/drivers/fs-lite'
 import upstashDriver from 'unstorage/drivers/upstash'
 
 /**
@@ -23,4 +25,9 @@ export default defineNitroPlugin(() => {
   // Sans dispose, le démontage est synchrone : le montage suit sans attendre.
   void storage.unmount('data', false)
   storage.mount('data', upstashDriver({ url, token, base: 'farnight' }))
+
+  // Les brouillons des posts refusés gardent leurs médias, vidéos comprises :
+  // Upstash refuse plus de 10 Mo par requête. Au poste, ils restent sur le disque.
+  // En prod, Vercel borne déjà l'envoi à 4,5 Mo.
+  if (import.meta.dev) storage.mount('data:socials:draft', fsLiteDriver({ base: resolve('.data/kv/socials/draft') }))
 })
