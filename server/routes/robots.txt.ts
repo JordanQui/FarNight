@@ -22,6 +22,7 @@ export default defineEventHandler((event) => {
     'User-agent: *',
     'Allow: /',
     'Disallow: /admin',
+    'Disallow: /nimda',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',

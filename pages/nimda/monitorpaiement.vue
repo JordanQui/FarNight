@@ -7,7 +7,7 @@
  * Stripe.js comprises, reste dans Workbench → Logs.
  */
 
-// Voir middleware/admin.ts : la page n'existe qu'en local.
+// Voir middleware/admin.ts : en production, derrière le mot de passe (utils/admin-access.ts).
 definePageMeta({ middleware: 'admin' })
 
 const { data, error, status, refresh } = await useFetch('/api/admin/payments')

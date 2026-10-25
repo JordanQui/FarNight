@@ -13,7 +13,7 @@ import type { InstagramPost, PostKind, PostStatus } from '~/types/instagram'
 import { FORMATS, formatsFor, place, type FormatId, type Framing } from '~/utils/instagram-crop'
 import { postPdf } from '~/utils/instagram-pdf'
 
-// Voir middleware/admin.ts : la page n'existe qu'en local.
+// Voir middleware/admin.ts : en production, derrière le mot de passe (utils/admin-access.ts).
 definePageMeta({ middleware: 'admin' })
 useHead({ title: 'Atelier Instagram' })
 

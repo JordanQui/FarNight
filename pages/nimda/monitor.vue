@@ -12,7 +12,7 @@
  * la cotation précédente. Rien ici n'appelle un modèle.
  */
 
-// Voir middleware/admin.ts : la page n'existe qu'en local.
+// Voir middleware/admin.ts : en production, derrière le mot de passe (utils/admin-access.ts).
 definePageMeta({ middleware: 'admin' })
 
 const SINCE = '2026-10-15T11:48:00+02:00'
