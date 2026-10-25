@@ -178,6 +178,8 @@ export default defineNuxtConfig({
     geminiApiKey: process.env.GEMINI_API_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     nuxtSecret: process.env.NUXT_SECRET,
+    /** Le mot de passe des pages d'admin ouvertes en prod. Voir server/utils/admin-session.ts. */
+    adminPassword: process.env.NUXT_ADMIN_PASSWORD,
 
     public: {
       /** `local` ou `production`. Voir utils/app-env.ts. */

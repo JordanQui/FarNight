@@ -1,6 +1,10 @@
 import { isLocal } from '~/utils/app-env'
+import { ADMIN_LOGIN_PAGE, isProdAdminApi, isProdAdminPage } from '~/utils/admin-access'
+import { hasAdminSession } from '~/server/utils/admin-session'
 /**
- * Tout ce qui vit sous /nimda (pages) et /api/admin n'existe qu'en local.
+ * Tout ce qui vit sous /nimda (pages) et /api/admin n'existe qu'en local,
+ * sauf le suivi de la prod et les réseaux (utils/admin-access.ts) : ceux-là
+ * s'ouvrent en production derrière un mot de passe (server/utils/admin-session.ts).
  *
  * Le 404 est délibéré plutôt qu'un 403 : une page d'administration ne doit pas
  * signaler sa propre existence. Le garde couvre les pages comme les routes
@@ -24,6 +28,16 @@ export default defineEventHandler((event) => {
   // l'est. Il ne fait rien de plus que « mémoire vide (test) ».
   const isTestTool = path.replace(/\/$/, '') === '/nimda/reset'
   if (isTestTool && useRuntimeConfig().public.lockOverride) return
+
+  if (path.replace(/\/$/, '') === ADMIN_LOGIN_PAGE) return
+  if (isProdAdminPage(path)) {
+    if (hasAdminSession(event)) return
+    return sendRedirect(event, `${ADMIN_LOGIN_PAGE}?next=${encodeURIComponent(path)}`, 302)
+  }
+  if (isProdAdminApi(path)) {
+    if (hasAdminSession(event)) return
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  }
 
   if (isAdmin) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' })
