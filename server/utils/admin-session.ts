@@ -4,7 +4,8 @@ import { requireSecret } from '~/server/utils/runtime-secrets'
 
 /**
  * La session d'admin en production : un cookie signé, ouvert par le mot de
- * passe (`NUXT_ADMIN_PASSWORD`, sinon celui par défaut).
+ * passe (`NUXT_ADMIN_PASSWORD`). Sans lui, aucun mot de passe n'ouvre : un
+ * oubli ne doit jamais rien ouvrir.
  *
  * La clé de signature mêle NUXT_SECRET et le mot de passe : en changer un
  * ferme toutes les sessions ouvertes.
@@ -12,10 +13,9 @@ import { requireSecret } from '~/server/utils/runtime-secrets'
 
 const ADMIN_COOKIE = 'fn_admin'
 const SESSION_DAYS = 30
-const DEFAULT_PASSWORD = '01234'
 
 function password(): string {
-  return (useRuntimeConfig().adminPassword || process.env.NUXT_ADMIN_PASSWORD || DEFAULT_PASSWORD).trim()
+  return (useRuntimeConfig().adminPassword || process.env.NUXT_ADMIN_PASSWORD || '').trim()
 }
 
 function key(): string {
@@ -33,7 +33,7 @@ function same(a: string, b: string): boolean {
 }
 
 export function passwordMatches(candidate: unknown): boolean {
-  return typeof candidate === 'string' && same(candidate.trim(), password())
+  return typeof candidate === 'string' && password() !== '' && same(candidate.trim(), password())
 }
 
 export function openAdminSession(event: H3Event): void {

@@ -499,7 +499,7 @@ const outbound = computed(() => {
         </template>
       </section>
 
-      <p v-for="e in [etatError, traficError, journalError, openaiError, stripeError, metaError, tiktokError, xError].filter(Boolean)" :key="reason(e)" class="err">{{ reason(e) }}</p>
+      <p v-for="msg in new Set([etatError, traficError, journalError, openaiError, stripeError, metaError, tiktokError, xError].filter(Boolean).map(reason))" :key="msg" class="err">{{ msg }}</p>
       <p v-for="(msg, name) in { ...(etat?.errors ?? {}), ...(trafic?.errors ?? {}) }" :key="name" class="err">{{ name }} — {{ msg }}</p>
 
       <div class="cols">
