@@ -22,6 +22,31 @@ const noPinch = (e: Event) => e.preventDefault()
 onMounted(() => document.addEventListener('gesturestart', noPinch))
 onBeforeUnmount(() => document.removeEventListener('gesturestart', noPinch))
 
+// L'écran reste allumé tant que la page est ouverte : c'est un tableau qu'on
+// laisse posé. Le navigateur relâche le verrou quand la page est masquée ; on le
+// redemande au retour (même logique que plugins/wake-lock.client.ts).
+let wakeLock: WakeLockSentinel | null = null
+async function keepAwake() {
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return
+  if (wakeLock && !wakeLock.released) return
+  try {
+    wakeLock = await navigator.wakeLock.request('screen')
+  } catch {
+    // Refusé (batterie faible, politique du navigateur) : la veille reprend ses droits.
+    wakeLock = null
+  }
+}
+const onVisibility = () => void keepAwake()
+onMounted(() => {
+  void keepAwake()
+  document.addEventListener('visibilitychange', onVisibility)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibility)
+  void wakeLock?.release().catch(() => {})
+  wakeLock = null
+})
+
 const SINCE = '2026-10-15T11:48:00+02:00'
 const REFRESH_S = 120
 
