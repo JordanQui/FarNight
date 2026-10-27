@@ -1,7 +1,9 @@
 <script setup lang="ts">
 const { lang, t } = useLang()
 
-import { pack } from '~/utils/languages'
+import { dirOf, pack } from '~/utils/languages'
+import { drawQuestCard } from '~/utils/quest-card'
+import { saveFile } from '~/utils/save-file'
 import { usePaywall } from '~/composables/usePaywall'
 import { useGameStore } from '~/stores/game'
 import { usePaymentStore } from '~/stores/payment'
@@ -86,6 +88,47 @@ const claims = computed(() => (paywall.value?.pitch?.points ?? [])
 /** La salle qu'il veut quitter, en fond : l'auberge a une image fixe. */
 const backdrop = computed(() => gameStore.currentSceneImageUrl || '/scenes/auberge.png')
 
+/**
+ * Le but de la nuit, à partager : une carte au format story, l'auberge et la
+ * phrase que le barman a dite. Dessinée dès l'arrivée, pour que le partage
+ * parte au clic — la feuille est refusée quand le geste est trop loin.
+ */
+const { origin, host } = useRequestURL({ xForwardedHost: true })
+const goal = computed(() => playerStore.scene?.night?.goal ?? '')
+const questCard = shallowRef<{ blob: Blob; url: string } | null>(null)
+
+async function prepareQuestCard() {
+  if (!goal.value) return
+  try {
+    const blob = await drawQuestCard({
+      goal: goal.value,
+      label: t('keepsake.goal'),
+      title: t('seo.title').split(/\s*—+\s*/)[0],
+      host,
+      tag: pack(lang.value).tag,
+      dir: dirOf(lang.value),
+    })
+    questCard.value = { blob, url: URL.createObjectURL(blob) }
+  } catch { /* pas de carte : le bouton reste éteint, l'écran tient */ }
+}
+
+/** La feuille de partage du système ; sans elle, l'image se télécharge. */
+async function shareQuest() {
+  const card = questCard.value
+  if (!card) return
+  const file = new File([card.blob], 'far-night.jpg', { type: card.blob.type })
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text: `${t('keepsake.goal')} — ${goal.value}\n${origin}/` })
+      return
+    } catch (err) {
+      // Feuille fermée par le joueur : il n'a rien demandé d'autre.
+      if ((err as Error).name === 'AbortError') return
+    }
+  }
+  await saveFile(card.blob, file.name)
+}
+
 /** Même averse que l'accueil, dérivée de l'index pour un rendu stable. */
 const raindrops = Array.from({ length: 36 }, (_, i) => ({
   left: (i * 37) % 100,
@@ -154,6 +197,7 @@ onMounted(async () => {
   }, { rootMargin: '0px 0px -10% 0px' })
   root.value?.querySelectorAll('[data-reveal]').forEach(el => observer?.observe(el))
   paint()
+  prepareQuestCard()
 
   try {
     const intent = await fetchPaymentIntent()
@@ -171,6 +215,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onScroll)
   if (frame) cancelAnimationFrame(frame)
   observer?.disconnect()
+  if (questCard.value) URL.revokeObjectURL(questCard.value.url)
 })
 
 // L'écran suivant tient dans la fenêtre : il n'hérite pas du défilement.
@@ -245,6 +290,16 @@ onUnmounted(() => window.scrollTo(0, 0))
             <blockquote class="stake-quote font-serif italic mt-4">{{ stake.quote }}</blockquote>
           </figure>
         </template>
+      </div>
+    </section>
+
+    <!-- Le but de la nuit, à emporter : la carte telle qu'elle partira, puis le geste -->
+    <section v-if="goal" class="px-4 sm:px-6 pb-24 sm:pb-36 flex flex-col items-center gap-8">
+      <div data-reveal class="quest-card w-full max-w-[17rem] aspect-[9/16]">
+        <img v-if="questCard" :src="questCard.url" :alt="goal" width="1080" height="1920" class="w-full h-full">
+      </div>
+      <div data-reveal class="w-full max-w-sm" style="--d: 1">
+        <GlowButton :disabled="!questCard" class="w-full" @click="shareQuest">{{ t('home.share') }}</GlowButton>
       </div>
     </section>
 
@@ -441,6 +496,12 @@ onUnmounted(() => window.scrollTo(0, 0))
   text-shadow: 0 0 18px rgb(var(--neon-500) / 0.45);
 }
 .arrow { filter: drop-shadow(0 0 6px rgb(var(--neon-500) / 0.8)); }
+
+/* La carte à partager, comme un écran allumé. */
+.quest-card {
+  background: rgb(var(--ink-800));
+  box-shadow: 0 0 0 1px rgb(var(--neon-600) / 0.4), 0 30px 90px -30px rgb(var(--neon-500) / 0.5);
+}
 
 /* Panneaux à double filet, comme les arguments de l'accueil. */
 .claim,
