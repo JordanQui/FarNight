@@ -556,6 +556,7 @@
     "build.step_image": "Ilustrasi sedang digambar",
     "paywall.processing": "Memproses pembayaran...",
     "paywall.withdrawal": "Dengan membayar, kamu meminta akses langsung ke sisa malam ini dan melepaskan hak pembatalanmu.",
+    "paywall.instagram": "Kamu sedang di browser Instagram: malammu akan tetap di sini. Untuk memainkannya di Safari atau Chrome, buka lewat menu ··· sebelum membayar.",
     "errors.server_status": "Server menjawab {{status}}",
     "errors.narrator_mute": "Narator tetap diam",
     "errors.narrator_timeout": "Kisahnya terputus. Narator terlalu lama.",

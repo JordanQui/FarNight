@@ -553,6 +553,7 @@
     "build.step_image": "イラストが描かれていく",
     "paywall.processing": "決済を処理中……",
     "paywall.withdrawal": "支払いをもって、夜の続きへの即時アクセスを求め、撤回権を放棄したものとみなされる。",
+    "paywall.instagram": "いまは Instagram のアプリ内ブラウザです。この夜はここに残ります。Safari や Chrome で遊ぶなら、支払いの前に ··· メニューから開いてください。",
     "errors.server_status": "サーバーの応答：{{status}}",
     "errors.narrator_mute": "語り手が黙り込んだ",
     "errors.narrator_timeout": "物語が途切れた。語り手に時間がかかりすぎた。",

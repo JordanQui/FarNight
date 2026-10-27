@@ -15,6 +15,9 @@ const playerStore = usePlayerStore()
 
 const isInitializing = ref(true)
 
+// Le navigateur d'Instagram garde ses cookies à part : la nuit payée n'en sort pas.
+const inInstagram = ref(false)
+
 // Nuit offerte : l'e-mail et le code qu'on en a tiré, à la place de la carte.
 const invite = reactive({ open: false, email: '', code: '' })
 
@@ -130,6 +133,7 @@ function toCheckout() {
 
 onMounted(async () => {
   motion.value = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  inInstagram.value = navigator.userAgent.includes('Instagram')
   window.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('resize', onScroll, { passive: true })
 
@@ -274,6 +278,8 @@ onUnmounted(() => window.scrollTo(0, 0))
           <p class="eyebrow text-steel-400">{{ t('paywall.secure') }}</p>
           <p class="neon-text font-display leading-none tracking-[0.02em] text-[clamp(4rem,18vw,6.5rem)] mt-5">{{ price }}</p>
         </div>
+
+        <p v-if="inInstagram" class="text-steel-400 text-[11px] leading-relaxed text-center">{{ t('paywall.instagram') }}</p>
 
         <!-- Formulaire Stripe : son fond est celui du panneau, il s'y fond -->
         <div class="card-panel">

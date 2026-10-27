@@ -552,6 +552,7 @@
     "build.step_image": "Hình minh họa đang được vẽ",
     "paywall.processing": "Đang xử lý thanh toán...",
     "paywall.withdrawal": "Khi thanh toán, bạn yêu cầu truy cập ngay phần còn lại của đêm và từ bỏ quyền hủy giao dịch.",
+    "paywall.instagram": "Bạn đang ở trong trình duyệt của Instagram: đêm của bạn sẽ ở lại đây. Để chơi trên Safari hoặc Chrome, hãy mở qua menu ··· trước khi thanh toán.",
     "errors.server_status": "Máy chủ trả về {{status}}",
     "errors.narrator_mute": "Người kể chuyện vẫn im lặng",
     "errors.narrator_timeout": "Câu chuyện bị ngắt. Người kể chuyện mất quá nhiều thời gian.",

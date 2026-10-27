@@ -612,6 +612,7 @@
     "build.step_image": "A ilustração desenha-se",
     "paywall.processing": "A processar o pagamento...",
     "paywall.withdrawal": "Ao pagar, você solicita acesso imediato ao resto da noite e renuncia ao seu direito de arrependimento.",
+    "paywall.instagram": "Você está no navegador do Instagram: sua noite vai ficar aqui. Para jogá-la no Safari ou no Chrome, use o menu ··· antes de pagar.",
     "errors.server_status": "O servidor respondeu {{status}}",
     "errors.narrator_mute": "O narrador ficou mudo",
     "errors.narrator_timeout": "O relato interrompeu-se. O narrador demorou demasiado.",
