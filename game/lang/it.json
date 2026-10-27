@@ -624,7 +624,7 @@
     "build.step_image": "L'illustrazione si disegna",
     "paywall.processing": "Elaborazione del pagamento...",
     "paywall.withdrawal": "Pagando, chiedi l'accesso immediato al resto della notte e rinunci al tuo diritto di recesso.",
-    "paywall.instagram": "Sei nel browser di Instagram: la tua notte resterà qui. Per giocarla in Safari o Chrome, passa dal menu ··· prima di pagare.",
+    "paywall.instagram": "Sei nel browser di Instagram: la tua notte resterà qui. Torna da Instagram per riprenderla.",
     "errors.server_status": "Il server ha risposto {{status}}",
     "errors.narrator_mute": "Il narratore è rimasto muto",
     "errors.narrator_timeout": "Il racconto si è interrotto. Il narratore ci ha messo troppo.",

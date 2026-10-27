@@ -581,7 +581,7 @@
     "build.step_image": "Ilustracja się rysuje",
     "paywall.processing": "Przetwarzanie płatności...",
     "paywall.withdrawal": "Płacąc, prosisz o natychmiastowy dostęp do dalszej części nocy i rezygnujesz z prawa do odstąpienia od umowy.",
-    "paywall.instagram": "Jesteś w przeglądarce Instagrama: twoja noc zostanie tutaj. Aby grać w Safari lub Chrome, przed zapłatą otwórz ją przez menu ···.",
+    "paywall.instagram": "Jesteś w przeglądarce Instagrama: twoja noc zostanie tutaj. Wróć przez Instagram, aby ją wznowić.",
     "errors.server_status": "Serwer odpowiedział {{status}}",
     "errors.narrator_mute": "Narrator milczał",
     "errors.narrator_timeout": "Opowieść się urwała. Narrator zwlekał zbyt długo.",

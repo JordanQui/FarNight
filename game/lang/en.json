@@ -569,7 +569,7 @@
     "build.step_image": "The illustration is being drawn",
     "paywall.processing": "Processing payment...",
     "paywall.withdrawal": "By paying, you ask for immediate access to the rest of the night and waive your right of withdrawal.",
-    "paywall.instagram": "You're in Instagram's browser: your night will stay here. To play it in Safari or Chrome, go through the ··· menu before paying.",
+    "paywall.instagram": "You're in Instagram's browser: your night will stay here. Come back through Instagram to pick it up again.",
     "errors.server_status": "The server answered {{status}}",
     "errors.narrator_mute": "The narrator stayed silent",
     "errors.narrator_timeout": "The story broke off. The narrator took too long.",

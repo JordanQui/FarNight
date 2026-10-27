@@ -577,7 +577,7 @@
     "build.step_image": "De illustratie wordt getekend",
     "paywall.processing": "Betaling wordt verwerkt...",
     "paywall.withdrawal": "Door te betalen vraag je direct toegang tot de rest van de nacht en zie je af van je herroepingsrecht.",
-    "paywall.instagram": "Je zit in de browser van Instagram: je nacht blijft hier. Wil je hem in Safari of Chrome spelen, open hem dan vóór het betalen via het menu ···.",
+    "paywall.instagram": "Je zit in de browser van Instagram: je nacht blijft hier. Kom via Instagram terug om hem te hervatten.",
     "errors.server_status": "De server antwoordde {{status}}",
     "errors.narrator_mute": "De verteller bleef stil",
     "errors.narrator_timeout": "Het verhaal brak af. De verteller deed er te lang over.",

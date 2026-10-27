@@ -609,7 +609,7 @@
     "build.step_image": "Die Illustration entsteht",
     "paywall.processing": "Zahlung wird verarbeitet...",
     "paywall.withdrawal": "Mit der Zahlung verlangst du sofortigen Zugang zum Rest der Nacht und verzichtest auf dein Widerrufsrecht.",
-    "paywall.instagram": "Du bist im Browser von Instagram: Deine Nacht bleibt hier. Um sie in Safari oder Chrome zu spielen, öffne sie vor dem Bezahlen über das Menü ···.",
+    "paywall.instagram": "Du bist im Browser von Instagram: Deine Nacht bleibt hier. Komm über Instagram zurück, um sie fortzusetzen.",
     "errors.server_status": "Der Server antwortete {{status}}",
     "errors.narrator_mute": "Der Erzähler blieb stumm",
     "errors.narrator_timeout": "Die Erzählung brach ab. Der Erzähler hat zu lange gebraucht.",

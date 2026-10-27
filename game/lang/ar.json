@@ -579,7 +579,7 @@
     "build.step_image": "الرسم يُخطّ",
     "paywall.processing": "جارٍ معالجة الدفع...",
     "paywall.withdrawal": "بالدفع، تطلب الوصول الفوري إلى بقية الليلة وتتنازل عن حقك في العدول.",
-    "paywall.instagram": "أنت في متصفح إنستغرام: ستبقى ليلتك هنا. لتلعبها في Safari أو Chrome، افتحها من القائمة ··· قبل الدفع.",
+    "paywall.instagram": "أنت في متصفح إنستغرام: ستبقى ليلتك هنا. عُد عبر إنستغرام لتستأنفها.",
     "errors.server_status": "ردّ الخادم: {{status}}",
     "errors.narrator_mute": "بقي الراوي صامتًا",
     "errors.narrator_timeout": "انقطعت الحكاية. تأخّر الراوي كثيرًا.",

@@ -553,7 +553,7 @@
     "build.step_image": "插图正在绘制",
     "paywall.processing": "正在处理付款……",
     "paywall.withdrawal": "付款即表示你要求立即开启这一夜的后续内容，并放弃撤销购买的权利。",
-    "paywall.instagram": "你正在 Instagram 的内置浏览器中：你的这一夜会留在这里。若想在 Safari 或 Chrome 中玩，请在付款前通过 ··· 菜单打开。",
+    "paywall.instagram": "你正在 Instagram 的内置浏览器中：你的这一夜会留在这里。请通过 Instagram 回来继续。",
     "errors.server_status": "服务器返回 {{status}}",
     "errors.narrator_mute": "叙述者沉默了",
     "errors.narrator_timeout": "故事中断了。叙述者用了太久。",

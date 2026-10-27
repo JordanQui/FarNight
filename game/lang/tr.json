@@ -579,7 +579,7 @@
     "build.step_image": "Çizim beliriyor",
     "paywall.processing": "Ödeme işleniyor...",
     "paywall.withdrawal": "Ödeme yaparak gecenin devamına hemen erişmek istersin ve cayma hakkından feragat edersin.",
-    "paywall.instagram": "Instagram'ın tarayıcısındasın: gecen burada kalacak. Safari ya da Chrome'da oynamak için ödemeden önce ··· menüsünü kullan.",
+    "paywall.instagram": "Instagram'ın tarayıcısındasın: gecen burada kalacak. Kaldığın yerden devam etmek için Instagram üzerinden geri dön.",
     "errors.server_status": "Sunucu {{status}} yanıtını verdi",
     "errors.narrator_mute": "Anlatıcı sessiz kaldı",
     "errors.narrator_timeout": "Anlatı kesildi. Anlatıcı çok geç kaldı.",
